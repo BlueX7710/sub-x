@@ -101,6 +101,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .scramble { font-family: var(--font-mono); font-size: clamp(16px, 2.2vw, 21px); line-height: 1.5; word-spacing: .25em; overflow-wrap: anywhere; margin: 0; }
 .scramble.long { font-size: clamp(14px, 1.7vw, 17px); }
 .drill-note { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+.drill-note.err { color: var(--hold); }
+.own-scr { width: 100%; font-family: var(--font-mono); font-size: 17px; word-spacing: .2em; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.own-scr::placeholder { font-family: var(--font-body); font-size: 14px; word-spacing: 0; color: var(--muted); }
 .net { width: 150px; height: auto; display: block; }
 @media (max-width: 520px) { .scramble-card { grid-template-columns: minmax(0, 1fr); } .net { width: 132px; justify-self: center; } }
 
@@ -277,6 +280,12 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
             <option value="444">4×4×4</option>
           </select>
         </label>
+        <label class="ctl" for="scrMode">Scramble
+          <select id="scrMode">
+            <option value="gen">Generated</option>
+            <option value="own">My own</option>
+          </select>
+        </label>
         <label class="ctl" for="goal">Goal sub
           <input id="goal" type="number" min="1" max="600" step="1" value="20">
         </label>
@@ -288,6 +297,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
           <div class="scramble-label" id="scrLabel"></div>
           <p class="scramble" id="scramble"></p>
           <p class="drill-note" id="drillNote" hidden></p>
+          <input id="ownScr" class="own-scr" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done" placeholder="Optional: type the scramble you used" aria-label="Your scramble" hidden>
+          <p class="drill-note" id="ownNote" hidden></p>
         </div>
         <svg class="net" id="net" role="img" aria-label="Cube state after the scramble"></svg>
       </section>
@@ -598,6 +609,12 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       $('drillNote').textContent = 'Hold a solved cube with yellow on top and green in front, do these setup moves, then solve the case. You may need to turn the top layer first so the case lines up. Drill times are not saved to your session.';
       $('scrCard').classList.add('drill');
       drawNet(scramble, 3, PAL_LL);
+    } else if (db.scrMode === 'own') {
+      $('scrLabel').innerHTML = '<span>Your scramble</span>';
+      $('drillNote').hidden = true;
+      $('scrCard').classList.remove('drill');
+      $('ownScr').value = '';
+      ownScrChanged();
     } else {
       scramble = genScramble(db.event);
       $('scrLabel').innerHTML = `<span>Scramble</span><button class="mini-btn" id="newScr" type="button">New</button><button class="mini-btn" id="copyScr" type="button">Copy</button>`;
@@ -605,8 +622,23 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       $('scrCard').classList.remove('drill');
       drawNet(scramble, EVENTS[db.event].n, PAL_WCA);
     }
-    $('scramble').textContent = scramble;
+    const own = !drill && db.scrMode === 'own';
+    $('scramble').hidden = own; $('ownScr').hidden = !own;
+    if (!own) { $('ownNote').hidden = true; $('scramble').textContent = scramble; }
     $('scramble').classList.toggle('long', !drill && db.event === '444');
+  }
+  const MOVE_RE = /^([URFDLB]w?|[urfdlbMESxyz])(2'|'2|'|2)?$/;
+  function ownScrChanged() {
+    const txt = $('ownScr').value.trim().replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+    const bad = txt ? Cube.tokens(txt).filter(t => !MOVE_RE.test(t)) : [];
+    scramble = txt;
+    drawNet(txt, EVENTS[db.event].n, PAL_WCA);
+    const note = $('ownNote');
+    note.hidden = false;
+    note.classList.toggle('err', bad.length > 0);
+    note.textContent = bad.length ? `Not recognised: ${bad.join(' ')}. Use moves like R U' F2 Rw.`
+      : txt ? 'The picture shows the cube after these moves (white on top, green in front). Press Enter when you are done typing.'
+      : 'Scramble your cube by hand and start the timer. If you type the scramble, it is pictured here and saved with the solve.';
   }
   function startDrill(c) {
     if (db.event !== '333') { db.event = '333'; $('event').value = '333'; save(); renderStats(); }
@@ -763,7 +795,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       drill.times.push(ms); clock.textContent = fmt(ms);
       setState('idle'); return;
     }
-    const solve = { ms, pen: lastPen, scr: scramble, t: Date.now() };
+    const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now() };
     db.solves[db.event].push(solve); save();
     justSolved = true; openIdx = -1;
     clock.innerHTML = fmtSolve(solve).replace(/\+$/, '<span class="pen">+2</span>');
@@ -797,6 +829,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     if (e.target.closest('button')) return;
     if (e.button !== undefined && e.button !== 0) return;
     downAt = state === 'running' ? null : { x: e.clientX, y: e.clientY, id: e.pointerId };
+    if (document.activeElement && document.activeElement.id === 'ownScr') document.activeElement.blur();
     e.preventDefault(); press();
   });
   function abortPress() {
@@ -1376,6 +1409,10 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   }
 
   // ---------- boot ----------
+  $('ownScr').addEventListener('input', ownScrChanged);
+  $('ownScr').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+  $('scrMode').addEventListener('change', e => { db.scrMode = e.target.value; save(); cancel(); newScramble(); e.target.blur(); });
+  $('scrMode').value = db.scrMode === 'own' ? 'own' : 'gen';
   $('event').value = db.event; $('insp').checked = db.inspection; $('goal').value = db.goal;
   setState('idle'); newScramble(); renderStats();
   showView(location.hash.slice(1) || 'timer');
