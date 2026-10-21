@@ -1,0 +1,12 @@
+{
+  "appId": "app.subx.cubetimer",
+  "appName": "Sub-X",
+  "webDir": "www",
+  "server": {
+    "url": "https://bluex7710.github.io/sub-x/",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "backgroundColor": "#0D1117"
+  }
+}

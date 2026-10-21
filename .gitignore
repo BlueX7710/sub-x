@@ -1,0 +1,21 @@
+# Built app (published as a GitHub Release instead)
+*.apk
+
+# Dependencies and build output
+node_modules/
+android-app/android/build/
+android-app/android/app/build/
+android-app/android/.gradle/
+android-app/android/local.properties
+android-app/android/app/src/main/assets/public/
+android-app/android/app/src/main/assets/capacitor.config.json
+android-app/android/app/src/main/assets/capacitor.plugins.json
+
+# Local tooling
+.claude/
+.netlify/
+.idea/
+
+# Working copy of the claude.ai artifact (tracked copy lives in claude-ai/)
+/sub-x-cube-timer.html
+/cube.js
