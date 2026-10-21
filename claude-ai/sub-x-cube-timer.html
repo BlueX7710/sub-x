@@ -107,7 +107,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .stage {
   flex: 1; min-height: 300px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 28px 16px;
-  user-select: none; -webkit-user-select: none; touch-action: none; -webkit-touch-callout: none;
+  user-select: none; -webkit-user-select: none; touch-action: pan-y; -webkit-touch-callout: none;
 }
 .clock { font-family: var(--font-mono); font-weight: 500; font-size: clamp(64px, 13vw, 150px); line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; transition: color .08s; }
 .clock .pen { font-size: .4em; color: var(--muted); margin-left: .1em; }
@@ -297,6 +297,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
         <div class="clock" id="clock">0.00</div>
         <div class="hint" id="hint"></div>
         <div class="last-actions" id="lastActions"></div>
+        <button type="button" class="pill-btn" id="cancelTimer" hidden>Cancel</button>
       </section>
     </div>
 
@@ -707,12 +708,13 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 
   function setState(s) {
     state = s; stage.dataset.s = s;
+    $('cancelTimer').hidden = s !== 'inspecting';
     document.body.classList.toggle('running', s === 'running');
     const touch = matchMedia('(pointer: coarse)').matches;
     const key = touch ? 'Touch and hold the timer' : 'Hold <kbd>space</kbd>';
     let idle = useInspection() ? `${touch ? 'Tap the timer' : 'Press <kbd>space</kbd>'} to start inspection.` : `${key}, then let go to start.`;
     if (drill && drill.times.length) idle += `<br>${esc(drill.name)} drills: ${drill.times.slice(-6).map(fmt).join(' · ')}`;
-    hint.innerHTML = { idle, arming: 'Let go to start inspection.', inspecting: `${key} until the lights go green, then let go. <kbd>Esc</kbd> cancels.`, holding: 'Keep holding…', ready: 'Let go to start.', running: '' }[s];
+    hint.innerHTML = { idle, arming: 'Let go to start inspection.', inspecting: `${key} until the lights go green, then let go. ${touch ? 'Tap Cancel to stop.' : '<kbd>Esc</kbd> cancels.'}`, holding: 'Keep holding…', ready: 'Let go to start.', running: '' }[s];
   }
   function tickInspection() {
     if (!['inspecting', 'holding', 'ready'].includes(state)) return;
@@ -740,6 +742,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     holdTimer = setTimeout(() => { if (state === 'holding') { setState('ready'); if (holdFrom === 'idle') clock.textContent = '0.00'; } }, HOLD_MS);
   }
   function release() {
+    downAt = null;
     if (ignoreRelease) { ignoreRelease = false; return; }
     if (state === 'arming') { inspStart = performance.now(); setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
     else if (state === 'holding') { clearTimeout(holdTimer); setState(holdFrom); }
@@ -787,17 +790,34 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     if (typing(e.target)) return;
     if (e.code === 'Space') { e.preventDefault(); release(); }
   });
+  // A press only counts if the finger stays put: moving more than a few pixels (a scroll
+  // or swipe) or the browser taking over the gesture undoes it.
+  let downAt = null;
   stage.addEventListener('pointerdown', e => {
     if (e.target.closest('button')) return;
     if (e.button !== undefined && e.button !== 0) return;
+    downAt = state === 'running' ? null : { x: e.clientX, y: e.clientY, id: e.pointerId };
     e.preventDefault(); press();
   });
+  function abortPress() {
+    downAt = null;
+    if (state === 'arming') { if (typeof camAbort === 'function') camAbort(); setState('idle'); clock.textContent = '0.00'; }
+    else if (state === 'holding' || state === 'ready') {
+      clearTimeout(holdTimer);
+      if (holdFrom === 'idle') { if (typeof camAbort === 'function') camAbort(); clock.textContent = '0.00'; }
+      setState(holdFrom);
+    }
+  }
+  stage.addEventListener('pointermove', e => {
+    if (downAt && e.pointerId === downAt.id && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 12) abortPress();
+  });
+  $('cancelTimer').addEventListener('click', () => cancel());
   document.addEventListener('pointerup', e => {
     if (view !== 'timer') return;
     if (e.target.closest && e.target.closest('button') && !ignoreRelease) return;
     release();
   });
-  document.addEventListener('pointercancel', () => { if (state === 'holding' || state === 'ready') { clearTimeout(holdTimer); setState(holdFrom); } });
+  document.addEventListener('pointercancel', () => { if (downAt) abortPress(); });
   stage.addEventListener('contextmenu', e => e.preventDefault());
 
   function setPen(i, pen) {
