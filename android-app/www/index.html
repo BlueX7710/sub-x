@@ -192,6 +192,22 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .case { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 6px 14px; align-content: start; }
 .case.learned { border-color: color-mix(in srgb, var(--ready) 55%, var(--line)); }
 .case svg { width: 84px; height: 84px; grid-row: span 2; }
+/* ---- 3D algorithm player ---- */
+.p3d-overlay { position: fixed; inset: 0; z-index: 10; background: rgb(8 10 14 / .55); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.p3d { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px 16px; width: min(440px, 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 12px 40px rgb(0 0 0 / .3); }
+.p3d-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.p3d-head h3 { margin: 0; font-family: var(--font-display); font-size: 24px; }
+.p3d canvas { width: 100%; aspect-ratio: 1; max-width: 100%; touch-action: none; cursor: grab; border-radius: 10px; background: var(--sunk); }
+.p3d canvas:active { cursor: grabbing; }
+.p3d-hint, .p3d-status { margin: 0; font-size: 13px; color: var(--muted); }
+.p3d-status { color: var(--ink); font-weight: 600; }
+.p3d-moves { display: flex; flex-wrap: wrap; gap: 4px; }
+.p3d-moves span { font-family: var(--font-mono); font-size: 15px; padding: 3px 7px; border-radius: 6px; border: 1px solid var(--line); }
+.p3d-moves span.done { color: var(--muted); border-color: transparent; }
+.p3d-moves span.cur { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.p3d-ctl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.p3d-ctl select { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+
 .case h3 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 700; line-height: 1.1; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .case h3 small { font-family: var(--font-body); font-weight: 500; font-size: 12px; color: var(--muted); }
 .case .alg { font-family: var(--font-mono); font-size: 13px; line-height: 1.5; margin: 0; overflow-wrap: anywhere; word-spacing: .15em; }
@@ -437,6 +453,23 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     </div>
   </main>
 </div>
+<div class="p3d-overlay" id="p3d" hidden role="dialog" aria-modal="true" aria-labelledby="p3dTitle">
+  <div class="p3d">
+    <div class="p3d-head"><h3 id="p3dTitle"></h3><button type="button" class="mini-btn" id="p3dClose">Close</button></div>
+    <canvas id="p3dCanvas" width="400" height="400" aria-label="3D cube showing the algorithm"></canvas>
+    <p class="p3d-hint">Drag to look around the cube. Yellow on top, green in front.</p>
+    <p class="p3d-status" id="p3dStatus"></p>
+    <div class="p3d-moves" id="p3dMoves"></div>
+    <div class="p3d-ctl">
+      <button type="button" class="pill-btn" id="p3dReset">Reset</button>
+      <button type="button" class="pill-btn" id="p3dBack">◀ Step</button>
+      <button type="button" class="btn" id="p3dPlay">Play</button>
+      <button type="button" class="pill-btn" id="p3dFwd">Step ▶</button>
+      <select id="p3dSpeed" aria-label="Speed"><option value="0.5">Slow</option><option value="1" selected>Normal</option><option value="2">Fast</option></select>
+    </div>
+    <label class="toggle" id="p3dAllWrap" for="p3dAll"><input type="checkbox" id="p3dAll"> Show last-layer colours</label>
+  </div>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -496,7 +529,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       return t.endsWith("'") ? t.slice(0, -1) : t + "'";
     }).join(' ');
   }
-  root.Cube = { AXIS, solved, apply, invert, tokens };
+  root.Cube = { AXIS, solved, apply, invert, tokens, parse };
 })(window);
 </script>
 <script>
@@ -564,28 +597,174 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   }
 
   // Top-down last-layer diagram: U face plus the top row of each side
-  function f2lDiagram(alg) {
-    const st = Cube.apply(Cube.solved(3), 3, Cube.invert(alg));
-    const idx = c => (c + 2) / 2, c = 15, key = p => p.join(',');
-    const cols = new Map();
-    for (const k of st) { const id = key(k.p); cols.set(id, (cols.get(id) || '') + k.col); }
-    const fill = k => cols.get(key(k.p)).includes('U') ? 'var(--ll-off)' : PAL_LL[k.col];
-    const faces = { U: [12, 2], F: [12, 52], R: [61, 52] };
-    let out = '';
-    for (const [x, y] of Object.values(faces)) out += `<rect x="${x - 1}" y="${y - 1}" width="${c * 3 + 2}" height="${c * 3 + 2}" rx="3" fill="var(--plastic)"/>`;
-    for (const k of st) {
-      const [x, y, z] = k.p, [nx, ny, nz] = k.n;
-      let f, col, row;
-      if (ny === 1) { f = 'U'; col = idx(x); row = idx(z); }
-      else if (nz === 1) { f = 'F'; col = idx(x); row = 2 - idx(y); }
-      else if (nx === 1) { f = 'R'; col = 2 - idx(z); row = 2 - idx(y); }
-      else continue;
-      const [ox, oy] = faces[f];
-      out += `<rect x="${ox + col * c + 0.8}" y="${oy + row * c + 0.8}" width="${c - 1.6}" height="${c - 1.6}" rx="2" fill="${fill(k)}"/>`;
+  const caseDiagram = c => c.mode === 'f2l' ? f2l3D(c.alg) : llDiagram(c.alg, c.mode);
+  // ---------- 3D cube: case pictures and the step-by-step player ----------
+  // Each cubie is drawn as a dark box plus its stickers. Faces are back-face culled; while a
+  // layer turns, the cube splits into convex blocks along the turn axis, drawn far to near.
+  const Cube3D = (() => {
+    const FACES = [[0, 1], [0, -1], [1, 1], [1, -1], [2, 1], [2, -1]];
+    function rotA(v, ax, a) {
+      const c = Math.cos(a), s = Math.sin(a), [x, y, z] = v;
+      if (ax === 0) return [x, y * c - z * s, y * s + z * c];
+      if (ax === 1) return [x * c + z * s, y, -x * s + z * c];
+      return [x * c - y * s, x * s + y * c, z];
     }
-    return `<svg viewBox="0 0 110 102" role="img" aria-label="F2L case: top, front and right faces, yellow on top, green in front">${out}</svg>`;
+    const view = (v, yaw, pitch) => rotA(rotA(v, 1, yaw), 0, pitch);
+    function quad(c, ax, h) {
+      const [u, w] = [0, 1, 2].filter(a => a !== ax);
+      return [[-h, -h], [h, -h], [h, h], [-h, h]].map(([a, b]) => { const p = c.slice(); p[u] += a; p[w] += b; return p; });
+    }
+    function frame(st, o) {
+      const T = o.turning, moving = p => !!(T && T.pick(p));
+      const cubies = new Map([['0,0,0', [0, 0, 0]]]);
+      for (const k of st) cubies.set(k.p.join(), k.p);
+      const tf = (p, v) => moving(p) ? rotA(v, T.ax, T.angle) : v;
+      let mc = 0;
+      if (T) { const ms = [...cubies.values()].filter(moving); mc = ms.reduce((a, p) => a + p[T.ax], 0) / Math.max(1, ms.length); }
+      const groups = new Map();
+      const group = p => {
+        const id = !T ? 'all' : moving(p) ? 'm' : 's' + Math.sign(p[T.ax] - mc);
+        if (!groups.has(id)) groups.set(id, { faces: [], stickers: [], ax: 0, n: 0 });
+        const G = groups.get(id); if (T) { G.ax += p[T.ax]; G.n++; } return G;
+      };
+      for (const p of cubies.values()) {
+        const G = group(p);
+        for (const [ax, s] of FACES) {
+          const q = p.slice(); q[ax] += 2 * s;
+          const exterior = Math.abs(q[ax]) > 2, cut = T && ax === T.ax && !exterior && moving(p) !== moving(q);
+          if (!exterior && !cut) continue;
+          const c = p.slice(); c[ax] += s; const n = [0, 0, 0]; n[ax] = s;
+          G.faces.push({ pts: quad(c, ax, 1).map(v => tf(p, v)), n: tf(p, n), fill: o.body });
+        }
+      }
+      for (const k of st) {
+        const ax = k.n.findIndex(v => v !== 0), c = k.p.map((v, i) => v + k.n[i] * 1.02);
+        group(k.p).stickers.push({ pts: quad(c, ax, 0.84).map(v => tf(k.p, v)), n: tf(k.p, k.n), fill: o.colorOf(k) });
+      }
+      // blocks are separated by planes across the turn axis: draw the far side first
+      const toward = T ? view([0, 0, 0].map((_, i) => i === T.ax ? 1 : 0), o.yaw, o.pitch)[2] : 0;
+      const order = [...groups.values()].sort((a, b) => (a.n ? a.ax / a.n : 0) * toward - (b.n ? b.ax / b.n : 0) * toward);
+      const polys = [];
+      for (const G of order) for (const f of G.faces.concat(G.stickers)) {
+        if (view(f.n, o.yaw, o.pitch)[2] <= 1e-6) continue;
+        polys.push({ pts: f.pts.map(v => { const w = view(v, o.yaw, o.pitch); return [w[0], -w[1]]; }), fill: f.fill });
+      }
+      return polys;
+    }
+    const svg = (polys, label) => `<svg viewBox="-5.4 -5.4 10.8 10.8" role="img" aria-label="${label}">${polys.map(p => `<polygon points="${p.pts.map(([x, y]) => x.toFixed(2) + ',' + y.toFixed(2)).join(' ')}" fill="${p.fill}" stroke="${p.fill}" stroke-width="0.05" stroke-linejoin="round"/>`).join('')}</svg>`;
+    return { frame, svg };
+  })();
+  // F2L: grey out the last-layer pieces (any piece with a yellow sticker) so the pair stands out
+  function markGrey(st) {
+    const cols = new Map();
+    for (const k of st) cols.set(k.p.join(), (cols.get(k.p.join()) || '') + k.col);
+    for (const k of st) k.grey = cols.get(k.p.join()).includes('U');
+    return st;
   }
-  const caseDiagram = c => c.mode === 'f2l' ? f2lDiagram(c.alg) : llDiagram(c.alg, c.mode);
+  const F2L_VIEW = { yaw: -0.62, pitch: 0.5 }, LL_VIEW = { yaw: -0.62, pitch: 0.8 };
+  function f2l3D(alg) {
+    const st = markGrey(Cube.apply(Cube.solved(3), 3, Cube.invert(alg)));
+    return Cube3D.svg(Cube3D.frame(st, { ...F2L_VIEW, body: 'var(--plastic)', colorOf: k => k.grey ? 'var(--ll-off)' : PAL_LL[k.col] }), 'F2L case in 3D: yellow on top, green in front');
+  }
+
+  const P3 = { open: false, c: null, st: null, moves: [], idx: 0, anim: null, playing: false, yaw: 0, pitch: 0, speed: 1, allColors: false, raf: 0, drag: null };
+  function p3dReset() {
+    P3.st = markGrey(Cube.apply(Cube.solved(3), 3, Cube.invert(P3.c.alg)));
+    P3.idx = 0; P3.anim = null; P3.playing = false; p3dUI();
+  }
+  function openPlayer(c) {
+    P3.c = c; P3.moves = Cube.tokens(c.alg);
+    Object.assign(P3, c.mode === 'f2l' ? F2L_VIEW : LL_VIEW);
+    $('p3dTitle').textContent = c.name + (c.mode === 'pll' ? ' perm' : '');
+    $('p3dAllWrap').hidden = c.mode !== 'f2l';
+    $('p3d').hidden = false; P3.open = true;
+    p3dReset(); p3dSize();
+    cancelAnimationFrame(P3.raf); P3.raf = requestAnimationFrame(p3dTick);
+    $('p3dPlay').focus();
+  }
+  function closePlayer() { $('p3d').hidden = true; P3.open = false; P3.playing = false; P3.anim = null; cancelAnimationFrame(P3.raf); }
+  function p3dSize() { const cv = $('p3dCanvas'), d = window.devicePixelRatio || 1, w = cv.clientWidth || 360; cv.width = cv.height = Math.round(w * d); }
+  function p3dStep(dir) {
+    if (P3.anim) return;
+    const i = dir > 0 ? P3.idx : P3.idx - 1;
+    if (i < 0 || i >= P3.moves.length) return;
+    const mv = Cube.parse(P3.moves[i], 3);
+    if (!mv) { P3.idx += dir; p3dUI(); return; }
+    P3.anim = { i, dir, mv, t0: performance.now(), dur: (mv.times === 2 ? 560 : 380) / P3.speed };
+    p3dUI();
+  }
+  function p3dTick(now) {
+    if (!P3.open) return;
+    let turning = null;
+    if (P3.anim) {
+      const A = P3.anim, t = Math.min(1, (now - A.t0) / A.dur), e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      if (t >= 1) {
+        const tok = P3.moves[A.i];
+        Cube.apply(P3.st, 3, A.dir > 0 ? tok : Cube.invert(tok));
+        P3.idx += A.dir; P3.anim = null; p3dUI();
+        if (P3.playing) {
+          if (P3.idx < P3.moves.length) setTimeout(() => { if (P3.playing) p3dStep(1); }, 160);
+          else { P3.playing = false; p3dUI(); }
+        }
+      } else turning = { pick: A.mv.pick, ax: A.mv.ax, angle: A.dir * A.mv.q * A.mv.times * (Math.PI / 2) * e };
+    }
+    p3dDraw(turning);
+    P3.raf = requestAnimationFrame(p3dTick);
+  }
+  function p3dDraw(turning) {
+    const cv = $('p3dCanvas'), ctx = cv.getContext('2d'), W = cv.width, cs = getComputedStyle(document.documentElement);
+    const body = cs.getPropertyValue('--plastic').trim() || '#16181C', grey = cs.getPropertyValue('--ll-off').trim() || '#9AA2AF';
+    const greyOn = P3.c.mode === 'f2l' && !P3.allColors;
+    const polys = Cube3D.frame(P3.st, { yaw: P3.yaw, pitch: P3.pitch, turning, body, colorOf: k => greyOn && k.grey ? grey : PAL_LL[k.col] });
+    const s = W / 10.8;
+    ctx.clearRect(0, 0, W, W); ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, W / 400);
+    for (const p of polys) {
+      ctx.beginPath();
+      p.pts.forEach(([x, y], i) => i ? ctx.lineTo(W / 2 + x * s, W / 2 + y * s) : ctx.moveTo(W / 2 + x * s, W / 2 + y * s));
+      ctx.closePath(); ctx.fillStyle = ctx.strokeStyle = p.fill; ctx.fill(); ctx.stroke();
+    }
+  }
+  function p3dUI() {
+    $('p3dMoves').innerHTML = P3.moves.map((m, i) => `<span class="${P3.anim && P3.anim.i === i ? 'cur' : i < P3.idx ? 'done' : ''}">${esc(m)}</span>`).join('');
+    const end = P3.idx >= P3.moves.length;
+    $('p3dPlay').textContent = P3.playing ? 'Pause' : end ? 'Replay' : 'Play';
+    $('p3dStatus').textContent = P3.idx === 0 && !P3.anim ? 'This is the case. Press Play or Step to see the algorithm.'
+      : end && !P3.anim ? (P3.c.mode === 'f2l' ? 'Done: the pair is in its slot.' : 'Done: the case is solved.')
+      : `Move ${(P3.anim ? P3.anim.i : P3.idx - 1) + 1} of ${P3.moves.length}`;
+  }
+  $('p3dPlay').addEventListener('click', () => {
+    if (P3.playing) { P3.playing = false; p3dUI(); return; }
+    if (P3.idx >= P3.moves.length && !P3.anim) p3dReset();
+    P3.playing = true; p3dUI(); p3dStep(1);
+  });
+  $('p3dFwd').addEventListener('click', () => { P3.playing = false; p3dStep(1); });
+  $('p3dBack').addEventListener('click', () => { P3.playing = false; p3dStep(-1); });
+  $('p3dReset').addEventListener('click', () => { if (!P3.anim) p3dReset(); });
+  $('p3dSpeed').addEventListener('change', e => { P3.speed = +e.target.value || 1; });
+  $('p3dAll').addEventListener('change', e => { P3.allColors = e.target.checked; });
+  $('p3dClose').addEventListener('click', closePlayer);
+  $('p3d').addEventListener('click', e => { if (e.target.id === 'p3d') closePlayer(); });
+  document.addEventListener('keydown', e => {
+    if (!P3.open) return;
+    if (e.key === 'Escape') closePlayer();
+    else if (e.key === 'ArrowRight') { P3.playing = false; p3dStep(1); }
+    else if (e.key === 'ArrowLeft') { P3.playing = false; p3dStep(-1); }
+    else return;
+    e.preventDefault();
+  });
+  window.addEventListener('resize', () => { if (P3.open) p3dSize(); });
+  {
+    const cv = $('p3dCanvas');
+    cv.addEventListener('pointerdown', e => { P3.drag = { x: e.clientX, y: e.clientY, yaw: P3.yaw, pitch: P3.pitch }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', e => {
+      if (!P3.drag) return;
+      P3.yaw = P3.drag.yaw + (e.clientX - P3.drag.x) * 0.01;
+      P3.pitch = Math.max(-1.45, Math.min(1.45, P3.drag.pitch + (e.clientY - P3.drag.y) * 0.01));
+    });
+    const end = () => { P3.drag = null; };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  }
+
 
   function llDiagram(alg, mode) {
     const st = Cube.apply(Cube.solved(3), 3, Cube.invert(alg));
@@ -937,6 +1116,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (b.id === 'newScr') newScramble();
     else if (b.id === 'copyScr') { try { navigator.clipboard.writeText(scramble).then(() => toast('Scramble copied'), selectScr); } catch (err) { selectScr(); } }
     else if (b.id === 'exitDrill') { drill = null; newScramble(); setState('idle'); clock.textContent = '0.00'; }
+    else if (b.dataset.p3d) { const c = caseById(b.dataset.p3d); if (c) openPlayer(c); }
     else if (b.dataset.drill !== undefined) { const c = caseById(b.dataset.drill); if (c) startDrill(c); }
     else if (b.dataset.learn !== undefined) { const id = b.dataset.learn; db.learned[id] = !db.learned[id]; save(); renderLearn(); }
     else if (b.dataset.lset) { learnSet = b.dataset.lset; renderLearn(); }
@@ -1194,7 +1374,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         html += `<article class="case${L ? ' learned' : ''}">${caseDiagram({ ...c, mode: set.mode })}<h3>${esc(c.name)}${set.mode === 'pll' ? '<small>perm</small>' : ''}</h3><p class="alg">${esc(c.alg)}</p>` +
           (c.tip ? `<p class="tip">${esc(c.tip)}</p>` : '') +
           `<p class="setup">Setup from solved: <span>${esc(Cube.invert(c.alg))}</span></p>` +
-          `<div class="acts"><button type="button" class="pill-btn learn-btn" data-learn="${c.id}" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button><button type="button" class="pill-btn" data-drill="${c.id}">Drill on timer</button></div></article>`;
+          `<div class="acts"><button type="button" class="pill-btn learn-btn" data-learn="${c.id}" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn" data-drill="${c.id}">Drill on timer</button></div></article>`;
       }
       html += '</div>';
     }
@@ -1216,7 +1396,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <h3>${quiz.shown ? esc(c.name) + (c.mode === 'pll' ? ' perm' : '') : 'Which case is this?'}</h3>
         <p class="alg">${quiz.shown ? esc(c.alg) : ''}</p>
         <div class="row">${quiz.shown
-          ? `<button type="button" class="btn" data-quiz="got">I knew it</button><button type="button" class="btn ghost" data-quiz="miss">Not yet</button><button type="button" class="pill-btn" data-drill="${c.id}">Drill on timer</button>`
+          ? `<button type="button" class="btn" data-quiz="got">I knew it</button><button type="button" class="btn ghost" data-quiz="miss">Not yet</button><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn" data-drill="${c.id}">Drill on timer</button>`
           : `<button type="button" class="btn" data-quiz="reveal">Reveal</button><button type="button" class="btn ghost" data-quiz="skip">Skip</button>`}</div>
         <div class="drill-stats">${quiz.total ? `${quiz.right} of ${quiz.total} known this round` : 'Answers are not saved; marking a case learned is done on its card.'}</div>
       </div></div></div>`;
