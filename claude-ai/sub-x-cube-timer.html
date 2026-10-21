@@ -346,7 +346,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
         </section>
         <section class="panel">
           <div class="label"><span><span class="step-num">2</span>Add a video of it</span></div>
-          <p class="lead">Prop your phone up so the cube and your hands are in frame, record the solve, then add the clip here. On a phone, Record opens the camera.</p>
+          <p class="lead">From the Sub-X app: tap <b>Choose video</b> and pick the newest <i>subx-…</i> clip (in Documents/Sub-X or Downloads). The review starts by itself. Otherwise, prop your phone up so the cube and your hands are in frame, record the solve and add the clip here. On a phone, Record opens the camera.</p>
           <div class="row-btns">
             <label class="btn" for="rvRecord" style="cursor:pointer">Record</label>
             <input id="rvRecord" type="file" accept="video/*" capture="environment" hidden>
@@ -1194,6 +1194,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       if (clipMeta) { rvStart = Math.max(0, clipMeta.off - 0.4); rvEnd = Math.min(rvDur, clipMeta.off + clipMeta.sec + 0.4); }
       showClip(); updateAvail();
       if (!rvDur) { $('rvAvail').className = 'notice err'; $('rvAvail').textContent = "Can't read this video's length. Try an MP4 or MOV file."; }
+      // A clip from the Sub-X app is already lined up with its solve, so start right away.
+      else if (clipMeta && !$('rvGo').disabled) $('rvGo').click();
     };
     vid.onloadedmetadata = () => {
       if (isFinite(vid.duration)) { rvDur = vid.duration; ready(); return; }

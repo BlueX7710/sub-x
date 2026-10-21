@@ -10,7 +10,7 @@ A speedcubing timer you can use in the browser, install as an app, or run on And
 - **Stats**: current and best single, mo3, ao5, ao12, ao50 and ao100, a trend chart, and a sub-X goal.
 - **Learn**: a CFOP guide, notation, 23 F2L cases, 2-look OLL (10 cases), full OLL (all 57) and all 21 PLLs. Each case has a diagram, its algorithm and the setup moves that create it on a solved cube, plus "mark learned", a recognition drill, and timed drills of single cases.
 - **Camera**: records each solve while the timer runs, so every clip starts and stops with the solve.
-- **AI review**: save a clip and open it in the claude.ai version of Sub-X to get a breakdown of where the time went (cross, F2L, OLL, PLL, pauses and tips). It runs on your Claude plan, so there's no API bill.
+- **AI review**: tap **Review with AI** after a recorded solve. Sub-X saves the clip and opens the claude.ai review page (in the Claude app if installed); pick the clip and you get a breakdown of where the time went (cross, F2L, OLL, PLL, pauses and tips). It runs on your Claude plan, so there's no API bill.
 
 Solves and recordings are stored only on your own device.
 

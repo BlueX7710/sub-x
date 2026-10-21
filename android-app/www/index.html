@@ -407,16 +407,17 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <h2>Clip <b id="rvTitle"></b></h2>
           <video id="rvVideo" class="vid" controls playsinline muted style="max-height:420px"></video>
           <div class="row-btns" style="margin-top:12px">
-            <button type="button" class="btn" id="rvSave">Save clip</button>
+            <button type="button" class="btn" id="rvAi">Review with AI</button>
+            <button type="button" class="btn ghost" id="rvSave">Save clip</button>
             <button type="button" class="btn ghost" id="rvShare" hidden>Share…</button>
           </div>
           <p class="lead" style="margin-top:8px">File: <span id="rvFile" style="font-family:var(--font-mono);overflow-wrap:anywhere"></span></p>
           <div class="notice" style="margin-top:14px">
-            <b>Get an AI review on your Claude plan (no API bill):</b>
+            <b>AI review is free on your Claude plan:</b>
             <ol style="margin:6px 0 0;padding-left:20px;line-height:1.6">
-              <li>Press <b>Save clip</b>.</li>
-              <li>Open <a id="rvOpen" target="_blank" rel="noopener">Sub-X on claude.ai</a> and go to <b>AI Review</b>.</li>
-              <li>Choose the saved file. Its name carries the solve time, so the clip is lined up for you. Then press <b>Analyze solve</b>.</li>
+              <li>Tap <b>Review with AI</b>. Sub-X saves the clip and opens the review page in Claude (the Claude app, if you have it).</li>
+              <li>Tap <b>Choose video</b> and pick the newest <i>subx-…</i> clip. The review starts by itself.</li>
+              <li>If Claude doesn't open, use <a id="rvOpen" target="_blank" rel="noopener">this link</a>.</li>
             </ol>
           </div>
         </div>
@@ -735,7 +736,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const box = $('lastActions'), list = db.solves[db.event];
     if (!list.length || !justSolved) { box.innerHTML = ''; return; }
     const i = list.length - 1;
-    box.innerHTML = penButtons(list[i], i) + (list[i].rec ? `<button type="button" class="pill-btn" data-review="${i}">Save clip</button>` : '');
+    box.innerHTML = penButtons(list[i], i) + (list[i].rec ? `<button type="button" class="pill-btn" data-aireview="${i}">Review with AI</button>` : '');
   }
 
   let toastTimer;
@@ -871,6 +872,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.pen) setPen(+b.dataset.i, b.dataset.pen);
     else if (b.dataset.del !== undefined) del(+b.dataset.del);
+    else if (b.dataset.aireview !== undefined) aiReviewSolve(db.solves[db.event][+b.dataset.aireview]);
     else if (b.dataset.review !== undefined) { rvPick = `${db.event}:${b.dataset.review}`; location.hash = 'review'; }
     else if (b.dataset.row !== undefined) { const i = +b.dataset.row; openIdx = openIdx === i ? -1 : i; renderList(solvesFor(db.event), db.goal * 1000); }
     else if (b.id === 'clearAsk') { confirmClear = true; renderStats(); }
@@ -1275,7 +1277,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // =====================================================================
   // RECORDINGS (watch back, save the clip for AI review on claude.ai)
   // =====================================================================
-  const REVIEW_URL = 'https://claude.ai/artifact/SBNFEGir43uePASXE5h3N9';
+  const REVIEW_URL = 'https://claude.ai/artifact/SBNFEGir43uePASXE5h3N9#review';
   let recs = [], rvRec = null, rvPick = null;
   const vid = $('rvVideo');
   const solveForRec = r => (db.solves[r.ev] || []).find(s => s.t === r.id) || null;
@@ -1321,6 +1323,43 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const { uri } = await Filesystem.writeFile({ path: clipName(r), data, directory: 'CACHE' });
     await Share.share({ title: 'Sub-X solve clip', files: [uri] });
   }
+  const toBase64 = blob => new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.onerror = rej; rd.readAsDataURL(blob); });
+  function downloadClip(r) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(r.video); a.download = clipName(r);
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  }
+  function openReviewPage() {
+    if (NATIVE) { location.href = REVIEW_URL; return; }  // the Android app hands claude.ai links to the Claude app or browser
+    const w = window.open(REVIEW_URL, '_blank');
+    if (w) w.opener = null; else location.href = REVIEW_URL;
+  }
+  // Save the clip where Claude's file picker can see it, then open the review page.
+  async function reviewWithAI(r) {
+    if (!r || !r.video) return;
+    if (NATIVE) {
+      try {
+        await window.Capacitor.Plugins.Filesystem.writeFile({ path: 'Sub-X/' + clipName(r), data: await toBase64(r.video), directory: 'DOCUMENTS', recursive: true });
+        toast('Clip saved to Documents/Sub-X. Opening Claude…');
+      } catch (e) {
+        // Older Android versions block that folder: fall back to the share sheet (pick Files or Downloads).
+        try { await nativeShareClip(r); } catch (e2) { toast("Couldn't save the clip. Try Save clip instead."); return; }
+      }
+      setTimeout(openReviewPage, 900);
+      return;
+    }
+    downloadClip(r);
+    toast('Clip saved to your downloads. Opening Claude…');
+    openReviewPage();
+  }
+  async function aiReviewSolve(s) {
+    if (!s) return;
+    const r = (await recAll()).find(x => x.id === s.t);
+    if (!r) { toast('The clip is still being saved. Try again in a second.'); return; }
+    reviewWithAI(r);
+  }
+  $('rvAi').addEventListener('click', () => reviewWithAI(rvRec));
   $('rvList').addEventListener('click', e => {
     const b = e.target.closest('button[data-rec]'); if (!b) return;
     rvRec = recs.find(r => r.id === +b.dataset.rec) || null;
@@ -1333,10 +1372,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       catch (e) { if (!/cancel/i.test(String(e && e.message))) toast("Couldn't share the clip. Try again."); }
       return;
     }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(rvRec.video); a.download = clipName(rvRec);
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    downloadClip(rvRec);
     toast('Clip saved to your downloads');
   });
   $('rvShare').addEventListener('click', async () => {
