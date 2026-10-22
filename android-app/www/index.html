@@ -127,6 +127,15 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .cross-sol p { margin: 0; }
 .cross-sol .alg { font-family: var(--font-mono); font-size: 20px; word-spacing: .2em; }
 .drill-note.ok { color: var(--ready); }
+.tr-clock { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; background: var(--sunk); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+.tr-clock .tr-label { grid-column: 1 / -1; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--muted); }
+.tr-clock b { font-family: var(--font-mono); font-size: 34px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tr-clock[data-phase="plan"] b { color: var(--accent); }
+.tr-clock[data-phase="solve"] b { color: var(--ready); }
+.tr-clock b.over { color: var(--warn); }
+.tr-clock .tr-hint, .tr-clock .drill-note { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin: 0; }
+.f2lt-pic svg { width: 170px; height: 170px; display: block; margin-top: 4px; }
+
 
 .own-scr { width: 100%; font-family: var(--font-mono); font-size: 17px; word-spacing: .2em; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
 .own-scr::placeholder { font-family: var(--font-body); font-size: 14px; word-spacing: 0; color: var(--muted); }
@@ -145,6 +154,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .scramble .sdone { opacity: .3; }
 .stage[data-s="smartReady"] .clock { color: var(--ready); }
 .stats tr.slow th, .stats tr.slow td { color: var(--hold); }
+.smart-pick { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.smart-pick p { flex-basis: 100%; }
 
 .stage[data-s="inspecting"] .clock, .stage[data-s="arming"] .clock { color: var(--accent); }
 .stage[data-s="inspecting"].warn .clock { color: var(--warn); }
@@ -427,6 +438,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <button type="button" class="pill-btn" id="smartReset" hidden>My cube is solved</button>
           <button type="button" class="pill-btn" id="smartDisc" hidden>Disconnect</button>
         </div>
+        <div id="smartPick" class="smart-pick" hidden></div>
         <div id="smartMac" hidden style="margin-top:10px">
           <label class="lead" for="smartMacInput" style="display:block;margin-bottom:6px">Your cube's MAC address. Find it in the GAN app, or in your phone's Bluetooth settings for the cube:</label>
           <div class="cross-try"><input id="smartMacInput" class="own-scr" type="text" autocomplete="off" spellcheck="false" placeholder="AB:12:CD:34:EF:56"><button type="button" class="btn ghost" id="smartMacOk">Continue</button></div>
@@ -742,8 +754,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     return st;
   }
   const F2L_VIEW = { yaw: -0.62, pitch: 0.5 }, LL_VIEW = { yaw: -0.62, pitch: 0.8 };
-  function f2l3D(alg) {
-    const st = markGrey(Cube.apply(Cube.solved(3), 3, Cube.invert(alg)));
+  function f2l3D(alg) { return f2l3DSetup(Cube.invert(alg)); }
+  function f2l3DSetup(setup) {
+    const st = markGrey(Cube.apply(Cube.solved(3), 3, setup));
     return Cube3D.svg(Cube3D.frame(st, { ...F2L_VIEW, body: 'var(--plastic)', colorOf: k => k.grey ? 'var(--ll-off)' : PAL_LL[k.col] }), 'F2L case in 3D: yellow on top, green in front');
   }
 
@@ -1200,6 +1213,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (b.id === 'newScr') newScramble();
     else if (b.id === 'copyScr') { try { navigator.clipboard.writeText(scramble).then(() => toast('Scramble copied'), selectScr); } catch (err) { selectScr(); } }
     else if (b.id === 'exitDrill') { drill = null; newScramble(); setState('idle'); clock.textContent = '0.00'; }
+    else if (b.dataset.tr) trNext();
+    else if (b.dataset.f2lt) f2ltAction(b.dataset.f2lt);
     else if (b.dataset.cross) crossAction(b.dataset.cross);
     else if (b.dataset.p3d) { const c = caseById(b.dataset.p3d); if (c) openPlayer(c); }
     else if (b.dataset.drill !== undefined) { const c = caseById(b.dataset.drill); if (c) startDrill(c); }
@@ -1506,6 +1521,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     oll: { title: '2-Look OLL', lead: 'Get the whole top face yellow in two steps: first the cross, then the corners. Ten algorithms, and the first three share one trigger.', groups: OLL, mode: 'oll' },
     ollf: { title: 'Full OLL', lead: 'All 57 OLL cases, grouped by the shape the yellow stickers make on top. Each one makes the whole top face yellow in a single algorithm. Learn 2-look OLL first: its 7 corner cases are OLL 21 to 27 here.', groups: OLL_FULL, mode: 'oll' },
     pll: { title: 'PLL', lead: 'With the top face yellow, these 21 algorithms move the last-layer pieces into place. Start with Ua, Ub, Aa, Ab, T and Jb.', groups: PLL, mode: 'pll' },
+    f2lt: { title: 'F2L trainer', lead: 'Practise one F2L pair at a time: set up a random case, recognise it, insert it, and see how long each part took.' },
     cross: { title: 'Cross trainer', lead: 'Practise planning the cross. Sub-X finds the shortest possible cross for every scramble, so you can compare it with yours.' },
     quiz: { title: 'Recognition drill', lead: 'Name the case, then reveal it. This uses spaced repetition: cases you miss come back within minutes, and cases you know come back after 1, 3, 7, 16 and then 35 days. Your schedule is saved and included in backups.' },
   };
@@ -1522,18 +1538,100 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const ALL_CASES = [...F2L, ...OLL, ...OLL_FULL, ...PLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.id.startsWith('ollf:') ? 'oll' : c.id.split(':')[0] })));
   const caseById = id => ALL_CASES.find(c => c.id === id);
   let learnSet = 'cfop';
+  // ---------- practice clock shared by the cross and F2L trainers ----------
+  // Scramble, then "I've scrambled" starts the planning clock, "Start solving" (or the first
+  // smart-cube turn) starts the solve clock, and "Done" (or the smart cube seeing the step solved)
+  // stops it. Space does the next step as well.
+  const TR = { phase: 'scramble', t0: 0, t1: 0, t2: 0, moves: 0, track: null, timer: 0 };
+  const trSmartOn = () => typeof SM !== 'undefined' && !!SM && !!SM.conn && typeof SmartCore !== 'undefined';
+  const trainerActive = () => view === 'learn' && (learnSet === 'cross' || learnSet === 'f2lt');
+  function trStart(cubeFrameScramble) {
+    TR.phase = 'scramble'; TR.t0 = TR.t1 = TR.t2 = 0; TR.moves = 0;
+    TR.track = trSmartOn() ? SmartCore.track(cubeFrameScramble) : null;
+    if (TR.track) SmartCore.step(TR.track, SM.cur, null);
+  }
+  function renderTrainer() { if (learnSet === 'cross') renderCross(); else if (learnSet === 'f2lt') renderF2LT(); }
+  function trNext() {
+    const now = performance.now();
+    if (TR.phase === 'scramble') { TR.phase = 'plan'; TR.t0 = now; }
+    else if (TR.phase === 'plan') { TR.phase = 'solve'; TR.t1 = now; }
+    else if (TR.phase === 'solve') {
+      TR.phase = 'done'; TR.t2 = now;
+      const rec = { plan: TR.t1 - TR.t0, solve: TR.t2 - TR.t1, moves: TR.moves };
+      if (learnSet === 'cross') { cross.hist.push(rec); cross.shown = true; } else { f2lt.hist.push(rec); f2lt.shown = true; }
+    }
+    else { if (learnSet === 'cross') newCross(); else newF2L(); }
+    renderTrainer();
+  }
+  const trTimeText = () => {
+    const now = performance.now();
+    return TR.phase === 'plan' ? ((now - TR.t0) / 1000).toFixed(1) + 's' : TR.phase === 'solve' ? fmt(now - TR.t1) : TR.phase === 'done' ? fmt(TR.t2 - TR.t1) : '0.0s';
+  };
+  function trSmartText(goal) {
+    const T = TR.track; if (!T) return '';
+    if (TR.phase === 'scramble') {
+      const lost = T.lost || (!T.sync && !T.off.length);
+      return lost ? "Smart cube: it doesn't match. Solve it and start the setup again, or tap “My cube is solved” in the Timer tab."
+        : T.off.length ? 'Smart cube: off the setup. Undo with ' + SmartCore.undoMoves(T)
+        : `Smart cube: ${T.k} of ${T.toks.length} moves done. The clock starts by itself when you finish.`;
+    }
+    return TR.phase === 'plan' ? 'Smart cube: your first turn starts the solve clock.' : TR.phase === 'solve' ? `Smart cube: the clock stops by itself when the ${goal} is solved.` : '';
+  }
+  function trClockHtml(goal) {
+    const label = { scramble: 'Scramble first', plan: 'Planning', solve: `Solving the ${goal}`, done: 'Finished' }[TR.phase];
+    const btn = { scramble: "I've scrambled: start the clock", plan: 'Start solving', solve: 'Done', done: 'Next' }[TR.phase];
+    const done = TR.phase === 'done' ? `Planned for ${((TR.t1 - TR.t0) / 1000).toFixed(1)}s, then solved the ${goal} in ${fmt(TR.t2 - TR.t1)}${TR.moves ? ` with ${TR.moves} moves` : ''}.` : '';
+    const smart = trSmartText(goal);
+    return `<div class="tr-clock" data-phase="${TR.phase}"><span class="tr-label">${label}</span><b id="trTime">${trTimeText()}</b>
+      <button type="button" class="btn" data-tr="next">${btn}</button>
+      <span class="tr-hint">${done || 'On a computer, press space for the next step.'}</span>
+      ${smart ? `<p class="drill-note">${esc(smart)}</p>` : ''}</div>`;
+  }
+  function trTick() {
+    clearInterval(TR.timer);
+    TR.timer = setInterval(() => {
+      const el = $('trTime');
+      if (!el || !trainerActive()) { clearInterval(TR.timer); return; }
+      el.textContent = trTimeText();
+      el.classList.toggle('over', TR.phase === 'plan' && performance.now() - TR.t0 > 15000);
+    }, 50);
+  }
+  const avgOfList = (arr, f) => arr.length ? arr.reduce((a, r) => a + f(r), 0) / arr.length : 0;
+  // smart-cube moves while a trainer is open (website and app only; see smartMove)
+  function trSmartMove(m) {
+    if (TR.phase === 'scramble') {
+      if (!TR.track) return false;
+      SmartCore.step(TR.track, SM.cur, m);
+      if (TR.track.done) trNext(); else renderTrainer();
+      return true;
+    }
+    if (TR.phase === 'plan') { TR.moves = 1; trNext(); return true; }
+    if (TR.phase === 'solve') {
+      TR.moves++;
+      const solved = learnSet === 'cross' ? CrossSolver.crossSolvedTop(SM.cur) : SmartCore.f2lSolvedTop(SM.cur);
+      if (solved) trNext(); else { const el = $('trTime'); if (el) el.textContent = trTimeText(); }
+      return true;
+    }
+    return true;
+  }
+  document.addEventListener('keydown', e => {
+    if (!trainerActive() || e.code !== 'Space' || e.repeat || typing(e.target) || (typeof P3 !== 'undefined' && P3.open)) return;
+    e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); trNext();
+  });
+
   // ---------- cross trainer ----------
-  const cross = { scr: '', sol: [], shown: false, t0: 0, level: 'any', check: '', checkClass: '', try: '', timer: 0, done: 0, best: 0 };
+  const cross = { scr: '', sol: [], shown: false, level: 'any', check: '', checkClass: '', try: '', hist: [] };
   function newCross() {
     for (let i = 0; i < 400; i++) {
       const scr = genScramble('333'), sol = CrossSolver.solveTop(scr), n = sol.length;
       if (cross.level === 'any' || (cross.level === 'easy' && n <= 5) || (cross.level === 'hard' && n >= 7) || i === 399) { cross.scr = scr; cross.sol = sol; break; }
     }
-    cross.shown = false; cross.t0 = performance.now(); cross.check = ''; cross.try = '';
+    cross.shown = false; cross.check = ''; cross.try = '';
+    trStart(cross.scr);   // the cube is scrambled white-on-top, which is the smart cube's own frame
   }
   function renderCross() {
     if (!cross.scr) newCross();
-    const n = cross.sol.length, levels = [['any', 'Any cross'], ['easy', 'Easier (5 moves or fewer)'], ['hard', 'Harder (7 or more)']];
+    const n = cross.sol.length, levels = [['any', 'Any cross'], ['easy', 'Easier (5 moves or fewer)'], ['hard', 'Harder (7 or more)']], H = cross.hist;
     $('learnBody').innerHTML = `<div class="cross-grid">
       <section class="panel">
         <div class="label"><span>Scramble · white on top, green in front</span><button type="button" class="mini-btn" data-cross="new">New scramble</button></div>
@@ -1542,30 +1640,24 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <div class="chips" style="margin-top:12px">${levels.map(([k, l]) => `<button type="button" class="chip" data-cross="lvl:${k}" aria-pressed="${cross.level === k}">${l}</button>`).join('')}</div>
       </section>
       <section class="panel">
-        <div class="label"><span>Plan the cross</span><b id="crossClock" style="font-family:var(--font-mono);color:var(--ink)"></b></div>
-        <p class="lead">Do the scramble, then turn the cube over so white is on the bottom (z2: green stays in front). Find all four white edges and plan the whole cross before you turn, like in inspection. Aim for 8 moves or fewer.</p>
+        ${trClockHtml('cross')}
+        <p class="lead">After scrambling, turn the cube over so white is on the bottom (z2: green stays in front). Plan all four white edges before your first turn, like in inspection. Aim for 8 moves or fewer.</p>
         <label class="lead" for="crossTry" style="display:block;margin-bottom:6px">Your cross with white on the bottom (optional, to check it):</label>
         <div class="cross-try"><input id="crossTry" class="own-scr" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. R' D F2 L"><button type="button" class="btn ghost" data-cross="check">Check</button></div>
         <p class="drill-note ${cross.checkClass}" id="crossCheck">${esc(cross.check)}</p>
-        <div class="row-btns" style="margin-top:12px"><button type="button" class="btn" data-cross="reveal">${cross.shown ? 'Hide best cross' : 'Show best cross'}</button></div>
+        <div class="row-btns" style="margin-top:12px"><button type="button" class="btn ghost" data-cross="reveal">${cross.shown ? 'Hide best cross' : 'Show best cross'}</button></div>
         ${cross.shown ? `<div class="cross-sol">
           <p><b>Best cross: ${n} move${n === 1 ? '' : 's'}</b> · white on the bottom, after z2</p>
           <p class="alg">${esc(CrossSolver.flip(cross.sol).join(' ') || 'Already solved')}</p>
           <p class="lead">The same cross with white on top: ${esc(cross.sol.join(' ') || 'none')}</p>
           ${n ? '<button type="button" class="pill-btn" data-cross="3d">Watch in 3D</button>' : ''}
         </div>` : ''}
-        <p class="drill-stats">${cross.done ? `This session: ${cross.done} cross${cross.done === 1 ? '' : 'es'} checked, ${cross.best} as short as the best.` : 'Shortest crosses are found by Sub-X itself, offline.'}</p>
+        <p class="drill-stats">${H.length ? `This session: ${H.length} cross${H.length === 1 ? '' : 'es'} · average planning ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average cross ${fmt(avgOfList(H, r => r.solve))}` : 'Shortest crosses are found by Sub-X itself, offline.'}</p>
       </section></div>`;
     drawNet(cross.scr, 3, PAL_WCA, 'crossNet');
     const inp = $('crossTry'); inp.value = cross.try;
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); crossAction('check'); } });
-    clearInterval(cross.timer);
-    const tick = () => {
-      const el = $('crossClock');
-      if (!el || learnSet !== 'cross' || view !== 'learn') { clearInterval(cross.timer); return; }
-      el.textContent = cross.shown ? '' : ((performance.now() - cross.t0) / 1000).toFixed(1) + 's';
-    };
-    tick(); cross.timer = setInterval(tick, 100);
+    trTick();
   }
   function crossCheck() {
     const txt = cross.try.trim().replace(/[’‘]/g, "'");
@@ -1577,7 +1669,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const ok = CrossSolver.crossSolvedTop(Cube.apply(Cube.solved(3), 3, cross.scr + ' z2 ' + txt + ' z2'));
     const n = toks.filter(t => !/^[xyz]/.test(t)).length, best = cross.sol.length;
     if (!ok) { cross.check = "That doesn't solve the cross. Check the moves, or show the best cross."; return; }
-    cross.done++; if (n <= best) cross.best++;
     cross.checkClass = 'ok';
     cross.check = n <= best ? `Yes: that solves the cross in ${n} moves, as short as it gets.` : `Yes: that solves the cross in ${n} moves. The best is ${best}.`;
   }
@@ -1589,6 +1680,54 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (a === 'check') crossCheck();
     else if (a === '3d') { if (cross.sol.length) openPlayer({ id: 'cross', name: 'Best cross', alg: cross.sol.join(' '), mode: 'cross' }); return; }
     renderCross();
+  }
+
+  // ---------- F2L trainer ----------
+  // A random F2L case for the front-right slot, set up on a solved cube (yellow on top, green in
+  // front) with a random top-layer turn, so you practise recognising it as well as solving it.
+  const f2lt = { c: null, scr: '', pool: 'all', shown: false, pic: true, hist: [] };
+  function newF2L() {
+    const all = F2L.flatMap(g => g.items);
+    let pool = all.filter(c => f2lt.pool === 'all' || (f2lt.pool === 'learned') === !!db.learned[c.id]);
+    if (!pool.length) pool = all;
+    let c; do { c = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && f2lt.c && c.id === f2lt.c.id);
+    const auf = ['', 'U', "U'", 'U2'][Math.floor(Math.random() * 4)];
+    f2lt.c = c; f2lt.scr = (Cube.invert(c.alg) + ' ' + auf).trim(); f2lt.shown = false;
+    trStart(CrossSolver.flip(Cube.tokens(f2lt.scr)).join(' '));   // smart cubes report moves white-on-top
+  }
+  function renderF2LT() {
+    if (!f2lt.c) newF2L();
+    const c = f2lt.c, H = f2lt.hist, L = !!db.learned[c.id];
+    const pools = [['all', 'All 23 cases'], ['learned', 'Learned'], ['new', 'Not learned yet']];
+    $('learnBody').innerHTML = `<div class="cross-grid">
+      <section class="panel">
+        <div class="label"><span>Setup · yellow on top, green in front</span><button type="button" class="mini-btn" data-f2lt="new">New case</button></div>
+        <p class="scramble">${esc(f2lt.scr)}</p>
+        <p class="lead">Do these moves on a solved cube. They mix up the front-right pair and leave the rest of the first two layers solved.</p>
+        ${f2lt.pic ? `<div class="f2lt-pic">${f2l3DSetup(f2lt.scr)}</div>` : ''}
+        <div class="chips" style="margin-top:12px">${pools.map(([k, l]) => `<button type="button" class="chip" data-f2lt="pool:${k}" aria-pressed="${f2lt.pool === k}">${l}</button>`).join('')}
+          <button type="button" class="chip" data-f2lt="pic" aria-pressed="${!f2lt.pic}">Hide picture</button></div>
+      </section>
+      <section class="panel">
+        ${trClockHtml('pair')}
+        <p class="lead">Find the white corner and its edge, recognise the case, then insert the pair into the front-right slot. Planning time is your recognition time.</p>
+        <div class="row-btns"><button type="button" class="btn ghost" data-f2lt="reveal">${f2lt.shown ? 'Hide the case' : 'Show the case'}</button></div>
+        ${f2lt.shown ? `<div class="cross-sol">
+          <p><b>${esc(c.name)}</b> · ${esc((F2L.find(g => g.items.includes(c)) || {}).group || '')}</p>
+          <p class="alg">${esc(c.alg)}</p>
+          <div class="row-btns"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn learn-btn" data-f2lt="learn" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button></div>
+        </div>` : ''}
+        <p class="drill-stats">${H.length ? `This session: ${H.length} pair${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(H, r => r.solve))}` : 'The cube picture shows the case after the setup. Hide it to practise recognising the case on your real cube.'}</p>
+      </section></div>`;
+    trTick();
+  }
+  function f2ltAction(a) {
+    if (a === 'new') newF2L();
+    else if (a.startsWith('pool:')) { f2lt.pool = a.slice(5); newF2L(); }
+    else if (a === 'pic') f2lt.pic = !f2lt.pic;
+    else if (a === 'reveal') f2lt.shown = !f2lt.shown;
+    else if (a === 'learn') { db.learned[f2lt.c.id] = !db.learned[f2lt.c.id]; save(); }
+    renderF2LT();
   }
 
   // ---------- spaced repetition for the recognition drill ----------
@@ -1674,7 +1813,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     $('learnLead').textContent = set.lead;
     const count = key => ALL_CASES.filter(c => c.id.startsWith(key + ':')).length;
     const done = key => ALL_CASES.filter(c => c.id.startsWith(key + ':') && db.learned[c.id]).length;
-    $('learnChips').innerHTML = [['cfop', 'CFOP guide', ''], ['cross', 'Cross trainer', ''], ['notation', 'Notation', ''], ['f2l', 'F2L', `${done('f2l')}/${count('f2l')}`], ['oll', '2-Look OLL', `${done('oll')}/${count('oll')}`], ['ollf', 'Full OLL', `${done('ollf')}/${count('ollf')}`], ['pll', 'PLL', `${done('pll')}/${count('pll')}`], ['quiz', 'Drill', '']]
+    $('learnChips').innerHTML = [['cfop', 'CFOP guide', ''], ['cross', 'Cross trainer', ''], ['f2lt', 'F2L trainer', ''], ['notation', 'Notation', ''], ['f2l', 'F2L', `${done('f2l')}/${count('f2l')}`], ['oll', '2-Look OLL', `${done('oll')}/${count('oll')}`], ['ollf', 'Full OLL', `${done('ollf')}/${count('ollf')}`], ['pll', 'PLL', `${done('pll')}/${count('pll')}`], ['quiz', 'Drill', '']]
       .map(([k, label, n]) => `<button type="button" class="chip" data-lset="${k}" aria-pressed="${learnSet === k}">${label}${n ? `<small>${n}</small>` : ''}</button>`).join('');
 
     const body = $('learnBody');
@@ -1684,6 +1823,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     }
     if (learnSet === 'quiz') { renderQuiz(); return; }
     if (learnSet === 'cross') { renderCross(); return; }
+    if (learnSet === 'f2lt') { renderF2LT(); return; }
     if (learnSet === 'cfop') {
       body.innerHTML = `<div class="cfop">${CFOP_STEPS.map(s => `<section class="cfop-step"><div class="num">${s.n}</div><h3>${esc(s.title)}<small>${esc(s.sub)}</small></h3><p>${esc(s.text)}</p><div><ul>${s.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul>${s.set ? `<div class="acts"><button type="button" class="pill-btn" data-lset="${s.set}">${esc(s.btn)}</button>${count(s.set) ? `<span class="drill-stats" style="margin:0;align-self:center">${done(s.set)} of ${count(s.set)} learned</span>` : ''}</div>` : ''}</div></section>`).join('')}
         <div class="cfop-path"><h3>Suggested order</h3><ol>
@@ -2040,14 +2180,121 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (res.oll === null) res.oll = res.total;
       return res;
     }
-    return { clone, sig, isSolved, fromFacelets, toFacelets, track, step, undoMoves, splits };
+    // first two layers solved with white on top (the smart cube's own frame): everything above the bottom layer
+    const f2lSolvedTop = st => st.every(k => k.p[1] < 0 || k.col === HOME(k.n));
+    return { clone, sig, isSolved, fromFacelets, toFacelets, track, step, undoMoves, splits, f2lSolvedTop };
   })();
+
+
+  // ---------- Android app: Bluetooth LE plugin dressed up as Web Bluetooth ----------
+  // gan-web-bluetooth calls navigator.bluetooth.requestDevice, device.gatt.connect/getPrimaryServices,
+  // service.getCharacteristic, characteristic start/stopNotifications + 'characteristicvaluechanged',
+  // writeValue and the 'gattserverdisconnected' event. This provides exactly those on top of the plugin.
+  function nativeBluetooth() {
+    const BLE = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe;
+    if (!NATIVE || !BLE || (window.Capacitor.isPluginAvailable && !window.Capacitor.isPluginAvailable('BluetoothLe'))) return null;
+    const hex = v => { const u = ArrayBuffer.isView(v) ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength) : new Uint8Array(v); return Array.from(u, n => n.toString(16).padStart(2, '0')).join(''); };
+    const toDV = h => { const pairs = String(h || '').replace(/[^0-9a-f]/gi, '').match(/../g) || []; return new DataView(Uint8Array.from(pairs, p => parseInt(p, 16)).buffer); };
+    class Emitter {
+      constructor() { this._l = {}; }
+      addEventListener(t, f) { (this._l[t] = this._l[t] || []).push(f); }
+      removeEventListener(t, f) { this._l[t] = (this._l[t] || []).filter(x => x !== f); }
+      _emit(t, e) { (this._l[t] || []).slice().forEach(f => { try { f(e); } catch (err) { console.error(err); } }); }
+    }
+    let ready = false;
+    async function init() {
+      if (ready) return;
+      await BLE.initialize({ androidNeverForLocation: true });
+      try { if (!(await BLE.isEnabled()).value) await BLE.requestEnable(); } catch (e) {}
+      ready = true;
+    }
+    function makeChar(id, svc, chr) {
+      const ch = new Emitter(); ch.uuid = chr; ch.value = null; let sub = null;
+      const where = { deviceId: id, service: svc, characteristic: chr };
+      ch.startNotifications = async () => {
+        if (sub) await sub.remove();
+        sub = await BLE.addListener(`notification|${id}|${svc}|${chr}`, ev => { ch.value = toDV(ev && ev.value); ch._emit('characteristicvaluechanged', { target: ch }); });
+        await BLE.startNotifications(where); return ch;
+      };
+      ch.stopNotifications = async () => { if (sub) { await sub.remove(); sub = null; } await BLE.stopNotifications(where); return ch; };
+      ch.writeValue = v => BLE.write({ ...where, value: hex(v) });
+      ch.writeValueWithResponse = ch.writeValue;
+      ch.writeValueWithoutResponse = v => BLE.writeWithoutResponse({ ...where, value: hex(v) });
+      ch.readValue = async () => { const r = await BLE.read(where); ch.value = toDV(r.value); return ch.value; };
+      return ch;
+    }
+    function makeDevice(id, name) {
+      const dev = new Emitter(); dev.id = id; dev.name = name;
+      let gone = null;
+      dev.gatt = {
+        connected: false, device: dev,
+        connect: async () => {
+          gone = await BLE.addListener('disconnected|' + id, () => { dev.gatt.connected = false; if (gone) gone.remove(); gone = null; dev._emit('gattserverdisconnected', { target: dev }); });
+          await BLE.connect({ deviceId: id, timeout: 15000 });
+          dev.gatt.connected = true; return dev.gatt;
+        },
+        disconnect: () => { BLE.disconnect({ deviceId: id }).catch(() => {}); },
+        getPrimaryServices: async () => {
+          const { services } = await BLE.getServices({ deviceId: id });
+          return services.map(s => {
+            const svc = s.uuid.toLowerCase();
+            return { uuid: svc, getCharacteristic: async u => {
+              const c = s.characteristics.find(c => c.uuid.toLowerCase() === String(u).toLowerCase());
+              if (!c) throw new Error('Characteristic not found: ' + u);
+              return makeChar(id, svc, c.uuid.toLowerCase());
+            } };
+          });
+        },
+      };
+      return dev;
+    }
+    // The plugin's own picker takes only one name prefix, and cubes use several, so list them here.
+    function requestDevice(opts) {
+      const prefixes = ((opts && opts.filters) || []).map(f => f.namePrefix).filter(Boolean);
+      const box = $('smartPick');
+      return new Promise(async (resolve, reject) => {
+        const found = new Map(); let listener = null, timer = 0, settled = false;
+        const finish = async (dev, err) => {
+          if (settled) return; settled = true; clearTimeout(timer);
+          try { if (listener) await listener.remove(); await BLE.stopLEScan(); } catch (e) {}
+          box.hidden = true; box.innerHTML = '';
+          err ? reject(err) : resolve(dev);
+        };
+        const notFound = msg => Object.assign(new Error(msg), { name: 'NotFoundError' });
+        const draw = () => {
+          box.innerHTML = '<p class="lead" style="margin:0 0 6px">' + (found.size ? 'Tap your cube:' : 'Looking for cubes… turn a face to wake yours up.') + '</p>'
+            + [...found].map(([id, n]) => `<button type="button" class="pill-btn" data-cube="${esc(id)}">${esc(n)}</button>`).join(' ')
+            + ' <button type="button" class="mini-btn" data-cube="">Cancel</button>';
+        };
+        box.onclick = e => {
+          const b = e.target.closest('button[data-cube]'); if (!b) return;
+          const id = b.dataset.cube;
+          id ? finish(makeDevice(id, found.get(id))) : finish(null, notFound('No cube was chosen.'));
+        };
+        try {
+          await init();
+          box.hidden = false; draw();
+          listener = await BLE.addListener('onScanResult', r => {
+            const id = r && r.device && r.device.deviceId, name = (r && (r.localName || (r.device && r.device.name))) || '';
+            if (!id || found.has(id) || !prefixes.some(p => name.startsWith(p))) return;
+            found.set(id, name); draw();
+          });
+          await BLE.requestLEScan({ allowDuplicates: false });
+          timer = setTimeout(() => { if (!found.size) finish(null, notFound('No cube found nearby.')); }, 25000);
+        } catch (e) {
+          finish(null, new Error(/permission|denied|not granted/i.test(String(e && e.message)) ? 'Bluetooth permission was refused. Allow "Nearby devices" for Sub-X in Settings → Apps → Sub-X → Permissions.' : (e && e.message) || String(e)));
+        }
+      });
+    }
+    return { requestDevice };
+  }
 
   // ---------- smart cube: Bluetooth connection and timer ----------
   var SM = { conn: null, lib: null, cur: Cube.solved(3), T: null, moves: [], raw: [], readySt: null, battery: null, sub: null };
   const GAN_URL = 'https://cdn.jsdelivr.net/npm/gan-web-bluetooth@3.0.2/+esm';
   const SMART_EVENTS = ['333', 'oh'];
-  const smartOk = () => !!navigator.bluetooth && !NATIVE;
+  const NATIVE_BT = nativeBluetooth();
+  const smartOk = () => NATIVE ? !!NATIVE_BT : !!navigator.bluetooth;
   const smartInfo = msg => { $('smartInfo').textContent = msg; };
   function smartUI() {
     const c = SM.conn;
@@ -2084,6 +2331,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   function smartMove(m, ts, ev) {
     const before = SmartCore.clone(SM.cur);
     Cube.apply(SM.cur, 3, m);
+    if (trainerActive() && trSmartMove(m)) return;
     if (state === 'running') {
       SM.moves.push({ m, t: ts }); if (ev) SM.raw.push(ev);
       if (SmartCore.isSolved(SM.cur)) smartFinish();
@@ -2133,6 +2381,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const macProvider = (device, isFallback) => {
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem('subx-macs') || '{}')[device.name] || null; } catch (e) {}
+    if (NATIVE && /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(device.id || '')) return Promise.resolve(device.id.toUpperCase());
     if (saved || !isFallback) return Promise.resolve(saved);
     return new Promise(resolve => {
       $('smartMac').hidden = false; $('smartMacInput').focus();
@@ -2147,12 +2396,13 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   };
   async function smartConnect() {
     if (!smartOk()) {
-      smartInfo(NATIVE ? "The Android app can't use Bluetooth. Open bluex7710.github.io/sub-x in Chrome on your phone to use a smart cube."
+      smartInfo(NATIVE ? 'This version of the app has no Bluetooth. Install the latest Sub-X.apk from github.com/BlueX7710/sub-x/releases, or use the website in Chrome.'
         : "This browser can't use Bluetooth. Use Chrome or Edge on Android, Windows, Mac or ChromeOS. iPhone and iPad browsers don't support it.");
       return;
     }
     $('smartConnect').disabled = true; $('smartState').textContent = 'connecting…';
     try {
+      if (NATIVE_BT && navigator.bluetooth !== NATIVE_BT) Object.defineProperty(navigator, 'bluetooth', { value: NATIVE_BT, configurable: true });
       SM.lib = SM.lib || await import(GAN_URL);
       const conn = await SM.lib.connectGanCube(macProvider);
       SM.conn = conn; SM.cur = Cube.solved(3);
@@ -2161,6 +2411,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       await conn.sendCubeCommand({ type: 'REQUEST_FACELETS' });
       await conn.sendCubeCommand({ type: 'REQUEST_BATTERY' });
       smartScramble();
+      if (trainerActive()) { if (learnSet === 'cross') newCross(); else newF2L(); renderTrainer(); }
     } catch (e) {
       smartCleanup();
       smartInfo(e && e.name === 'NotFoundError' ? 'No cube was chosen. Wake the cube up by turning a face, then try again.'
@@ -2178,8 +2429,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     try { await SM.conn.sendCubeCommand({ type: 'REQUEST_RESET' }); } catch (e) {}
     SM.cur = Cube.solved(3); smartScramble(); toast('Cube marked as solved');
   });
-  if (!navigator.bluetooth || NATIVE) smartInfo(NATIVE
-    ? "Smart cubes work in Chrome, not in the Android app: open bluex7710.github.io/sub-x in Chrome on your phone."
+  if (!smartOk()) smartInfo(NATIVE
+    ? 'This version of the app has no Bluetooth. Install the latest Sub-X.apk from github.com/BlueX7710/sub-x/releases to use a smart cube here.'
     : "Smart cubes need Chrome or Edge on Android, Windows, Mac or ChromeOS (iPhone and iPad browsers don't support Bluetooth).");
 
   // test hook for simulated cubes; only on a local development server
