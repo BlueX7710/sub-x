@@ -123,6 +123,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 @media (max-width: 520px) { .tr-clock { grid-template-columns: minmax(0, 1fr); } .tr-clock .btn { justify-self: start; } }
 .tr-clock .tr-hint, .tr-clock .drill-note { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin: 0; }
 .f2lt-pic svg { width: 170px; height: 170px; display: block; margin-top: 4px; }
+.scramble .sdone { opacity: .35; text-decoration: line-through; text-decoration-thickness: 2px; }
+.scramble .snext { color: var(--accent); text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+.scramble .shalf::after { content: "½"; font-size: .6em; margin-left: 2px; vertical-align: super; }
 .sol { display: flex; flex-direction: column; gap: 8px; padding: 2px 6px 0; }
 .sol h4 { margin: 8px 0 0; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .06em; font-size: 13px; font-weight: 500; }
 .sol h4 small { font-family: var(--font-body); text-transform: none; letter-spacing: 0; color: var(--muted); margin-left: 6px; }
@@ -708,9 +711,9 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   }
   function openPlayer(c) {
     P3.c = c; P3.moves = Cube.tokens(c.alg);
-    Object.assign(P3, c.mode === 'f2l' ? F2L_VIEW : LL_VIEW);
+    Object.assign(P3, c.mode === 'f2l' || c.mode === 'sb' ? F2L_VIEW : LL_VIEW);
     $('p3dTitle').textContent = c.name + (c.mode === 'pll' ? ' perm' : '');
-    $('p3dAllWrap').hidden = c.mode !== 'f2l';
+    $('p3dAllWrap').hidden = c.mode !== 'f2l' && c.mode !== 'sb';
     $('p3d').hidden = false; P3.open = true;
     p3dReset(); p3dSize();
     cancelAnimationFrame(P3.raf); P3.raf = requestAnimationFrame(p3dTick);
@@ -748,7 +751,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   function p3dDraw(turning) {
     const cv = $('p3dCanvas'), ctx = cv.getContext('2d'), W = cv.width, cs = getComputedStyle(document.documentElement);
     const body = cs.getPropertyValue('--plastic').trim() || '#16181C', grey = cs.getPropertyValue('--ll-off').trim() || '#9AA2AF';
-    const greyOn = P3.c.mode === 'f2l' && !P3.allColors;
+    const greyOn = (P3.c.mode === 'f2l' || P3.c.mode === 'sb') && !P3.allColors;
     const polys = Cube3D.frame(P3.st, { yaw: P3.yaw, pitch: P3.pitch, turning, body, colorOf: k => greyOn && k.grey ? grey : (['cross', 'solve', 'roux'].includes(P3.c.mode) ? PAL_WCA : PAL_LL)[k.col] });
     const s = W / 10.8;
     ctx.clearRect(0, 0, W, W); ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, W / 400);
@@ -763,7 +766,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     const end = P3.idx >= P3.moves.length;
     $('p3dPlay').textContent = P3.playing ? 'Pause' : end ? 'Replay' : 'Play';
     $('p3dStatus').textContent = P3.idx === 0 && !P3.anim ? (P3.c.setup ? 'This is the scramble with white on the bottom. Press Play or Step to watch.' : 'This is the case. Press Play or Step to see the algorithm.')
-      : end && !P3.anim ? (P3.c.mode === 'f2l' ? 'Done: the pair is in its slot.' : P3.c.mode === 'cross' ? 'Done: the white cross is solved (white on top here).' : P3.c.mode === 'solve' ? 'Done: the cube is solved.' : P3.c.mode === 'roux' ? 'Done: the first block is built.' : 'Done: the case is solved.')
+      : end && !P3.anim ? (P3.c.mode === 'f2l' ? 'Done: the pair is in its slot.' : P3.c.mode === 'cross' ? 'Done: the white cross is solved (white on top here).' : P3.c.mode === 'solve' ? 'Done: the cube is solved.' : P3.c.mode === 'roux' ? 'Done: the first block is built.' : P3.c.mode === 'sb' ? 'Done: both blocks are built.' : P3.c.mode === 'lse' ? 'Done: the cube is solved.' : 'Done: the case is solved.')
       : `Move ${(P3.anim ? P3.anim.i : P3.idx - 1) + 1} of ${P3.moves.length}`;
   }
   $('p3dPlay').addEventListener('click', () => {
@@ -1214,8 +1217,11 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     else if (b.dataset.p3d) { const c = caseById(b.dataset.p3d); if (c) openPlayer(c); }
     else if (b.dataset.drill !== undefined) { const c = caseById(b.dataset.drill); if (c) startDrill(c); }
     else if (b.dataset.learn !== undefined) { const id = b.dataset.learn; db.learned[id] = !db.learned[id]; save(); renderLearn(); }
-    else if (b.dataset.lset) { learnSet = lastStep[learnMethod] = b.dataset.lset; renderLearn(); }
-    else if (b.dataset.method) { learnMethod = b.dataset.method; learnSet = lastStep[learnMethod] || METHODS[learnMethod].steps[0][0]; renderLearn(); }
+    else if (b.dataset.lset) { learnSet = lastStep[learnMethod] = pageOf(b.dataset.lset); renderLearn(); }
+    else if (b.dataset.method) { learnMethod = b.dataset.method; learnSet = pageOf(stepOf(lastStep[learnMethod] || METHODS[learnMethod].steps[0][0])); renderLearn(); }
+    else if (b.dataset.lmode) { db.learnMode = b.dataset.lmode; save(); learnSet = lastStep[learnMethod] = pageOf(stepOf(learnSet)); renderLearn(); }
+    else if (b.dataset.ex) exAction(b.dataset.ex);
+    else if (b.dataset.rx) rxAction(b.dataset.rx);
     else if (b.dataset.defmethod) { db.defMethod = b.dataset.defmethod; save(); renderLearn(); toast(`Learn now opens on ${METHODS[db.defMethod].name}`); }
     else if (b.dataset.quiz) quizAction(b.dataset.quiz);
     if (view === 'timer') b.blur();
@@ -1536,10 +1542,14 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     pll: { title: 'PLL', lead: 'With the top face yellow, these 21 algorithms move the last-layer pieces into place. Start with Ua, Ub, Aa, Ab, T and Jb.', groups: PLL, mode: 'pll' },
     ollt: { title: 'OLL trainer', lead: 'Practise one OLL case at a time: set it up on a solved cube, recognise it, make the top yellow, and see how long each part took.' },
     pllt: { title: 'PLL trainer', lead: 'Practise one PLL case at a time, from any angle: set it up, recognise it from the side colours, solve the cube, and see how long each part took.' },
+    fb: { title: 'First block', lead: 'How to build it, then a worked example: a scramble and the shortest first block for it.' },
     fbt: { title: 'First block', lead: 'Practise planning the first block. Sub-X finds the shortest block on any of the four sides, so you can compare it with yours.' },
-    sb: { title: 'Second block', lead: 'There is no trainer for this step yet. Build a first block in the First block trainer, then keep going and practise the second one on the same scramble.' },
+    sb: { title: 'Second block', lead: 'How to build it, then a worked example you can watch in 3D.' },
+    sbt: { title: 'Second block', lead: 'Practise the second block: each case starts with the first block already built. Plan it, build it, and compare with the shortest way.' },
     cmll: { title: 'CMLL', lead: 'Two-look CMLL with algorithms you may already know from CFOP. Hold the cube with the blocks on the left and right and yellow on top.', groups: CMLL_GROUPS },
-    lse: { title: 'LSE', lead: 'The last six edges, solved with only M and U turns.' },
+    cmllt: { title: 'CMLL', lead: 'Practise two-look CMLL one case at a time: set it up on a solved cube, recognise it, solve the corners, and see how long each part took.' },
+    lse: { title: 'LSE', lead: 'How to finish with M and U turns, then a worked example you can watch in 3D.' },
+    lset: { title: 'LSE', lead: 'Practise the last six edges: set up a case with M and U turns, solve it, and compare with the shortest way.' },
     f2lt: { title: 'F2L trainer', lead: 'Practise one F2L pair at a time: set up a random case, recognise it, insert it, and see how long each part took.' },
     cross: { title: 'Cross', lead: 'Practise planning the cross. Sub-X finds the shortest possible cross for every scramble, so you can compare it with yours.' },
     quiz: { title: 'Recognition drill', lead: 'Name the case, then reveal it. This uses spaced repetition: cases you miss come back within minutes, and cases you know come back after 1, 3, 7, 16 and then 35 days. Your schedule is saved and included in backups.' },
@@ -1559,16 +1569,21 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
     cfop: { name: 'CFOP', steps: [['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['quiz', 'Drill'], ['notation', 'Notation']] },
-    roux: { name: 'Roux', steps: [['fbt', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['notation', 'Notation']] },
+    roux: { name: 'Roux', steps: [['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['notation', 'Notation']] },
   };
-  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], fbt: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
+  // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
+  const ROUX_PAGES = { fb: { teach: 'fb', train: 'fbt' }, sb: { teach: 'sb', train: 'sbt' }, cmll: { teach: 'cmll', train: 'cmllt' }, lse: { teach: 'lse', train: 'lset' } };
+  const learnMode = () => db.learnMode === 'train' ? 'train' : 'teach';
+  const stepOf = page => Object.keys(ROUX_PAGES).find(s => ROUX_PAGES[s].teach === page || ROUX_PAGES[s].train === page) || page;
+  const pageOf = step => ROUX_PAGES[step] ? ROUX_PAGES[step][learnMode()] : step;
+  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
   const defMethod = () => db.defMethod === 'roux' ? 'roux' : 'cfop';
-  let learnMethod = defMethod(), learnSet = METHODS[learnMethod].steps[0][0];
+  let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
   const lastStep = {};
   function lessonHtml(key) {
     const s = LESSON[key]; if (!s) return '';
     const steps = ROUX_STEPS.includes(s) ? ROUX_STEPS : CFOP_STEPS, id = (steps === ROUX_STEPS ? 'roux' : 'cfop') + steps.indexOf(s);
-    const only = !SETS[key].groups && !TRAINERS.includes(key), shut = !only && !!(db.lessonShut || {})[id];   // a page with nothing else stays open
+    const only = steps === ROUX_STEPS || (!SETS[key].groups && !TRAINERS.includes(key)), shut = !only && !!(db.lessonShut || {})[id];   // Teach pages stay open
     const list = (items, tag) => `<${tag}>${items.map(t => `<li>${esc(t)}</li>`).join('')}</${tag}>`;
     return `<details class="lesson" data-lesson="${id}"${shut ? '' : ' open'}><summary>Step ${steps.indexOf(s) + 1} · ${esc(s.title)}<small>how to do it · ${esc(s.sub)}</small></summary>
       <p>${esc(s.text)}</p>${list(s.tips, 'ul')}
@@ -1584,18 +1599,30 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   // stops it. Space does the next step as well.
   const TR = { phase: 'scramble', t0: 0, t1: 0, t2: 0, moves: 0, track: null, timer: 0 };
   const trSmartOn = () => typeof SM !== 'undefined' && !!SM && !!SM.conn && typeof SmartCore !== 'undefined';
-  const TRAINERS = ['cross', 'f2lt', 'ollt', 'pllt', 'fbt'];
+  const TRAINERS = ['cross', 'f2lt', 'ollt', 'pllt', 'fbt', 'sbt', 'cmllt', 'lset'];
   const trainerActive = () => view === 'learn' && TRAINERS.includes(learnSet);
-  const trData = () => ({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, fbt })[learnSet];
-  const trNew = () => ({ cross: newCross, f2lt: newF2L, ollt: () => newLL('oll'), pllt: () => newLL('pll'), fbt: newFB })[learnSet]();
+  const trData = () => ({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
+  const trNew = () => ({ cross: newCross, f2lt: newF2L, ollt: () => newLL('oll'), pllt: () => newLL('pll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
   // what "done" means for each trainer, on a smart cube's state (white on top)
-  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), fbt: st => RouxSolver.blockSolvedTop(st) };
-  function trStart(cubeFrameScramble) {
-    TR.phase = 'scramble'; TR.t0 = TR.t1 = TR.t2 = 0; TR.moves = 0;
-    TR.track = trSmartOn() ? SmartCore.track(cubeFrameScramble) : null;
+  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), cmllt: st => SmartCore.solvedUpToAuf(st),
+    fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.isSolved(st) };
+  // A smart cube counts turns with white on top, by its centers. Setups done on a solved cube held yellow
+  // on top are turned over for it, and their slice turns and rotations become the face turns it sees.
+  const toCube = toks => CrossSolver.flip(Solver.faceTurns(toks.join(' '))).join(' ');
+  function trStart(setup, yellowTop) {
+    TR.phase = 'scramble'; TR.t0 = TR.t1 = TR.t2 = 0; TR.moves = 0; TR.yellow = !!yellowTop;
+    TR.track = trSmartOn() ? SmartCore.track(setup, yellowTop ? toCube : null) : null;
     if (TR.track) SmartCore.step(TR.track, SM.cur, null);
   }
-  function renderTrainer() { ({ cross: renderCross, f2lt: renderF2LT, ollt: renderLLT, pllt: renderLLT, fbt: renderFB })[learnSet](); }
+  // a setup being followed on a smart cube: turns done are crossed out, the next one is underlined
+  const trackSpans = (T, toks) => toks.map((t, i) => `<span class="${i < T.k ? 'sdone' : i === T.k && !T.done ? 'snext' + (T.half ? ' shalf' : '') : ''}">${esc(t)}</span>`).join(' ');
+  const trScr = txt => TR.track && TR.phase === 'scramble' ? trackSpans(TR.track, Cube.tokens(txt)) : esc(txt);
+  // the quickest fix, written the way you are holding the cube at that point of the setup
+  function trFix(T) {
+    const fix = SmartCore.fixMoves(T, SM.cur); if (!fix) return null;
+    return (TR.yellow ? Solver.heldAs(CrossSolver.flip(fix), T.toks.slice(0, T.k).join(' ')) : fix).join(' ');
+  }
+  function renderTrainer() { ({ cross: renderCross, f2lt: renderF2LT, ollt: renderLLT, pllt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
   function trNext() {
     const now = performance.now();
     if (TR.phase === 'scramble') { TR.phase = 'plan'; TR.t0 = now; }
@@ -1615,10 +1642,10 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   function trSmartText(goal) {
     const T = TR.track; if (!T) return '';
     if (TR.phase === 'scramble') {
-      const lost = T.lost || (!T.sync && !T.off.length);
-      return lost ? "Smart cube: it doesn't match. Solve it and start the setup again, or tap “My cube is solved” in the Timer tab."
-        : T.off.length ? 'Smart cube: off the setup. Undo with ' + SmartCore.undoMoves(T)
-        : `Smart cube: ${T.k} of ${T.toks.length} moves done. The clock starts by itself when you finish.`;
+      const fix = T.sync ? null : trFix(T);
+      return T.sync ? `Smart cube: ${T.k} of ${T.toks.length} moves done. The clock starts by itself when you finish.`
+        : fix ? 'Smart cube: off the setup. Fix it with ' + fix
+        : "Smart cube: it doesn't match. Solve it and start the setup again, or tap “My cube is solved” in the Timer tab.";
     }
     return TR.phase === 'plan' ? 'Smart cube: your first turn starts the solve clock.' : TR.phase === 'solve' ? `Smart cube: the clock stops by itself when the ${goal} is solved.` : '';
   }
@@ -1685,7 +1712,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     $('learnBody').innerHTML = `<div class="cross-grid">
       <section class="panel">
         <div class="label"><span>Scramble · white on top, green in front</span><button type="button" class="mini-btn" data-cross="new">New scramble</button></div>
-        <p class="scramble">${esc(cross.scr)}</p>
+        <p class="scramble">${trScr(cross.scr)}</p>
         <svg class="net" id="crossNet" role="img" aria-label="The cube after the scramble"></svg>
         <div class="chips" style="margin-top:12px">${levels.map(([k, l]) => `<button type="button" class="chip" data-cross="lvl:${k}" aria-pressed="${cross.level === k}">${l}</button>`).join('')}</div>
       </section>
@@ -1743,7 +1770,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     let c; do { c = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && f2lt.c && c.id === f2lt.c.id);
     const auf = ['', 'U', "U'", 'U2'][Math.floor(Math.random() * 4)];
     f2lt.c = c; f2lt.scr = (Cube.invert(c.alg) + ' ' + auf).trim(); f2lt.shown = false;
-    trStart(CrossSolver.flip(Cube.tokens(f2lt.scr)).join(' '));   // smart cubes report moves white-on-top
+    trStart(f2lt.scr, true);
   }
   function renderF2LT() {
     if (!f2lt.c) newF2L();
@@ -1752,7 +1779,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     $('learnBody').innerHTML = `<div class="cross-grid">
       <section class="panel">
         <div class="label"><span>Setup · yellow on top, green in front</span><button type="button" class="mini-btn" data-f2lt="new">New case</button></div>
-        <p class="scramble">${esc(f2lt.scr)}</p>
+        <p class="scramble">${trScr(f2lt.scr)}</p>
         <p class="lead">Do these moves on a solved cube. They mix up the front-right pair and leave the rest of the first two layers solved.</p>
         ${f2lt.pic ? `<div class="f2lt-pic">${f2l3DSetup(f2lt.scr)}</div>` : ''}
         <div class="chips" style="margin-top:12px">${pools.map(([k, l]) => `<button type="button" class="chip" data-f2lt="pool:${k}" aria-pressed="${f2lt.pool === k}">${l}</button>`).join('')}
@@ -1783,12 +1810,13 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   // ---------- OLL and PLL trainers ----------
   // A random last-layer case on a solved cube (yellow on top, green in front). The setup is the
   // algorithm backwards, rewritten as plain face turns, with random U turns so the case can face any way.
-  const llt = { oll: { c: null, scr: '', pool: 'all', shown: false, pic: true, hist: [] }, pll: { c: null, scr: '', pool: 'all', shown: false, pic: true, hist: [] } };
+  const llt = Object.fromEntries(['oll', 'pll', 'cmll'].map(k => [k, { c: null, scr: '', pool: 'all', shown: false, pic: true, hist: [] }]));
   const TWO_LOOK_PLL = ['pll:t', 'pll:y', 'pll:ua', 'pll:ub', 'pll:h', 'pll:z'];
-  const LL_POOLS = { oll: [['all', 'All 57'], ['2look', '2-look OLL'], ['learned', 'Learned'], ['new', 'Not learned yet']], pll: [['all', 'All 21'], ['2look', '2-look PLL'], ['learned', 'Learned'], ['new', 'Not learned yet']] };
-  const lltKind = () => learnSet === 'pllt' ? 'pll' : 'oll';
+  const LL_POOLS = { oll: [['all', 'All 57'], ['2look', '2-look OLL'], ['learned', 'Learned'], ['new', 'Not learned yet']], pll: [['all', 'All 21'], ['2look', '2-look PLL'], ['learned', 'Learned'], ['new', 'Not learned yet']], cmll: [['all', 'All 9'], ['learned', 'Learned'], ['new', 'Not learned yet']] };
+  const lltKind = () => learnSet === 'pllt' ? 'pll' : learnSet === 'cmllt' ? 'cmll' : 'oll';
+  const caseKind = c => c.id.startsWith('pll:') ? 'pll' : 'oll';   // a CMLL case either orients or swaps corners
   function llPool(kind, pool) {
-    let all = (kind === 'pll' ? PLL : pool === '2look' ? OLL : OLL_FULL).flatMap(g => g.items);
+    let all = (kind === 'cmll' ? CMLL_GROUPS : kind === 'pll' ? PLL : pool === '2look' ? OLL : OLL_FULL).flatMap(g => g.items);
     if (kind === 'pll' && pool === '2look') all = all.filter(c => TWO_LOOK_PLL.includes(c.id));
     if (pool === 'learned' || pool === 'new') { const f = all.filter(c => (pool === 'learned') === !!db.learned[c.id]); if (f.length) return f; }
     return all;
@@ -1798,29 +1826,29 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     const T = llt[kind], pool = llPool(kind, T.pool);
     let c; do { c = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && T.c && c.id === T.c.id);
     T.c = c; T.shown = false;
-    T.scr = Solver.faceTurns(`${kind === 'pll' ? randAuf() : ''} ${Cube.invert(c.alg)} ${randAuf()}`).join(' ');
-    trStart(CrossSolver.flip(Cube.tokens(T.scr)).join(' '));   // smart cubes report moves white-on-top
+    T.scr = Solver.faceTurns(`${caseKind(c) === 'pll' ? randAuf() : ''} ${Cube.invert(c.alg)} ${randAuf()}`).join(' ');
+    trStart(T.scr, true);
   }
   function renderLLT() {
     const kind = lltKind(), T = llt[kind]; if (!T.c) newLL(kind);
-    const c = T.c, H = T.hist, L = !!db.learned[c.id], goal = kind.toUpperCase(), ans = Solver.answer(T.scr, c.alg, kind);
-    const group = ((kind === 'pll' ? PLL : [...OLL, ...OLL_FULL]).find(g => g.items.includes(c)) || {}).group || '';
+    const c = T.c, H = T.hist, L = !!db.learned[c.id], goal = kind.toUpperCase(), ck = caseKind(c), ans = Solver.answer(T.scr, c.alg, ck);
+    const group = ((kind === 'cmll' ? CMLL_GROUPS : kind === 'pll' ? PLL : [...OLL, ...OLL_FULL]).find(g => g.items.includes(c)) || {}).group || '';
     const hint = ans ? [ans.a ? `turn the top with ${ans.a} first` : '', ans.b ? `finish with ${ans.b}` : ''].filter(Boolean).join(', then ') : '';
     $('learnBody').innerHTML = `<div class="cross-grid">
       <section class="panel">
         <div class="label"><span>Setup · yellow on top, green in front</span><button type="button" class="mini-btn" data-llt="new">New case</button></div>
-        <p class="scramble">${esc(T.scr)}</p>
+        <p class="scramble">${trScr(T.scr)}</p>
         <p class="lead">Do these moves on a solved cube. They keep the first two layers solved and set up one ${goal} case${kind === 'pll' ? ' with the top already yellow' : ''}.</p>
-        ${T.pic ? `<div class="f2lt-pic">${llDiagramSetup(T.scr, kind)}</div>` : ''}
+        ${T.pic ? `<div class="f2lt-pic">${llDiagramSetup(T.scr, ck)}</div>` : ''}
         <div class="chips" style="margin-top:12px">${LL_POOLS[kind].map(([k, l]) => `<button type="button" class="chip" data-llt="pool:${k}" aria-pressed="${T.pool === k}">${l}</button>`).join('')}
           <button type="button" class="chip" data-llt="pic" aria-pressed="${!T.pic}">Hide picture</button></div>
       </section>
       <section class="panel">
         ${trClockHtml(goal)}
-        <p class="lead">${kind === 'oll' ? 'Look at the yellow stickers, recognise the case, then make the whole top yellow.' : 'Look at the side colours of the top layer, recognise the case, then solve the cube.'} Planning time is your recognition time.</p>
+        <p class="lead">${kind === 'cmll' ? 'Recognise the case from the corners, then solve them.' : kind === 'oll' ? 'Look at the yellow stickers, recognise the case, then make the whole top yellow.' : 'Look at the side colours of the top layer, recognise the case, then solve the cube.'} Planning time is your recognition time.</p>
         <div class="row-btns"><button type="button" class="btn ghost" data-llt="reveal">${T.shown ? 'Hide the case' : 'Show the case'}</button></div>
         ${T.shown ? `<div class="cross-sol">
-          <p><b>${esc(c.name)}${kind === 'pll' ? ' perm' : ''}</b> · ${esc(group)}</p>
+          <p><b>${esc(c.name)}${ck === 'pll' ? ' perm' : ''}</b> · ${esc(group)}</p>
           <p class="alg">${esc(c.alg)}</p>
           ${hint ? `<p class="lead">From this setup: ${esc(hint)}.</p>` : ''}
           <div class="row-btns"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn learn-btn" data-llt="learn" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button></div>
@@ -1842,20 +1870,21 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   // ---------- Roux: first block trainer ----------
   const fbt = { scr: '', sol: null, shown: false, check: '', checkClass: '', try: '', hist: [] };
   function newFB() { fbt.scr = genScramble('333'); fbt.sol = null; fbt.shown = false; fbt.check = ''; fbt.try = ''; trStart(fbt.scr); }
-  // the block table takes a moment to build the first time, so show a note and build it after a repaint
-  function fbWithSolver(then) {
-    if (RouxSolver.ready()) { then(); return; }
-    const el = $('fbWork'); if (el) el.hidden = false;
-    setTimeout(() => { RouxSolver.solve(''); then(); }, 40);
+  // a Roux table takes a moment to build the first time: show a note, let it paint, then build it
+  function withRoux(name, then) {
+    if (Roux.ready(name)) { then(); return; }
+    const el = $('rxWork'); if (el) el.hidden = false;
+    setTimeout(() => { Roux.warm(name); then(); }, 40);
   }
+  const rxWorkNote = '<p class="drill-note" id="rxWork" hidden>Working out the shortest way. This takes a few seconds the first time.</p>';
   function renderFB() {
     if (!fbt.scr) newFB();
-    if (fbt.shown && !fbt.sol && RouxSolver.ready()) fbt.sol = RouxSolver.solve(fbt.scr);
+    if (fbt.shown && !fbt.sol && Roux.ready('fb')) fbt.sol = Roux.firstBlock(fbt.scr);
     const H = fbt.hist, s = fbt.sol, n = s ? s.moves.length : 0;
     $('learnBody').innerHTML = `<div class="cross-grid">
       <section class="panel">
         <div class="label"><span>Scramble · white on top, green in front</span><button type="button" class="mini-btn" data-fbt="new">New scramble</button></div>
-        <p class="scramble">${esc(fbt.scr)}</p>
+        <p class="scramble">${trScr(fbt.scr)}</p>
         <svg class="net" id="fbNet" role="img" aria-label="The cube after the scramble"></svg>
       </section>
       <section class="panel">
@@ -1865,7 +1894,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
         <div class="cross-try"><input id="fbTry" class="own-scr" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. y R' U F2 L"><button type="button" class="btn ghost" data-fbt="check">Check</button></div>
         <p class="drill-note ${fbt.checkClass}" id="fbCheck">${esc(fbt.check)}</p>
         <div class="row-btns" style="margin-top:12px"><button type="button" class="btn ghost" data-fbt="reveal">${fbt.shown ? 'Hide best block' : 'Show best block'}</button></div>
-        <p class="drill-note" id="fbWork" hidden>Getting the block solver ready. This takes a few seconds the first time.</p>
+        ${rxWorkNote}
         ${fbt.shown && s ? `<div class="cross-sol">
           <p><b>Best first block: ${n} move${n === 1 ? '' : 's'}</b> · white on the bottom${s.rot ? `, then ${s.rot} to choose the side` : ''}</p>
           <p class="alg">${esc([s.rot, ...s.moves].filter(Boolean).join(' ') || 'Already built')}</p>
@@ -1876,27 +1905,140 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     drawNet(fbt.scr, 3, PAL_WCA, 'fbNet');
     const inp = $('fbTry'); inp.value = fbt.try;
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fbtAction('check'); } });
-    if (fbt.shown && !s) fbWithSolver(() => { fbt.sol = RouxSolver.solve(fbt.scr); if (learnSet === 'fbt') renderFB(); });
+    if (fbt.shown && !s) withRoux('fb', () => { fbt.sol = Roux.firstBlock(fbt.scr); if (learnSet === 'fbt') renderFB(); });
     trTick();
   }
-  function fbCheck() {
-    const txt = fbt.try.trim().replace(/[’‘]/g, "'");
-    fbt.checkClass = 'err';
-    if (!txt) { fbt.check = 'Type your moves first.'; return; }
+  // typed-in moves: the moves themselves, how many turns they are, or a message about what is wrong
+  function readMoves(txt) {
+    txt = txt.trim().replace(/[’‘]/g, "'");
+    if (!txt) return { err: 'Type your moves first.' };
     const toks = Cube.tokens(txt), bad = toks.filter(t => !MOVE_RE.test(t));
-    if (bad.length) { fbt.check = 'Not recognised: ' + bad.join(' ') + ". Use moves like R U' F2."; return; }
-    if (!RouxSolver.blockDone(Cube.apply(Cube.solved(3), 3, fbt.scr + ' z2 ' + txt))) { fbt.check = "That doesn't build a first block. Check the moves, or show the best block."; return; }
-    const n = toks.filter(t => !/^[xyz]/.test(t)).length, best = fbt.sol.moves.length;
+    if (bad.length) return { err: 'Not recognised: ' + bad.join(' ') + ". Use moves like R U' F2." };
+    return { txt, n: toks.filter(t => !/^[xyz]/.test(t)).length };
+  }
+  function fbCheck() {
+    const r = readMoves(fbt.try); fbt.checkClass = 'err';
+    if (r.err) { fbt.check = r.err; return; }
+    if (!Roux.fbDone(Cube.apply(Cube.solved(3), 3, fbt.scr + ' z2 ' + r.txt))) { fbt.check = "That doesn't build a first block. Check the moves, or show the best block."; return; }
+    const best = fbt.sol.moves.length;
     fbt.checkClass = 'ok';
-    fbt.check = (n <= best ? `Yes: that builds the first block in ${n} moves, as short as it gets.` : `Yes: that builds the first block in ${n} moves. The best is ${best}.`) + trTyped(fbt, n);
+    fbt.check = (r.n <= best ? `Yes: that builds the first block in ${r.n} moves, as short as it gets.` : `Yes: that builds the first block in ${r.n} moves. The best is ${best}.`) + trTyped(fbt, r.n);
   }
   function fbtAction(a) {
     if ($('fbTry')) fbt.try = $('fbTry').value;
     if (a === 'new') newFB();
     else if (a === 'reveal') fbt.shown = !fbt.shown;
-    else if (a === 'check') { fbWithSolver(() => { fbt.sol = fbt.sol || RouxSolver.solve(fbt.scr); fbCheck(); if (learnSet === 'fbt') renderFB(); }); return; }
+    else if (a === 'check') { withRoux('fb', () => { fbt.sol = fbt.sol || Roux.firstBlock(fbt.scr); fbCheck(); if (learnSet === 'fbt') renderFB(); }); return; }
     else if (a === '3d') { const s = fbt.sol; if (s && s.moves.length) openPlayer({ id: 'fb', name: 'Best first block', alg: [s.rot, ...s.moves].filter(Boolean).join(' '), mode: 'roux', setup: fbt.scr + ' z2' }); return; }
     renderFB();
+  }
+
+  // ---------- Roux: second block and LSE ----------
+  // Second block cases are made with R and U turns, which never touch the first block; LSE cases with
+  // M and U turns. Both are set up on a solved cube held yellow on top, green in front.
+  function randomTurns(faces, n) {
+    const out = []; let last = null;
+    while (out.length < n) { const f = faces[Math.floor(Math.random() * faces.length)]; if (f === last) continue; out.push(f + ['', "'", '2'][Math.floor(Math.random() * 3)]); last = f; }
+    return out.join(' ');
+  }
+  function rxSetup(kind) {
+    for (;;) {
+      const s = randomTurns(kind === 'sb' ? ['R', 'U'] : ['M', 'U'], 18), st = Cube.apply(Cube.solved(3), 3, s);
+      if (kind === 'sb' ? !Roux.f2bDone(st) : !Roux.solved(st)) return s;
+    }
+  }
+  const RX = {
+    fb: { name: 'first block', solve: scr => Roux.firstBlock(scr), mode: 'roux', setup: scr => scr + ' z2',
+      text: 'Do the scramble, turn the cube over (z2) so white is on the bottom, then follow the moves. Watch it in 3D to see each turn.' },
+    sb: { name: 'second block', solve: scr => ({ rot: '', moves: Roux.secondBlock(scr) }), mode: 'sb', setup: scr => scr,
+      text: 'The first block is already built on the left. Watch how the shortest second block uses R, r, U and M turns, which never touch it. Grey stickers are pieces that do not matter yet.' },
+    lse: { name: 'last six edges', solve: scr => ({ rot: '', moves: Roux.lastSix(scr) || [] }), mode: 'lse', setup: scr => scr,
+      text: 'Both blocks and the top corners are solved. The shortest way often mixes the three LSE steps; when you solve it yourself, follow the steps in the lesson above.' },
+  };
+  const ll3DSetup = setup => Cube3D.svg(Cube3D.frame(Cube.apply(Cube.solved(3), 3, setup), { ...LL_VIEW, body: 'var(--plastic)', colorOf: k => PAL_LL[k.col] }), 'The case in 3D: yellow on top, green in front');
+  const rxPicture = (kind, scr) => kind === 'sb' ? f2l3DSetup(scr) : ll3DSetup(scr);
+  const rxWatch = (kind, scr, sol) => openPlayer({ id: 'rx', name: 'Shortest ' + RX[kind].name, alg: [sol.rot, ...sol.moves].filter(Boolean).join(' '), mode: RX[kind].mode, setup: RX[kind].setup(scr) });
+  // Teach: a worked example
+  const workedExamples = {};
+  function renderExample(kind) {
+    const E = workedExamples[kind] || (workedExamples[kind] = { scr: kind === 'fb' ? genScramble('333') : rxSetup(kind), sol: null }), X = RX[kind];
+    if (!E.sol && Roux.ready(kind)) E.sol = X.solve(E.scr);
+    const s = E.sol, n = s ? s.moves.length : 0;
+    $('learnBody').innerHTML = `<section class="panel" style="max-width:980px">
+      <div class="label"><span>Worked example · ${kind === 'fb' ? 'scramble with white on top, green in front' : 'set up on a solved cube, yellow on top, green in front'}</span><button type="button" class="mini-btn" data-ex="new">New example</button></div>
+      <p class="scramble">${esc(E.scr)}</p>
+      ${kind === 'fb' ? '<svg class="net" id="exNet" role="img" aria-label="The cube after the scramble"></svg>' : `<div class="f2lt-pic">${rxPicture(kind, E.scr)}</div>`}
+      ${rxWorkNote}
+      ${s ? `<div class="cross-sol">
+        <p><b>Shortest ${X.name}: ${n} move${n === 1 ? '' : 's'}</b>${s.rot ? ` · after ${s.rot} to choose the side` : ''}</p>
+        <p class="alg">${esc([s.rot, ...s.moves].filter(Boolean).join(' ') || 'Already done')}</p>
+        ${n ? '<button type="button" class="pill-btn" data-ex="3d">Watch in 3D</button>' : ''}
+      </div>` : ''}
+      <p class="lead" style="margin-top:12px">${X.text}</p>
+      <div class="row-btns"><button type="button" class="btn" data-lmode="train">Train this step</button></div>
+    </section>`;
+    if (kind === 'fb') drawNet(E.scr, 3, PAL_WCA, 'exNet');
+    if (!s) withRoux(kind, () => { E.sol = X.solve(E.scr); if (learnSet === kind) renderExample(kind); });
+  }
+  function exAction(a) {
+    const kind = learnSet, E = workedExamples[kind]; if (!RX[kind]) return;
+    if (a === 'new') { delete workedExamples[kind]; renderExample(kind); }
+    else if (a === '3d' && E && E.sol && E.sol.moves.length) rxWatch(kind, E.scr, E.sol);
+  }
+  // Train: second block and LSE trainers
+  const rx = Object.fromEntries(['sb', 'lse'].map(k => [k, { scr: '', sol: null, shown: false, pic: true, check: '', checkClass: '', try: '', hist: [] }]));
+  const rxKind = () => learnSet === 'sbt' ? 'sb' : 'lse';
+  function newRx(kind) { const T = rx[kind]; T.scr = rxSetup(kind); T.sol = null; T.shown = false; T.check = ''; T.try = ''; trStart(T.scr, true); }
+  function renderRx() {
+    const kind = rxKind(), T = rx[kind], X = RX[kind]; if (!T.scr) newRx(kind);
+    if (T.shown && !T.sol && Roux.ready(kind)) T.sol = X.solve(T.scr);
+    const H = T.hist, s = T.sol, n = s ? s.moves.length : 0;
+    $('learnBody').innerHTML = `<div class="cross-grid">
+      <section class="panel">
+        <div class="label"><span>Setup · yellow on top, green in front</span><button type="button" class="mini-btn" data-rx="new">New case</button></div>
+        <p class="scramble">${trScr(T.scr)}</p>
+        <p class="lead">Do these moves on a solved cube. ${kind === 'sb' ? 'They mix up the right side and keep the first block on the left.' : 'They mix up the six edges and keep both blocks and the top corners.'}</p>
+        ${T.pic ? `<div class="f2lt-pic">${rxPicture(kind, T.scr)}</div>` : ''}
+        <div class="chips" style="margin-top:12px"><button type="button" class="chip" data-rx="pic" aria-pressed="${!T.pic}">Hide picture</button></div>
+      </section>
+      <section class="panel">
+        ${trClockHtml(X.name)}
+        <p class="lead">${kind === 'sb' ? 'Build the second block on the right with R, r, U and M turns. The middle slice does not have to line up yet.' : 'Solve the last six edges with M and U turns: orient them, place the left and right edges, then the middle slice.'} Planning time counts as recognition.</p>
+        <label class="lead" for="rxTry" style="display:block;margin-bottom:6px">Your moves, holding the cube as set up (optional, to check them):</label>
+        <div class="cross-try"><input id="rxTry" class="own-scr" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="${kind === 'sb' ? "e.g. U R' r U2 R" : "e.g. M' U M U2"}"><button type="button" class="btn ghost" data-rx="check">Check</button></div>
+        <p class="drill-note ${T.checkClass}" id="rxCheck">${esc(T.check)}</p>
+        <div class="row-btns" style="margin-top:12px"><button type="button" class="btn ghost" data-rx="reveal">${T.shown ? 'Hide the shortest way' : 'Show the shortest way'}</button></div>
+        ${rxWorkNote}
+        ${T.shown && s ? `<div class="cross-sol">
+          <p><b>Shortest ${X.name}: ${n} move${n === 1 ? '' : 's'}</b></p>
+          <p class="alg">${esc(s.moves.join(' ') || 'Already done')}</p>
+          ${n ? '<button type="button" class="pill-btn" data-rx="3d">Watch in 3D</button>' : ''}
+        </div>` : ''}
+        <p class="drill-stats">${H.length ? `This session: ${H.length} case${H.length === 1 ? '' : 's'} · average planning ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average ${X.name} ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The shortest ways are found by Sub-X itself, offline.'}</p>
+      </section></div>`;
+    const inp = $('rxTry'); inp.value = T.try;
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); rxAction('check'); } });
+    if (T.shown && !s) withRoux(kind, () => { T.sol = X.solve(T.scr); if (rxKind() === kind && TRAINERS.includes(learnSet)) renderRx(); });
+    trTick();
+  }
+  function rxCheck(kind) {
+    const T = rx[kind], r = readMoves(T.try); T.checkClass = 'err';
+    if (r.err) { T.check = r.err; return; }
+    const st = Cube.apply(Cube.solved(3), 3, T.scr + ' ' + r.txt);
+    if (!(kind === 'sb' ? Roux.f2bDone(st) : Roux.solved(st))) { T.check = `That doesn't finish the ${RX[kind].name}. Check the moves, or show the shortest way.`; return; }
+    const best = T.sol.moves.length;
+    T.checkClass = 'ok';
+    T.check = (r.n <= best ? `Yes: that does it in ${r.n} moves, as short as it gets.` : `Yes: that does it in ${r.n} moves. The shortest is ${best}.`) + trTyped(T, r.n);
+  }
+  function rxAction(a) {
+    const kind = rxKind(), T = rx[kind];
+    if ($('rxTry')) T.try = $('rxTry').value;
+    if (a === 'new') newRx(kind);
+    else if (a === 'pic') T.pic = !T.pic;
+    else if (a === 'reveal') T.shown = !T.shown;
+    else if (a === 'check') { withRoux(kind, () => { T.sol = T.sol || RX[kind].solve(T.scr); rxCheck(kind); renderRx(); }); return; }
+    else if (a === '3d') { if (T.sol && T.sol.moves.length) rxWatch(kind, T.scr, T.sol); return; }
+    renderRx();
   }
 
   // ---------- spaced repetition for the recognition drill ----------
@@ -2010,7 +2152,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     const EXPAND = { r: ['L', 'x'], l: ['R', "x'"], u: ['D', 'y'], d: ['U', "y'"], f: ['B', 'z'], b: ['F', "z'"], M: ["L'", 'R', "x'"], E: ['U', "D'", "y'"], S: ["F'", 'B', 'z'] };
     const turnsOf = t => /2/.test(t) ? 2 : /'/.test(t) ? 3 : 1;
     const withTurns = (f, q) => f + ['', '', '2', "'"][q % 4];
-    function faceTurns(alg) {
+    function walk(alg) {
       let m = { U: 'U', D: 'D', R: 'R', L: 'L', F: 'F', B: 'B' };
       const rotate = (ax, q) => { for (let i = 0; i < q; i++) { const c = CYC[ax], n = { ...m }; for (let j = 0; j < 4; j++) n[c[j]] = m[c[(j + 1) % 4]]; m = n; } };
       const out = [];
@@ -2023,8 +2165,11 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
           if (CYC[p[0]]) rotate(p[0], pq); else out.push(withTurns(m[p[0]], pq));
         }
       }
-      return simplify(out);
+      return { out, m };
     }
+    const faceTurns = alg => simplify(walk(alg).out);
+    // face turns named by their centers, written for the way the cube is held after `alg` (its slice turns and rotations)
+    const heldAs = (moves, alg) => { const m = walk(alg).m, name = {}; for (const f in m) name[m[f]] = f; return moves.map(t => name[t[0]] + t.slice(1)); };
     // merge turns of the same face, including across a turn of the opposite face (R L R' = L)
     const OPP = { U: 'D', D: 'U', R: 'L', L: 'R', F: 'B', B: 'F' };
     function simplify(moves) {
@@ -2169,87 +2314,133 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       }
       return null;
     }
-    return { best, analyse, answer, faceTurns, count, simplify };
+    return { best, analyse, answer, faceTurns, heldAs, count, simplify };
   })();
 
-  // ---------- Roux first block solver ----------
-  // Shortest first block: the 1×2×3 block on the left (white on the bottom), in any of the four
-  // turns of the cube. State = where one sticker of each of its 5 pieces sits (24 edge and 24 corner
-  // stickers), so 24^5 states; a breadth-first search from the solved block gives every distance.
-  const RouxSolver = (() => {
-    const MOVES = ['U', 'D', 'R', 'L', 'F', 'B'].flatMap(f => [f, f + "'", f + '2']);
-    const ROTS = ['', 'y', 'y2', "y'"];
-    let built = null;
-    function build() {
-      const base = Cube.solved(3);   // faces named by their centers: the block is on L, its bottom on D
-      const zeros = p => p.filter(v => v === 0).length;
-      const fkey = (p, n) => p.join() + '|' + n.join();
-      const sets = [1, 0].map(z => base.filter(k => zeros(k.p) === z));   // edge stickers, corner stickers
+  // ---------- Roux solvers ----------
+  // Shortest first block, second block and last six edges. A block table is a breadth-first search
+  // over where one sticker of each of the block's 5 pieces sits (24 edge and 24 corner stickers, so
+  // 24^5 states); the LSE table covers every state M and U turns can reach. A solution walks
+  // downhill. Each table is built the first time it is needed, which takes a second or two.
+  const Roux = (() => {
+    const SOLVED = Cube.solved(3);
+    const HOME = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
+    const zeros = p => p.filter(v => v === 0).length;
+    const fkey = (p, n) => p.join() + '|' + n.join();
+    const clone = st => st.map(k => ({ p: k.p.slice(), n: k.n.slice(), col: k.col }));
+    const turns = faces => faces.flatMap(f => [f, f + "'", f + '2']);
+    // pieces: three edges then two corners, each named by one of its stickers [position, facing]
+    function blockTable(pieces, moves) {
+      const sets = [1, 0].map(z => SOLVED.filter(k => zeros(k.p) === z));   // edge stickers, corner stickers
       const index = sets.map(s => new Map(s.map((k, i) => [fkey(k.p, k.n), i])));
-      const table = MOVES.map(m => sets.map((s, t) => s.map(k => { const x = [{ p: k.p.slice(), n: k.n.slice() }]; Cube.apply(x, 3, m); return index[t].get(fkey(x[0].p, x[0].n)); })));
-      // the block's pieces, each tracked by its sticker on the left face or, for the bottom edge, the bottom
-      const PIECES = [[[-2, -2, 0], 0], [[-2, 0, 2], 0], [[-2, 0, -2], 0], [[-2, -2, 2], 1], [[-2, -2, -2], 1]];
-      const home = PIECES.map(([p, t], i) => { const k = sets[t].find(k => k.p.join() === p.join() && (i ? k.n[0] === -1 : k.n[1] === -1)); return index[t].get(fkey(k.p, k.n)); });
+      const TE = new Uint8Array(moves.length * 24), TC = new Uint8Array(moves.length * 24);
+      moves.forEach((m, j) => sets.forEach((s, t) => s.forEach((k, i) => {
+        const x = [{ p: k.p.slice(), n: k.n.slice() }]; Cube.apply(x, 3, m);
+        (t ? TC : TE)[j * 24 + i] = index[t].get(fkey(x[0].p, x[0].n));
+      })));
       const enc = s => (((s[0] * 24 + s[1]) * 24 + s[2]) * 24 + s[3]) * 24 + s[4];
-      // flat move tables and a preallocated queue keep this to about a second on a phone
-      const TE = new Uint8Array(MOVES.length * 24), TC = new Uint8Array(MOVES.length * 24);
-      table.forEach(([te, tc], m) => { TE.set(te, m * 24); TC.set(tc, m * 24); });
+      const home = pieces.map(([p, n], i) => index[i < 3 ? 0 : 1].get(fkey(p, n)));
       const dist = new Int8Array(24 ** 5).fill(-1), queue = new Int32Array(24 * 22 * 20 * 24 * 21);
       let head = 0, tail = 0; queue[tail++] = enc(home); dist[queue[0]] = 0;
       while (head < tail) {
         let e = queue[head++]; const d = dist[e] + 1;
         const s4 = e % 24; e = (e - s4) / 24; const s3 = e % 24; e = (e - s3) / 24; const s2 = e % 24; e = (e - s2) / 24; const s1 = e % 24, s0 = (e - s1) / 24;
-        for (let m = 0, o = 0; m < MOVES.length; m++, o += 24) {
+        for (let m = 0, o = 0; m < moves.length; m++, o += 24) {
           const n = (((TE[o + s0] * 24 + TE[o + s1]) * 24 + TE[o + s2]) * 24 + TC[o + s3]) * 24 + TC[o + s4];
           if (dist[n] < 0) { dist[n] = d; queue[tail++] = n; }
         }
       }
-      return { table, index, fkey, sets, PIECES, home, dist, enc };
-    }
-    const SOLVED = Cube.solved(3);
-    const HOME = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
-    function stateOf(st) {
-      // name every colour after the face whose center has it, so the block is wherever L and D are now
-      const face = {}; for (const k of st) if (k.p.filter(v => v === 0).length === 2) face[k.col] = HOME(k.n);
-      const cubie = new Map(); for (const k of st) { const id = k.p.join(); if (!cubie.has(id)) cubie.set(id, []); cubie.get(id).push(face[k.col]); }
-      const colsAt = p => cubie.get(p.join()).slice().sort().join('');
-      return built.PIECES.map(([p, t], i) => {
-        const want = SOLVED.filter(k => k.p.join() === p.join()).map(k => k.col).sort().join(''), tracked = i ? 'L' : 'D';
-        const k = st.find(k => face[k.col] === tracked && colsAt(k.p) === want);
-        return built.index[t].get(built.fkey(k.p, k.n));
-      });
-    }
-    function walk(s) {
-      const B = built, out = [];
-      while (B.dist[B.enc(s)] > 0) {
-        const d = B.dist[B.enc(s)];
-        for (let m = 0; m < MOVES.length; m++) {
-          const [te, tc] = B.table[m], n = [te[s[0]], te[s[1]], te[s[2]], tc[s[3]], tc[s[4]]];
-          if (B.dist[B.enc(n)] === d - 1) { out.push(MOVES[m]); s = n; break; }
+      const colsOf = p => SOLVED.filter(k => k.p.join() === p.join()).map(k => k.col).sort().join('');
+      const want = pieces.map(([p, n]) => ({ cols: colsOf(p), col: SOLVED.find(k => fkey(k.p, k.n) === fkey(p, n)).col }));
+      // where the pieces are in `st`; `face` renames colours (by default each keeps its own name)
+      function solve(st, face = c => c) {
+        const cubie = new Map(); for (const k of st) { const id = k.p.join(); if (!cubie.has(id)) cubie.set(id, []); cubie.get(id).push(face(k.col)); }
+        const cols = p => cubie.get(p.join()).slice().sort().join('');
+        let s = want.map((w, i) => { const k = st.find(k => face(k.col) === w.col && cols(k.p) === w.cols); return index[i < 3 ? 0 : 1].get(fkey(k.p, k.n)); });
+        const out = [];
+        while (dist[enc(s)] > 0) {
+          const d = dist[enc(s)];
+          for (let m = 0, o = 0; m < moves.length; m++, o += 24) {
+            const n = [TE[o + s[0]], TE[o + s[1]], TE[o + s[2]], TC[o + s[3]], TC[o + s[4]]];
+            if (dist[enc(n)] === d - 1) { out.push(moves[m]); s = n; break; }
+          }
         }
+        return out;
       }
-      return out;
+      return { solve };
     }
-    // the shortest first block for a scramble (WCA orientation): { rot, moves }, with white on the bottom
-    function solve(scramble) {
-      built = built || build();
+    // the last six edges: the stickers M and U turns move (edges and centers), plus how far the top is turned
+    function lseTable() {
+      const keep = SOLVED.map((k, i) => (k.p[0] === 0 || k.p[1] === 2) && zeros(k.p) >= 1 ? i : -1).filter(i => i >= 0);
+      const at = new Map(SOLVED.map((k, i) => [fkey(k.p, k.n), i])), slot = new Map(keep.map((g, i) => [g, i]));
+      const moves = turns(['U', 'M']);
+      const P = moves.map(m => {
+        const from = []; for (const k of Cube.apply(SOLVED.map((k, i) => ({ p: k.p.slice(), n: k.n.slice(), id: i })), 3, m)) from[at.get(fkey(k.p, k.n))] = k.id;
+        return keep.map(g => slot.get(from[g]));
+      });
+      const spin = moves.map(m => m[0] === 'U' ? { U: 1, "U'": 3, U2: 2 }[m] : 0);
+      const step = (s, j) => { let n = ''; for (const i of P[j]) n += s[i]; return n + ((+s[s.length - 1] + spin[j]) % 4); };
+      // how far the top is turned: the number of U turns that took its corners where they are
+      const topTurn = st => [0, 1, 2, 3].find(q => { const t = Cube.apply(clone(st), 3, ["", "U'", 'U2', 'U'][q]); return t.filter(k => zeros(k.p) === 0 && k.p[1] === 2).every(k => k.col === HOME(k.n)); });
+      const keyOf = st => { const c = new Map(st.map(k => [fkey(k.p, k.n), k.col])); return keep.map(g => c.get(fkey(SOLVED[g].p, SOLVED[g].n))).join('') + topTurn(st); };
+      const start = keyOf(SOLVED), dist = new Map([[start, 0]]);
+      let frontier = [start];
+      for (let d = 1; frontier.length; d++) {
+        const next = [];
+        for (const s of frontier) for (let j = 0; j < moves.length; j++) { const n = step(s, j); if (!dist.has(n)) { dist.set(n, d); next.push(n); } }
+        frontier = next;
+      }
+      function solve(st) {
+        let s = keyOf(st); const out = [];
+        if (!dist.has(s) || s.endsWith('undefined')) return null;   // not reachable with M and U turns
+        while (dist.get(s) > 0) {
+          const d = dist.get(s);
+          for (let j = 0; j < moves.length; j++) { const n = step(s, j); if (dist.get(n) === d - 1) { out.push(moves[j]); s = n; break; } }
+        }
+        return out;
+      }
+      return { solve, size: dist.size };
+    }
+    const tables = {};
+    const table = name => tables[name] || (tables[name] = {
+      fb: () => blockTable([[[-2, -2, 0], [0, -1, 0]], [[-2, 0, 2], [-1, 0, 0]], [[-2, 0, -2], [-1, 0, 0]], [[-2, -2, 2], [-1, 0, 0]], [[-2, -2, -2], [-1, 0, 0]]], turns(['U', 'D', 'R', 'L', 'F', 'B'])),
+      sb: () => blockTable([[[2, -2, 0], [0, -1, 0]], [[2, 0, 2], [1, 0, 0]], [[2, 0, -2], [1, 0, 0]], [[2, -2, 2], [1, 0, 0]], [[2, -2, -2], [1, 0, 0]]], turns(['R', 'r', 'U', 'M'])),
+      lse: lseTable,
+    }[name]());
+    const ready = name => !!tables[name];
+    // name each colour after the face whose center has it
+    const byCenters = st => { const f = {}; for (const k of st) if (zeros(k.p) === 2) f[k.col] = HOME(k.n); return c => f[c]; };
+    // shortest first block for a scramble (WCA orientation), with white on the bottom, on any side: { rot, moves }
+    function firstBlock(scramble) {
       let best = null;
-      for (const rot of ROTS) {
-        const moves = walk(stateOf(Cube.apply(Cube.solved(3), 3, `${scramble} z2 ${rot}`)));
+      for (const rot of ['', 'y', 'y2', "y'"]) {
+        const st = Cube.apply(Cube.solved(3), 3, `${scramble} z2 ${rot}`), moves = table('fb').solve(st, byCenters(st));
         if (!best || moves.length < best.moves.length) best = { rot, moves };
       }
       return best;
     }
-    const ready = () => !!built;
-    // is a first block built? `st` has white on the bottom; any of the four sides can be the left one
-    const clone = st => st.map(k => ({ p: k.p.slice(), n: k.n.slice(), col: k.col }));
-    function blockOk(st) {
-      const face = {}; for (const k of st) if (k.p.filter(v => v === 0).length === 2) face[k.col] = HOME(k.n);
-      return st.filter(k => k.p[0] === -2 && k.p[1] !== 2).every(k => face[k.col] === HOME(k.n));
+    // shortest second block, and shortest last six edges, for setups done on a solved cube (yellow on top)
+    const secondBlock = setup => table('sb').solve(Cube.apply(Cube.solved(3), 3, setup));
+    const lastSix = setup => table('lse').solve(Cube.apply(Cube.solved(3), 3, setup));
+    // Blocks are checked by their own colours, held any way up, so a turned middle slice does not matter.
+    function blocksOk(st, sides) {
+      const same = list => list.length && list.every(c => c === list[0]) ? list[0] : null;
+      const D = [], F = [], B = [];
+      for (const x of sides) {
+        const block = st.filter(k => k.p[0] === x && k.p[1] !== 2), col = test => same(block.filter(k => test(k.n)).map(k => k.col));
+        if (!col(n => n[0] === Math.sign(x))) return false;
+        D.push(col(n => n[1] === -1)); F.push(col(n => n[2] === 1)); B.push(col(n => n[2] === -1));
+      }
+      return [D, F, B].every(c => c.every(v => v && v === c[0]));
     }
-    const blockDone = st => ROTS.some(r => blockOk(Cube.apply(clone(st), 3, r)));
-    const blockSolvedTop = st => blockDone(Cube.apply(clone(st), 3, 'z2'));   // white on top: the smart cube's frame
-    return { solve, ready, blockDone, blockSolvedTop };
+    // a first block may be on any side; both blocks must stay on the left-right axis they were set up on
+    const ANY = ['', 'y', 'y2', "y'"].flatMap(a => ['', 'x', 'x2', "x'", 'z', "z'"].map(b => (b + ' ' + a).trim()));
+    const SAME_AXIS = ['', 'y2'].flatMap(a => ['', 'x', 'x2', "x'"].map(b => (b + ' ' + a).trim()));
+    const held = (st, rots, sides) => rots.some(r => blocksOk(Cube.apply(clone(st), 3, r), sides));
+    const fbDone = st => held(st, ANY, [-2]), f2bDone = st => held(st, SAME_AXIS, [-2, 2]);
+    // solved, whichever way the cube is held
+    const solved = st => { const c = byCenters(st); return st.every(k => c(k.col) === HOME(k.n)); };
+    return { firstBlock, secondBlock, lastSix, ready, warm: table, fbDone, f2bDone, solved };
   })();
 
 
@@ -2261,9 +2452,10 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     const done = key => ALL_CASES.filter(c => c.id.startsWith(key + ':') && db.learned[c.id]).length;
     const M = METHODS[learnMethod];
     $('methodBar').innerHTML = `<div class="seg" role="group" aria-label="Method">${Object.entries(METHODS).map(([k, m]) => `<button type="button" data-method="${k}" aria-pressed="${learnMethod === k}">${m.name}</button>`).join('')}</div>` +
+      (learnMethod === 'roux' ? `<div class="seg" role="group" aria-label="Mode">${[['teach', 'Teach'], ['train', 'Train']].map(([k, l]) => `<button type="button" data-lmode="${k}" aria-pressed="${learnMode() === k}">${l}</button>`).join('')}</div>` : '') +
       (defMethod() === learnMethod ? `<span class="def">${M.name} is your default: Learn opens here.</span>` : `<button type="button" class="pill-btn" data-defmethod="${learnMethod}">Make ${M.name} my default</button>`);
     $('learnChips').innerHTML = M.steps.map(([k, label]) => { const n = SETS[k].groups && count(k) ? `${done(k)}/${count(k)}` : ''; return [k, label, n]; })
-      .map(([k, label, n]) => `<button type="button" class="chip" data-lset="${k}" aria-pressed="${learnSet === k}">${label}${n ? `<small>${n}</small>` : ''}</button>`).join('');
+      .map(([k, label, n]) => `<button type="button" class="chip" data-lset="${k}" aria-pressed="${stepOf(learnSet) === k}">${label}${n ? `<small>${n}</small>` : ''}</button>`).join('');
     $('learnLesson').innerHTML = lessonHtml(learnSet);
 
     const body = $('learnBody');
@@ -2274,8 +2466,10 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     if (learnSet === 'quiz') { renderQuiz(); return; }
     if (learnSet === 'cross') { renderCross(); return; }
     if (learnSet === 'f2lt') { renderF2LT(); return; }
-    if (learnSet === 'ollt' || learnSet === 'pllt') { renderLLT(); return; }
+    if (learnSet === 'ollt' || learnSet === 'pllt' || learnSet === 'cmllt') { renderLLT(); return; }
     if (learnSet === 'fbt') { renderFB(); return; }
+    if (learnSet === 'sbt' || learnSet === 'lset') { renderRx(); return; }
+    if (learnSet === 'fb' || learnSet === 'sb' || learnSet === 'lse') { renderExample(learnSet); return; }
     if (!set.groups) { body.innerHTML = ''; return; }
     const pct = count(learnSet) ? Math.round(done(learnSet) / count(learnSet) * 100) : null;
     let html = pct === null ? '' : `<div class="progress" aria-label="${pct}% learned"><i style="width:${pct}%"></i></div>`;
