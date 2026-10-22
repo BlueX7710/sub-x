@@ -114,7 +114,20 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .scramble { font-family: var(--font-mono); font-size: clamp(16px, 2.2vw, 21px); line-height: 1.5; word-spacing: .25em; overflow-wrap: anywhere; margin: 0; }
 .scramble.long { font-size: clamp(14px, 1.7vw, 17px); }
 .drill-note { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+.sess-panel { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.sess-panel .field { width: auto; flex: 1 1 180px; }
+.sess-note { font-size: 13px; color: var(--muted); }
 .drill-note.err { color: var(--hold); }
+.cross-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; max-width: 980px; }
+@media (max-width: 760px) { .cross-grid { grid-template-columns: minmax(0, 1fr); } }
+.cross-grid .net { width: 170px; margin-top: 10px; }
+.cross-try { display: flex; gap: 8px; flex-wrap: wrap; }
+.cross-try input { flex: 1 1 180px; min-width: 0; }
+.cross-sol { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.cross-sol p { margin: 0; }
+.cross-sol .alg { font-family: var(--font-mono); font-size: 20px; word-spacing: .2em; }
+.drill-note.ok { color: var(--ready); }
+
 .own-scr { width: 100%; font-family: var(--font-mono); font-size: 17px; word-spacing: .2em; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
 .own-scr::placeholder { font-family: var(--font-body); font-size: 14px; word-spacing: 0; color: var(--muted); }
 .net { width: 150px; height: auto; display: block; }
@@ -129,6 +142,10 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .clock .pen { font-size: .4em; color: var(--muted); margin-left: .1em; }
 .stage[data-s="holding"] .clock { color: var(--hold); }
 .stage[data-s="ready"] .clock { color: var(--ready); }
+.scramble .sdone { opacity: .3; }
+.stage[data-s="smartReady"] .clock { color: var(--ready); }
+.stats tr.slow th, .stats tr.slow td { color: var(--hold); }
+
 .stage[data-s="inspecting"] .clock, .stage[data-s="arming"] .clock { color: var(--accent); }
 .stage[data-s="inspecting"].warn .clock { color: var(--warn); }
 .stage[data-s="inspecting"].over .clock { color: var(--hold); }
@@ -338,8 +355,16 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
             <option value="222">2×2×2</option>
             <option value="333" selected>3×3×3</option>
             <option value="444">4×4×4</option>
+            <option value="555">5×5×5</option>
+            <option value="oh">3×3×3 One-Handed</option>
+            <option value="pyram">Pyraminx</option>
+            <option value="skewb">Skewb</option>
           </select>
         </label>
+        <label class="ctl" for="session">Session
+          <select id="session"></select>
+        </label>
+        <button type="button" class="mini-btn" id="sessMore" aria-controls="sessPanel">Sessions…</button>
         <label class="ctl" for="scrMode">Scramble
           <select id="scrMode">
             <option value="gen">Generated</option>
@@ -351,6 +376,13 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         </label>
         <label class="ctl toggle" for="insp"><input id="insp" type="checkbox" checked> 15s inspection</label>
       </div>
+      <div class="sess-panel" id="sessPanel" hidden>
+        <input id="sessName" class="field" type="text" maxlength="30" placeholder="Session name, e.g. Comp sim" aria-label="Session name">
+        <button type="button" class="pill-btn" id="sessCreate">New session</button>
+        <button type="button" class="pill-btn" id="sessRename">Rename</button>
+        <button type="button" class="pill-btn danger" id="sessDelete">Delete session</button>
+        <span class="sess-note" id="sessNote"></span>
+      </div>
 
       <section class="scramble-card" id="scrCard" aria-label="Scramble">
         <div style="min-width:0">
@@ -359,6 +391,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <p class="drill-note" id="drillNote" hidden></p>
           <input id="ownScr" class="own-scr" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done" placeholder="Optional: type the scramble you used" aria-label="Your scramble" hidden>
           <p class="drill-note" id="ownNote" hidden></p>
+          <p class="drill-note" id="smartNote" hidden></p>
         </div>
         <svg class="net" id="net" role="img" aria-label="Cube state after the scramble"></svg>
       </section>
@@ -387,6 +420,19 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         </div>
       </section>
       <section class="panel">
+        <h2>Smart cube <b id="smartState">not connected</b></h2>
+        <p class="lead" id="smartInfo">Connect a GAN or MoYu AI smart cube. The timer starts on your first turn, stops when the cube is solved, and every solve gets exact cross, F2L, OLL and PLL splits.</p>
+        <div class="row-btns">
+          <button type="button" class="pill-btn" id="smartConnect">Connect smart cube</button>
+          <button type="button" class="pill-btn" id="smartReset" hidden>My cube is solved</button>
+          <button type="button" class="pill-btn" id="smartDisc" hidden>Disconnect</button>
+        </div>
+        <div id="smartMac" hidden style="margin-top:10px">
+          <label class="lead" for="smartMacInput" style="display:block;margin-bottom:6px">Your cube's MAC address. Find it in the GAN app, or in your phone's Bluetooth settings for the cube:</label>
+          <div class="cross-try"><input id="smartMacInput" class="own-scr" type="text" autocomplete="off" spellcheck="false" placeholder="AB:12:CD:34:EF:56"><button type="button" class="btn ghost" id="smartMacOk">Continue</button></div>
+        </div>
+      </section>
+      <section class="panel">
         <h2>Session <b id="evName">3×3×3</b></h2>
         <p class="example-note" id="exampleNote" hidden>Example times shown. Your first solve clears them.</p>
         <table class="stats">
@@ -400,11 +446,25 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <svg class="trend" id="trend" viewBox="0 0 320 110" role="img" aria-label="Solve times over the session"></svg>
         <div class="legend"><span><i style="background:var(--muted)"></i>single</span><span><i style="background:var(--accent)"></i>ao5</span><span><i style="background:var(--ready)"></i>goal</span></div>
       </section>
+      <section class="panel" id="splitsPanel" hidden>
+        <h2>Splits <b id="splitsCount"></b></h2>
+        <table class="stats"><thead><tr><th></th><th>Last</th><th>Average</th></tr></thead><tbody id="splitsBody"></tbody></table>
+        <p class="lead" id="splitsNote" style="margin:8px 0 0"></p>
+      </section>
       <section class="panel">
         <h2>Solves</h2>
         <div class="list-head"><span>#</span><span>Time</span><span>ao5</span></div>
         <ul class="solves" id="solves"></ul>
         <div class="clear-row" id="clearRow"></div>
+      </section>
+      <section class="panel">
+        <h2>Backup</h2>
+        <p class="lead" id="backupInfo"></p>
+        <div class="row-btns">
+          <button type="button" class="pill-btn" id="exportBtn">Save backup</button>
+          <label class="pill-btn" for="importFile" style="cursor:pointer">Restore backup</label>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+        </div>
       </section>
     </aside>
   </main>
@@ -544,23 +604,43 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const db = load() || {};
   db.event = db.event || '333'; db.goal = db.goal || 20; if (db.inspection === undefined) db.inspection = true;
   db.solves = db.solves || {}; db.learned = db.learned || {};
-  for (const k of ['222', '333', '444']) db.solves[k] = db.solves[k] || [];
+  db.sessions = db.sessions || {}; db.lastSess = db.lastSess || {};
 
   const EVENTS = {
     '222': { name: '2×2×2', n: 2, faces: ['R', 'U', 'F'], len: 11, wide: false },
     '333': { name: '3×3×3', n: 3, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 20, wide: false },
     '444': { name: '4×4×4', n: 4, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 40, wide: true },
+    '555': { name: '5×5×5', n: 5, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 60, wide: true, wideFaces: 'URFDLB' },
+    'oh': { name: '3×3×3 One-Handed', n: 3, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 20, wide: false },
+    'pyram': { name: 'Pyraminx', gen: genPyraminx },
+    'skewb': { name: 'Skewb', gen: genSkewb },
   };
   const AXIS = Cube.AXIS;
+  for (const k of Object.keys(EVENTS).concat(Object.keys(db.sessions))) db.solves[k] = db.solves[k] || [];
+  const evOfKey = key => (db.sessions[key] && db.sessions[key].event) || key;
+  const EV = () => evOfKey(db.event);
+  const sessLabel = key => { const s = db.sessions[key], ev = evOfKey(key); return (EVENTS[ev] ? EVENTS[ev].name : ev) + (s ? ' · ' + s.name : ''); };
+  // Random-move scrambles for the non-cube puzzles: no face twice in a row, then random tips.
+  function randomMoves(faces, len) {
+    const out = []; let last = null;
+    while (out.length < len) { const f = faces[Math.floor(Math.random() * faces.length)]; if (f === last) continue; out.push(f + (Math.random() < 0.5 ? "'" : '')); last = f; }
+    return out;
+  }
+  function genPyraminx() {
+    const tips = ['u', 'l', 'r', 'b'].map(t => [null, t, t + "'"][Math.floor(Math.random() * 3)]).filter(Boolean);
+    return randomMoves(['U', 'L', 'R', 'B'], 10).concat(tips).join(' ');
+  }
+  function genSkewb() { return randomMoves(['R', 'L', 'U', 'B'], 10).join(' '); }
 
   function genScramble(ev) {
     const e = EVENTS[ev], out = [];
+    if (e.gen) return e.gen();
     let last = null, prev = null;
     while (out.length < e.len) {
       const f = e.faces[Math.floor(Math.random() * e.faces.length)];
       if (f === last) continue;
       if (last && prev && AXIS[f][0] === AXIS[last][0] && AXIS[f][0] === AXIS[prev][0]) continue;
-      const w = e.wide && 'RUF'.includes(f) && Math.random() < 0.35 ? 'w' : '';
+      const w = e.wide && (e.wideFaces || 'RUF').includes(f) && Math.random() < 0.35 ? 'w' : '';
       out.push(f + w + ['', "'", '2'][Math.floor(Math.random() * 3)]);
       prev = last; last = f;
     }
@@ -573,7 +653,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const PAL_LL = { U: '#FFD500', D: '#FFFFFF', F: '#009E60', B: '#0051BA', R: '#FF5800', L: '#C41E3A' };
   const NET_POS = { U: [1, 0], L: [0, 1], F: [1, 1], R: [2, 1], B: [3, 1], D: [1, 2] };
 
-  function drawNet(alg, N, pal) {
+  function drawNet(alg, N, pal, target) {
     const st = Cube.apply(Cube.solved(N), N, alg);
     const face = 36, cell = face / N, gap = 2, W = face * 4 + gap * 3, H = face * 3 + gap * 2;
     const idx = c => (c + N - 1) / 2;
@@ -591,7 +671,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       const [fx, fy] = NET_POS[f], ox = fx * (face + gap), oy = fy * (face + gap);
       out += `<rect x="${(ox + col * cell + 0.6).toFixed(2)}" y="${(oy + row * cell + 0.6).toFixed(2)}" width="${(cell - 1.2).toFixed(2)}" height="${(cell - 1.2).toFixed(2)}" rx="${(cell * 0.12).toFixed(2)}" fill="${pal[k.col]}"/>`;
     }
-    const svg = $('net');
+    const svg = $(target || 'net');
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.innerHTML = bodies + out;
   }
@@ -715,7 +795,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const cv = $('p3dCanvas'), ctx = cv.getContext('2d'), W = cv.width, cs = getComputedStyle(document.documentElement);
     const body = cs.getPropertyValue('--plastic').trim() || '#16181C', grey = cs.getPropertyValue('--ll-off').trim() || '#9AA2AF';
     const greyOn = P3.c.mode === 'f2l' && !P3.allColors;
-    const polys = Cube3D.frame(P3.st, { yaw: P3.yaw, pitch: P3.pitch, turning, body, colorOf: k => greyOn && k.grey ? grey : PAL_LL[k.col] });
+    const polys = Cube3D.frame(P3.st, { yaw: P3.yaw, pitch: P3.pitch, turning, body, colorOf: k => greyOn && k.grey ? grey : (P3.c.mode === 'cross' ? PAL_WCA : PAL_LL)[k.col] });
     const s = W / 10.8;
     ctx.clearRect(0, 0, W, W); ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, W / 400);
     for (const p of polys) {
@@ -729,7 +809,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const end = P3.idx >= P3.moves.length;
     $('p3dPlay').textContent = P3.playing ? 'Pause' : end ? 'Replay' : 'Play';
     $('p3dStatus').textContent = P3.idx === 0 && !P3.anim ? 'This is the case. Press Play or Step to see the algorithm.'
-      : end && !P3.anim ? (P3.c.mode === 'f2l' ? 'Done: the pair is in its slot.' : 'Done: the case is solved.')
+      : end && !P3.anim ? (P3.c.mode === 'f2l' ? 'Done: the pair is in its slot.' : P3.c.mode === 'cross' ? 'Done: the white cross is solved (white on top here).' : 'Done: the case is solved.')
       : `Move ${(P3.anim ? P3.anim.i : P3.idx - 1) + 1} of ${P3.moves.length}`;
   }
   $('p3dPlay').addEventListener('click', () => {
@@ -837,7 +917,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       $('drillNote').hidden = false;
       $('drillNote').textContent = 'Hold a solved cube with yellow on top and green in front, do these setup moves, then solve the case. You may need to turn the top layer first so the case lines up. Drill times are not saved to your session.';
       $('scrCard').classList.add('drill');
-      drawNet(scramble, 3, PAL_LL);
+      $('net').hidden = false; drawNet(scramble, 3, PAL_LL);
     } else if (db.scrMode === 'own') {
       $('scrLabel').innerHTML = '<span>Your scramble</span>';
       $('drillNote').hidden = true;
@@ -845,23 +925,26 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       $('ownScr').value = '';
       ownScrChanged();
     } else {
-      scramble = genScramble(db.event);
+      scramble = genScramble(EV());
       $('scrLabel').innerHTML = `<span>Scramble</span><button class="mini-btn" id="newScr" type="button">New</button><button class="mini-btn" id="copyScr" type="button">Copy</button>`;
       $('drillNote').hidden = true;
       $('scrCard').classList.remove('drill');
-      drawNet(scramble, EVENTS[db.event].n, PAL_WCA);
+      drawNetFor(scramble);
     }
     const own = !drill && db.scrMode === 'own';
     $('scramble').hidden = own; $('ownScr').hidden = !own;
     if (!own) { $('ownNote').hidden = true; $('scramble').textContent = scramble; }
-    $('scramble').classList.toggle('long', !drill && db.event === '444');
+    $('scramble').classList.toggle('long', !drill && ['444', '555'].includes(EV()));
+    if (SM && SM.conn) smartScramble();
   }
+  // Cube events get a picture of the scrambled cube; Pyraminx and Skewb show the text only.
+  function drawNetFor(s) { const N = EVENTS[EV()].n; $('net').hidden = !N; if (N) drawNet(s, N, PAL_WCA); }
   const MOVE_RE = /^([URFDLB]w?|[urfdlbMESxyz])(2'|'2|'|2)?$/;
   function ownScrChanged() {
     const txt = $('ownScr').value.trim().replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
-    const bad = txt ? Cube.tokens(txt).filter(t => !MOVE_RE.test(t)) : [];
+    const bad = txt && EVENTS[EV()].n ? Cube.tokens(txt).filter(t => !MOVE_RE.test(t)) : [];
     scramble = txt;
-    drawNet(txt, EVENTS[db.event].n, PAL_WCA);
+    drawNetFor(txt);
     const note = $('ownNote');
     note.hidden = false;
     note.classList.toggle('err', bad.length > 0);
@@ -870,7 +953,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       : 'Scramble your cube by hand and start the timer. If you type the scramble, it is pictured here and saved with the solve.';
   }
   function startDrill(c) {
-    if (db.event !== '333') { db.event = '333'; $('event').value = '333'; save(); renderStats(); }
+    if (EV() !== '333') { db.event = '333'; $('event').value = '333'; fillSessions(); save(); renderStats(); }
     drill = { name: c.name, alg: c.alg, times: [] };
     justSolved = false; renderLastActions();
     newScramble(); setState('idle'); clock.textContent = '0.00';
@@ -880,7 +963,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // ---------- session panel ----------
   function renderStats() {
     const list = solvesFor(db.event), L = list.length, goal = db.goal * 1000;
-    $('evName').textContent = EVENTS[db.event].name;
+    $('evName').textContent = sessLabel(db.event);
     $('exampleNote').hidden = !showingExamples();
     const rows = [['Single', (l, e) => e ? eff(l[e - 1]) : null, 1], ['mo3', (l, e) => meanOf(l, 3, e), 3], ['ao5', (l, e) => avgOf(l, 5, e), 5], ['ao12', (l, e) => avgOf(l, 12, e), 12], ['ao50', (l, e) => avgOf(l, 50, e), 50], ['ao100', (l, e) => avgOf(l, 100, e), 100]];
     let html = '';
@@ -895,7 +978,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const mean = ok.length ? ok.reduce((a, b) => a + b, 0) / ok.length : null;
     const under = ok.filter(v => v < goal).length;
     $('summary').innerHTML = `<span>Solves <b>${ok.length}/${L}</b></span><span>Mean <b>${fmt(mean)}</b></span><span>Sub-${db.goal} <b>${L ? Math.round(under / L * 100) : 0}%</b></span>`;
-    renderTrend(list, goal); renderList(list, goal); renderLastActions();
+    renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo(); renderSplits();
   }
 
   function renderTrend(list, goal) {
@@ -925,7 +1008,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const penButtons = (s, i) => `<button type="button" class="pill-btn" data-pen="none" data-i="${i}" aria-pressed="${!s.pen}">OK</button><button type="button" class="pill-btn" data-pen="+2" data-i="${i}" aria-pressed="${s.pen === '+2'}">+2</button><button type="button" class="pill-btn" data-pen="dnf" data-i="${i}" aria-pressed="${s.pen === 'dnf'}">DNF</button><button type="button" class="pill-btn danger" data-del="${i}">Delete</button>`;
   function renderList(list, goal) {
     const ul = $('solves'), ex = showingExamples();
-    if (!list.length) { ul.innerHTML = `<li class="empty">No solves yet for ${EVENTS[db.event].name}. Hold space, or touch and hold the timer, to start.</li>`; $('clearRow').innerHTML = ''; return; }
+    if (!list.length) { ul.innerHTML = `<li class="empty">No solves yet for ${EVENTS[EV()].name}. Hold space, or touch and hold the timer, to start.</li>`; $('clearRow').innerHTML = ''; return; }
     let best = Infinity, pbIdx = -1;
     list.forEach((s, i) => { if (eff(s) < best) { best = eff(s); pbIdx = i; } });
     let html = '';
@@ -934,14 +1017,14 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       const cls = ['solve-row', i === pbIdx ? 'pb' : '', e < goal ? 'goal' : ''].join(' ');
       html += `<li><button type="button" class="${cls}" data-row="${i}" aria-expanded="${openIdx === i}"><span class="n">${i + 1}</span><span class="t">${s.review ? '<span class="rv">AI</span>' : ''}${fmtSolve(s)}</span><span class="a">${fmt(avgOf(list, 5, i + 1))}</span></button>`;
       if (openIdx === i) {
-        html += `<div class="solve-detail"><p>${esc(s.scr)}</p><p class="meta">${new Date(s.t).toLocaleString()}${s.ex ? ' · example' : ''}</p>` +
+        html += `<div class="solve-detail"><p>${esc(s.scr)}</p><p class="meta">${new Date(s.t).toLocaleString()}${s.ex ? ' · example' : ''}</p>${s.splits ? `<p class="meta">${splitsText(s)}</p>` : ''}` +
           (ex ? '' : `<div class="row">${penButtons(s, i)}${s.rec || s.review ? `<button type="button" class="pill-btn" data-review="${i}">Recording</button>` : ''}</div>`) + '</div>';
       }
       html += '</li>';
     }
     ul.innerHTML = html;
     $('clearRow').innerHTML = ex ? '' : (confirmClear
-      ? `Delete all ${list.length} ${EVENTS[db.event].name} solves? <button type="button" class="pill-btn danger" id="clearYes">Delete all</button><button type="button" class="pill-btn" id="clearNo">Keep</button>`
+      ? `Delete all ${list.length} ${EVENTS[EV()].name} solves? <button type="button" class="pill-btn danger" id="clearYes">Delete all</button><button type="button" class="pill-btn" id="clearNo">Keep</button>`
       : `<button type="button" class="mini-btn" id="clearAsk">Clear session</button>`);
   }
   function renderLastActions() {
@@ -975,7 +1058,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const key = touch ? 'Touch and hold the timer' : 'Hold <kbd>space</kbd>';
     let idle = useInspection() ? `${touch ? 'Tap the timer' : 'Press <kbd>space</kbd>'} to start inspection.` : `${key}, then let go to start.`;
     if (drill && drill.times.length) idle += `<br>${esc(drill.name)} drills: ${drill.times.slice(-6).map(fmt).join(' · ')}`;
-    hint.innerHTML = { idle, arming: 'Let go to start inspection.', inspecting: `${key} until the lights go green, then let go. ${touch ? 'Tap Cancel to stop.' : '<kbd>Esc</kbd> cancels.'}`, holding: 'Keep holding…', ready: 'Let go to start.', running: '' }[s];
+    hint.innerHTML = { idle, arming: 'Let go to start inspection.', inspecting: `${key} until the lights go green, then let go. ${touch ? 'Tap Cancel to stop.' : '<kbd>Esc</kbd> cancels.'}`, holding: 'Keep holding…', ready: 'Let go to start.', smartReady: 'Scrambled. Your first turn on the smart cube starts the timer.', running: '' }[s];
   }
   function tickInspection() {
     if (!['inspecting', 'holding', 'ready'].includes(state)) return;
@@ -1011,6 +1094,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (state === 'ready') start();
   }
   function start() {
+    if (SM && SM.conn) { SM.moves = []; SM.raw = []; SM.readySt = SmartCore.clone(SM.cur); }
     lastPen = null;
     if (holdFrom === 'inspecting') { const el = performance.now() - inspStart; lastPen = el > 17000 ? 'dnf' : el > 15000 ? '+2' : null; }
     stage.classList.remove('warn', 'over'); cancelAnimationFrame(raf);
@@ -1116,6 +1200,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (b.id === 'newScr') newScramble();
     else if (b.id === 'copyScr') { try { navigator.clipboard.writeText(scramble).then(() => toast('Scramble copied'), selectScr); } catch (err) { selectScr(); } }
     else if (b.id === 'exitDrill') { drill = null; newScramble(); setState('idle'); clock.textContent = '0.00'; }
+    else if (b.dataset.cross) crossAction(b.dataset.cross);
     else if (b.dataset.p3d) { const c = caseById(b.dataset.p3d); if (c) openPlayer(c); }
     else if (b.dataset.drill !== undefined) { const c = caseById(b.dataset.drill); if (c) startDrill(c); }
     else if (b.dataset.learn !== undefined) { const id = b.dataset.learn; db.learned[id] = !db.learned[id]; save(); renderLearn(); }
@@ -1124,7 +1209,104 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (view === 'timer') b.blur();
   });
 
-  $('event').addEventListener('change', e => { db.event = e.target.value; drill = null; save(); cancel(); justSolved = false; openIdx = -1; confirmClear = false; newScramble(); renderStats(); clock.textContent = '0.00'; e.target.blur(); });
+  $('event').addEventListener('change', e => {
+    const ev = e.target.value, last = db.lastSess[ev];
+    switchSession(last && (last === ev || db.sessions[last]) ? last : ev); e.target.blur();
+  });
+
+  // ---------- backup ----------
+  function backupInfo() {
+    const n = Object.values(db.solves).reduce((a, l) => a + l.length, 0);
+    const stale = n && (!db.lastBackup || Date.now() - db.lastBackup > 7 * 864e5);
+    $('backupInfo').innerHTML = `Saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings to a file you keep. Recordings are not included.<br>Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
+  }
+  async function saveTextFile(name, text) {
+    if (typeof NATIVE !== 'undefined' && NATIVE) {           // Android app: no browser downloads
+      const { Filesystem, Share } = window.Capacitor.Plugins;
+      try { await Filesystem.writeFile({ path: 'Sub-X/' + name, data: text, directory: 'DOCUMENTS', encoding: 'utf8', recursive: true }); return 'Backup saved to Documents/Sub-X'; }
+      catch (e) { const { uri } = await Filesystem.writeFile({ path: name, data: text, directory: 'CACHE', encoding: 'utf8' }); await Share.share({ title: 'Sub-X backup', files: [uri] }); return 'Backup ready to save'; }
+    }
+    if (window.claude && typeof window.claude.use === 'function') {   // claude.ai: the viewer confirms the save
+      const dl = await window.claude.use('downloads');
+      if (dl) { await dl.save({ filename: name, data: text }); return 'Backup saved'; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    return 'Backup saved to your downloads';
+  }
+  $('exportBtn').addEventListener('click', async () => {
+    const d = new Date(), p2 = n => String(n).padStart(2, '0');
+    const name = `sub-x-backup-${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}.json`;
+    const text = JSON.stringify({ app: 'sub-x', version: 1, exported: d.toISOString(), data: db });
+    try { const msg = await saveTextFile(name, text); db.lastBackup = Date.now(); save(); backupInfo(); toast(msg); }
+    catch (e) { toast(e && e.code === 'declined' ? 'Backup not saved.' : "Couldn't save the backup. Try again."); }
+  });
+  // Restoring merges: solves already here are kept, missing ones are added (matched by time stamp).
+  $('importFile').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    let data;
+    try { const j = JSON.parse(await f.text()); if (j.app !== 'sub-x' || !j.data || typeof j.data.solves !== 'object') throw 0; data = j.data; }
+    catch (err) { toast("That file isn't a Sub-X backup."); return; }
+    const before = JSON.stringify(db);
+    let added = 0, newSessions = 0;
+    for (const [k, s] of Object.entries(data.sessions || {})) {
+      if (!db.sessions[k] && s && EVENTS[s.event]) { db.sessions[k] = { name: String(s.name || 'Imported').slice(0, 30), event: s.event }; newSessions++; }
+    }
+    for (const [k, list] of Object.entries(data.solves)) {
+      if (!Array.isArray(list) || !(EVENTS[k] || db.sessions[k])) continue;
+      const mine = db.solves[k] = db.solves[k] || [], seen = new Set(mine.map(s => s.t));
+      for (const s of list) if (s && typeof s.ms === 'number' && typeof s.t === 'number' && !s.ex && !seen.has(s.t)) { mine.push(s); seen.add(s.t); added++; }
+      mine.sort((a, b) => a.t - b.t);
+    }
+    for (const [k, v] of Object.entries(data.learned || {})) if (v) db.learned[k] = true;
+    db.srs = db.srs || {};
+    for (const [k, v] of Object.entries(data.srs || {})) if (v && (!db.srs[k] || (v.seen || 0) > (db.srs[k].seen || 0))) db.srs[k] = v;
+    save(); fillSessions(); renderStats(); if (view === 'learn') renderLearn();
+    toast(`Restored ${added} solve${added === 1 ? '' : 's'}${newSessions ? ` and ${newSessions} session${newSessions === 1 ? '' : 's'}` : ''}`, () => {
+      for (const k of Object.keys(db)) delete db[k];
+      Object.assign(db, JSON.parse(before)); save(); fillSessions(); renderStats();
+    });
+  });
+
+  // ---------- sessions ----------
+  function fillSessions() {
+    const ev = EV(), keys = [ev].concat(Object.keys(db.sessions).filter(k => db.sessions[k].event === ev));
+    $('session').innerHTML = keys.map(k => `<option value="${k}">${esc(db.sessions[k] ? db.sessions[k].name : 'Main')} (${(db.solves[k] || []).length})</option>`).join('');
+    $('session').value = db.event;
+    $('sessRename').disabled = $('sessDelete').disabled = !db.sessions[db.event];
+  }
+  function switchSession(key) {
+    db.event = key; db.lastSess[EV()] = key; drill = null; save(); cancel();
+    justSolved = false; openIdx = -1; confirmClear = false;
+    $('event').value = EV(); fillSessions(); newScramble(); renderStats(); clock.textContent = '0.00';
+  }
+  let delArmed = false;
+  const disarmDelete = () => { delArmed = false; $('sessDelete').textContent = 'Delete session'; };
+  $('session').addEventListener('change', e => { switchSession(e.target.value); e.target.blur(); });
+  $('sessMore').addEventListener('click', () => {
+    const p = $('sessPanel'); p.hidden = !p.hidden;
+    $('sessName').value = db.sessions[db.event] ? db.sessions[db.event].name : ''; $('sessNote').textContent = ''; disarmDelete();
+  });
+  $('sessCreate').addEventListener('click', () => {
+    const name = $('sessName').value.trim() || 'Session ' + (Object.keys(db.sessions).length + 2);
+    const key = 's' + Date.now().toString(36);
+    db.sessions[key] = { name, event: EV() }; db.solves[key] = [];
+    switchSession(key); $('sessNote').textContent = `Created "${name}" for ${EVENTS[EV()].name}.`;
+  });
+  $('sessRename').addEventListener('click', () => {
+    const s = db.sessions[db.event]; if (!s) return;
+    const name = $('sessName').value.trim(); if (!name) { $('sessNote').textContent = 'Type a name first.'; return; }
+    s.name = name; save(); fillSessions(); renderStats(); $('sessNote').textContent = 'Renamed.';
+  });
+  $('sessDelete').addEventListener('click', () => {
+    const key = db.event, s = db.sessions[key]; if (!s) return;
+    if (!delArmed) { delArmed = true; $('sessDelete').textContent = `Tap again to delete "${s.name}" (${db.solves[key].length} solve${db.solves[key].length === 1 ? '' : 's'})`; return; }
+    disarmDelete();
+    const solves = db.solves[key]; delete db.sessions[key]; delete db.solves[key];
+    switchSession(s.event); $('sessNote').textContent = '';
+    toast(`Deleted session "${s.name}"`, () => { db.sessions[key] = s; db.solves[key] = solves; switchSession(key); });
+  });
   $('insp').addEventListener('change', e => { db.inspection = e.target.checked; save(); cancel(); setState('idle'); e.target.blur(); });
   $('goal').addEventListener('change', e => { const v = Math.max(1, Math.min(600, Math.round(+e.target.value || 20))); db.goal = v; e.target.value = v; save(); renderStats(); });
 
@@ -1308,6 +1490,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   ];
   const CFOP_STEPS = [
     { n: 'C', title: 'Cross', sub: 'no algorithms', text: 'Solve the four white edges so they form a cross on the bottom, each one matching the center next to it.',
+      set: 'cross', btn: 'Open the cross trainer',
       tips: ['Plan the whole cross during the 15-second inspection, then do it without stopping.', 'Most crosses take 8 moves or fewer. If yours takes more, look for a shorter way.', 'Solve it on the bottom (white down) so you can see the F2L pieces on top while you work.'] },
     { n: 'F', title: 'F2L', sub: 'first two layers', text: 'Fill the four slots between the cross edges. For each slot, find the white corner and its matching edge, join them into a pair on top, then insert the pair.',
       tips: ['Start with the 4 short inserts. Many other cases turn into one of them.', 'Turn the cube (y) so the slot you are solving is front-right, which is how the cases here are shown.', 'Track the next pair while you insert the current one. That is where most time is saved.'], set: 'f2l', btn: 'Open F2L cases' },
@@ -1323,7 +1506,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     oll: { title: '2-Look OLL', lead: 'Get the whole top face yellow in two steps: first the cross, then the corners. Ten algorithms, and the first three share one trigger.', groups: OLL, mode: 'oll' },
     ollf: { title: 'Full OLL', lead: 'All 57 OLL cases, grouped by the shape the yellow stickers make on top. Each one makes the whole top face yellow in a single algorithm. Learn 2-look OLL first: its 7 corner cases are OLL 21 to 27 here.', groups: OLL_FULL, mode: 'oll' },
     pll: { title: 'PLL', lead: 'With the top face yellow, these 21 algorithms move the last-layer pieces into place. Start with Ua, Ub, Aa, Ab, T and Jb.', groups: PLL, mode: 'pll' },
-    quiz: { title: 'Recognition drill', lead: 'Name the case before you reveal the algorithm. Cases you have not marked as learned come up more often.' },
+    cross: { title: 'Cross trainer', lead: 'Practise planning the cross. Sub-X finds the shortest possible cross for every scramble, so you can compare it with yours.' },
+    quiz: { title: 'Recognition drill', lead: 'Name the case, then reveal it. This uses spaced repetition: cases you miss come back within minutes, and cases you know come back after 1, 3, 7, 16 and then 35 days. Your schedule is saved and included in backups.' },
   };
   const NOTATION = [
     ['R  U  F  L  D  B', 'Right, Up, Front, Left, Down, Back. A plain letter is a quarter turn clockwise when you look at that face.'],
@@ -1338,6 +1522,151 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const ALL_CASES = [...F2L, ...OLL, ...OLL_FULL, ...PLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.id.startsWith('ollf:') ? 'oll' : c.id.split(':')[0] })));
   const caseById = id => ALL_CASES.find(c => c.id === id);
   let learnSet = 'cfop';
+  // ---------- cross trainer ----------
+  const cross = { scr: '', sol: [], shown: false, t0: 0, level: 'any', check: '', checkClass: '', try: '', timer: 0, done: 0, best: 0 };
+  function newCross() {
+    for (let i = 0; i < 400; i++) {
+      const scr = genScramble('333'), sol = CrossSolver.solveTop(scr), n = sol.length;
+      if (cross.level === 'any' || (cross.level === 'easy' && n <= 5) || (cross.level === 'hard' && n >= 7) || i === 399) { cross.scr = scr; cross.sol = sol; break; }
+    }
+    cross.shown = false; cross.t0 = performance.now(); cross.check = ''; cross.try = '';
+  }
+  function renderCross() {
+    if (!cross.scr) newCross();
+    const n = cross.sol.length, levels = [['any', 'Any cross'], ['easy', 'Easier (5 moves or fewer)'], ['hard', 'Harder (7 or more)']];
+    $('learnBody').innerHTML = `<div class="cross-grid">
+      <section class="panel">
+        <div class="label"><span>Scramble · white on top, green in front</span><button type="button" class="mini-btn" data-cross="new">New scramble</button></div>
+        <p class="scramble">${esc(cross.scr)}</p>
+        <svg class="net" id="crossNet" role="img" aria-label="The cube after the scramble"></svg>
+        <div class="chips" style="margin-top:12px">${levels.map(([k, l]) => `<button type="button" class="chip" data-cross="lvl:${k}" aria-pressed="${cross.level === k}">${l}</button>`).join('')}</div>
+      </section>
+      <section class="panel">
+        <div class="label"><span>Plan the cross</span><b id="crossClock" style="font-family:var(--font-mono);color:var(--ink)"></b></div>
+        <p class="lead">Do the scramble, then turn the cube over so white is on the bottom (z2: green stays in front). Find all four white edges and plan the whole cross before you turn, like in inspection. Aim for 8 moves or fewer.</p>
+        <label class="lead" for="crossTry" style="display:block;margin-bottom:6px">Your cross with white on the bottom (optional, to check it):</label>
+        <div class="cross-try"><input id="crossTry" class="own-scr" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. R' D F2 L"><button type="button" class="btn ghost" data-cross="check">Check</button></div>
+        <p class="drill-note ${cross.checkClass}" id="crossCheck">${esc(cross.check)}</p>
+        <div class="row-btns" style="margin-top:12px"><button type="button" class="btn" data-cross="reveal">${cross.shown ? 'Hide best cross' : 'Show best cross'}</button></div>
+        ${cross.shown ? `<div class="cross-sol">
+          <p><b>Best cross: ${n} move${n === 1 ? '' : 's'}</b> · white on the bottom, after z2</p>
+          <p class="alg">${esc(CrossSolver.flip(cross.sol).join(' ') || 'Already solved')}</p>
+          <p class="lead">The same cross with white on top: ${esc(cross.sol.join(' ') || 'none')}</p>
+          ${n ? '<button type="button" class="pill-btn" data-cross="3d">Watch in 3D</button>' : ''}
+        </div>` : ''}
+        <p class="drill-stats">${cross.done ? `This session: ${cross.done} cross${cross.done === 1 ? '' : 'es'} checked, ${cross.best} as short as the best.` : 'Shortest crosses are found by Sub-X itself, offline.'}</p>
+      </section></div>`;
+    drawNet(cross.scr, 3, PAL_WCA, 'crossNet');
+    const inp = $('crossTry'); inp.value = cross.try;
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); crossAction('check'); } });
+    clearInterval(cross.timer);
+    const tick = () => {
+      const el = $('crossClock');
+      if (!el || learnSet !== 'cross' || view !== 'learn') { clearInterval(cross.timer); return; }
+      el.textContent = cross.shown ? '' : ((performance.now() - cross.t0) / 1000).toFixed(1) + 's';
+    };
+    tick(); cross.timer = setInterval(tick, 100);
+  }
+  function crossCheck() {
+    const txt = cross.try.trim().replace(/[’‘]/g, "'");
+    cross.checkClass = 'err';
+    if (!txt) { cross.check = 'Type your moves first.'; return; }
+    const toks = Cube.tokens(txt), bad = toks.filter(t => !MOVE_RE.test(t));
+    if (bad.length) { cross.check = 'Not recognised: ' + bad.join(' ') + ". Use moves like R U' F2."; return; }
+    // the moves are done with white on the bottom: replay them after z2, then turn back to check
+    const ok = CrossSolver.crossSolvedTop(Cube.apply(Cube.solved(3), 3, cross.scr + ' z2 ' + txt + ' z2'));
+    const n = toks.filter(t => !/^[xyz]/.test(t)).length, best = cross.sol.length;
+    if (!ok) { cross.check = "That doesn't solve the cross. Check the moves, or show the best cross."; return; }
+    cross.done++; if (n <= best) cross.best++;
+    cross.checkClass = 'ok';
+    cross.check = n <= best ? `Yes: that solves the cross in ${n} moves, as short as it gets.` : `Yes: that solves the cross in ${n} moves. The best is ${best}.`;
+  }
+  function crossAction(a) {
+    if ($('crossTry')) cross.try = $('crossTry').value;
+    if (a === 'new') newCross();
+    else if (a.startsWith('lvl:')) { cross.level = a.slice(4); newCross(); }
+    else if (a === 'reveal') cross.shown = !cross.shown;
+    else if (a === 'check') crossCheck();
+    else if (a === '3d') { if (cross.sol.length) openPlayer({ id: 'cross', name: 'Best cross', alg: cross.sol.join(' '), mode: 'cross' }); return; }
+    renderCross();
+  }
+
+  // ---------- spaced repetition for the recognition drill ----------
+  // Leitner boxes: a miss comes back in a minute; each correct answer pushes the case to the
+  // next box (1, 3, 7, 16, then 35 days). The schedule is saved and included in backups.
+  const SRS_DAYS = [0, 1, 3, 7, 16, 35];
+  function srsGrade(id, ok) {
+    db.srs = db.srs || {};
+    const old = db.srs[id], r = old ? { ...old } : { box: 0 }, now = Date.now();
+    r.box = ok ? Math.min(r.box + (old ? 1 : 2), SRS_DAYS.length - 1) : 0;   // known on first sight: skip ahead
+    r.due = now + (r.box ? SRS_DAYS[r.box] * 864e5 : 60e3); r.seen = now;
+    db.srs[id] = r; save();
+  }
+  const quizPool = () => ALL_CASES.filter(c => quiz.pool === 'all' || c.mode === quiz.pool);
+  const fmtWhen = ms => ms < 36e5 ? `in ${Math.max(1, Math.round(ms / 6e4))} min` : ms < 864e5 ? `in ${Math.round(ms / 36e5)} h` : `in ${Math.round(ms / 864e5)} days`;
+  function srsLine() {
+    const pool = quizPool(), now = Date.now(), srs = db.srs || {};
+    const due = pool.filter(c => srs[c.id] && srs[c.id].due <= now).length, fresh = pool.filter(c => !srs[c.id]).length;
+    const next = pool.filter(c => srs[c.id] && srs[c.id].due > now).map(c => srs[c.id].due).sort((a, b) => a - b)[0];
+    return `${quiz.total ? `${quiz.right} of ${quiz.total} right this round · ` : ''}Due now: <b>${due}</b> · New: <b>${fresh}</b>${!due && next ? ` · next review ${fmtWhen(next - now)}` : ''}`;
+  }
+  // ---------- cross solver ----------
+  // Optimal white cross. State = where each of the 4 white edges' white sticker sits (24
+  // edge facelets), so 24^4 states; a breadth-first search from the solved cross gives the
+  // exact distance of every state, and a solution just walks downhill. Built on first use.
+  const CrossSolver = (() => {
+    const MOVES = ['U', 'D', 'R', 'L', 'F', 'B'].flatMap(f => [f, f + "'", f + '2']);
+    let built = null;
+    function build() {
+      const solvedSt = Cube.solved(3);
+      const isEdge = p => p.filter(v => v === 0).length === 1;
+      const facelets = solvedSt.filter(k => isEdge(k.p)).map(k => ({ p: k.p.slice(), n: k.n.slice() }));
+      const fkey = (p, n) => p.join() + '|' + n.join();
+      const index = new Map(facelets.map((f, i) => [fkey(f.p, f.n), i]));
+      const table = MOVES.map(m => facelets.map(f => { const s = [{ p: f.p.slice(), n: f.n.slice(), col: 'X' }]; Cube.apply(s, 3, m); return index.get(fkey(s[0].p, s[0].n)); }));
+      // the four white (U) edges, identified by their other colour
+      const PIECES = ['F', 'R', 'B', 'L'];
+      const home = PIECES.map(c => { const k = solvedSt.find(s => s.col === 'U' && isEdge(s.p) && solvedSt.some(o => o !== s && o.p.join() === s.p.join() && o.col === c)); return index.get(fkey(k.p, k.n)); });
+      const enc = s => ((s[0] * 24 + s[1]) * 24 + s[2]) * 24 + s[3];
+      const dist = new Int8Array(24 ** 4).fill(-1);
+      let frontier = [home]; dist[enc(home)] = 0;
+      for (let d = 0; frontier.length; d++) {
+        const next = [];
+        for (const s of frontier) for (const t of table) {
+          const n = [t[s[0]], t[s[1]], t[s[2]], t[s[3]]], e = enc(n);
+          if (dist[e] < 0) { dist[e] = d + 1; next.push(n); }
+        }
+        frontier = next;
+      }
+      return { table, index, fkey, isEdge, PIECES, dist, enc };
+    }
+    function stateOf(st) {
+      const B = built || (built = build());
+      return B.PIECES.map(c => {
+        const w = st.find(s => s.col === 'U' && B.isEdge(s.p) && st.some(o => o !== s && o.p.join() === s.p.join() && o.col === c));
+        return B.index.get(B.fkey(w.p, w.n));
+      });
+    }
+    // white-on-top solution for the cube after `scramble`
+    function solveTop(scramble) {
+      const B = built || (built = build());
+      let s = stateOf(Cube.apply(Cube.solved(3), 3, scramble)); const out = [];
+      while (B.dist[B.enc(s)] > 0) {
+        const d = B.dist[B.enc(s)];
+        for (let m = 0; m < MOVES.length; m++) {
+          const t = B.table[m], n = [t[s[0]], t[s[1]], t[s[2]], t[s[3]]];
+          if (B.dist[B.enc(n)] === d - 1) { out.push(MOVES[m]); s = n; break; }
+        }
+      }
+      return out;
+    }
+    // the same moves after turning the cube over with z2 (white on the bottom, green still in front)
+    const Z2 = { U: 'D', D: 'U', R: 'L', L: 'R', F: 'F', B: 'B' };
+    const flip = moves => moves.map(m => Z2[m[0]] + m.slice(1));
+    function crossSolvedTop(st) { const B = built || (built = build()); const s = stateOf(st); return B.dist[B.enc(s)] === 0; }
+    return { solveTop, flip, crossSolvedTop, distance: scramble => solveTop(scramble).length };
+  })();
+
 
   function renderLearn() {
     const set = SETS[learnSet];
@@ -1345,7 +1674,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     $('learnLead').textContent = set.lead;
     const count = key => ALL_CASES.filter(c => c.id.startsWith(key + ':')).length;
     const done = key => ALL_CASES.filter(c => c.id.startsWith(key + ':') && db.learned[c.id]).length;
-    $('learnChips').innerHTML = [['cfop', 'CFOP guide', ''], ['notation', 'Notation', ''], ['f2l', 'F2L', `${done('f2l')}/${count('f2l')}`], ['oll', '2-Look OLL', `${done('oll')}/${count('oll')}`], ['ollf', 'Full OLL', `${done('ollf')}/${count('ollf')}`], ['pll', 'PLL', `${done('pll')}/${count('pll')}`], ['quiz', 'Drill', '']]
+    $('learnChips').innerHTML = [['cfop', 'CFOP guide', ''], ['cross', 'Cross trainer', ''], ['notation', 'Notation', ''], ['f2l', 'F2L', `${done('f2l')}/${count('f2l')}`], ['oll', '2-Look OLL', `${done('oll')}/${count('oll')}`], ['ollf', 'Full OLL', `${done('ollf')}/${count('ollf')}`], ['pll', 'PLL', `${done('pll')}/${count('pll')}`], ['quiz', 'Drill', '']]
       .map(([k, label, n]) => `<button type="button" class="chip" data-lset="${k}" aria-pressed="${learnSet === k}">${label}${n ? `<small>${n}</small>` : ''}</button>`).join('');
 
     const body = $('learnBody');
@@ -1354,8 +1683,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       return;
     }
     if (learnSet === 'quiz') { renderQuiz(); return; }
+    if (learnSet === 'cross') { renderCross(); return; }
     if (learnSet === 'cfop') {
-      body.innerHTML = `<div class="cfop">${CFOP_STEPS.map(s => `<section class="cfop-step"><div class="num">${s.n}</div><h3>${esc(s.title)}<small>${esc(s.sub)}</small></h3><p>${esc(s.text)}</p><div><ul>${s.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul>${s.set ? `<div class="acts"><button type="button" class="pill-btn" data-lset="${s.set}">${esc(s.btn)}</button><span class="drill-stats" style="margin:0;align-self:center">${done(s.set)} of ${count(s.set)} learned</span></div>` : ''}</div></section>`).join('')}
+      body.innerHTML = `<div class="cfop">${CFOP_STEPS.map(s => `<section class="cfop-step"><div class="num">${s.n}</div><h3>${esc(s.title)}<small>${esc(s.sub)}</small></h3><p>${esc(s.text)}</p><div><ul>${s.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul>${s.set ? `<div class="acts"><button type="button" class="pill-btn" data-lset="${s.set}">${esc(s.btn)}</button>${count(s.set) ? `<span class="drill-stats" style="margin:0;align-self:center">${done(s.set)} of ${count(s.set)} learned</span>` : ''}</div>` : ''}</div></section>`).join('')}
         <div class="cfop-path"><h3>Suggested order</h3><ol>
           <li>Cross on the bottom, plus the 4 short F2L inserts (F2L 1–4).</li>
           <li>2-look OLL: the 3 cross cases, then Sune and Antisune, then the other 5.</li>
@@ -1382,11 +1712,16 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   }
 
   let quiz = { pool: 'all', cur: null, shown: false, right: 0, total: 0 };
+  // Next card: the most overdue reviews first, then new cases (ones you marked learned
+  // before the rest), and if nothing is due, the case whose review comes up soonest.
   function pickQuiz() {
-    const pool = ALL_CASES.filter(c => quiz.pool === 'all' || c.mode === quiz.pool);
-    const weighted = pool.flatMap(c => db.learned[c.id] ? [c] : [c, c, c]);
-    let next; do { next = weighted[Math.floor(Math.random() * weighted.length)]; } while (pool.length > 1 && quiz.cur && next.id === quiz.cur.id);
-    quiz.cur = next; quiz.shown = false;
+    const pool = quizPool(), now = Date.now(), srs = db.srs || {}, rand = a => a[Math.floor(Math.random() * a.length)];
+    const notCur = c => pool.length === 1 || !quiz.cur || c.id !== quiz.cur.id;
+    const due = pool.filter(c => srs[c.id] && srs[c.id].due <= now && notCur(c)).sort((a, b) => srs[a.id].due - srs[b.id].due);
+    const fresh = pool.filter(c => !srs[c.id] && notCur(c)), freshLearned = fresh.filter(c => db.learned[c.id]);
+    quiz.cur = due.length ? rand(due.slice(0, 3)) : fresh.length ? rand(freshLearned.length ? freshLearned : fresh)
+      : pool.filter(notCur).sort((a, b) => srs[a.id].due - srs[b.id].due)[0] || pool[0];
+    quiz.shown = false;
   }
   function renderQuiz() {
     if (!quiz.cur) pickQuiz();
@@ -1398,14 +1733,14 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <div class="row">${quiz.shown
           ? `<button type="button" class="btn" data-quiz="got">I knew it</button><button type="button" class="btn ghost" data-quiz="miss">Not yet</button><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn" data-drill="${c.id}">Drill on timer</button>`
           : `<button type="button" class="btn" data-quiz="reveal">Reveal</button><button type="button" class="btn ghost" data-quiz="skip">Skip</button>`}</div>
-        <div class="drill-stats">${quiz.total ? `${quiz.right} of ${quiz.total} known this round` : 'Answers are not saved; marking a case learned is done on its card.'}</div>
+        <div class="drill-stats">${srsLine()}</div>
       </div></div></div>`;
   }
   function quizAction(a) {
     if (a.startsWith('pool:')) { quiz.pool = a.slice(5); quiz.cur = null; }
     else if (a === 'reveal') quiz.shown = true;
     else if (a === 'skip') pickQuiz();
-    else if (a === 'got' || a === 'miss') { quiz.total++; if (a === 'got') quiz.right++; pickQuiz(); }
+    else if (a === 'got' || a === 'miss') { quiz.total++; if (a === 'got') quiz.right++; srsGrade(quiz.cur.id, a === 'got'); pickQuiz(); }
     renderQuiz();
   }
 
@@ -1489,7 +1824,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       const done = () => {
         const video = c.chunks.length ? new Blob(c.chunks, { type: c.mime || 'video/webm' }) : null;
         const frames = c.frames.sort((a, b) => a.at - b.at).map(f => ({ t: (f.at - startAt) / 1000, blob: f.blob }));
-        recPut({ id: solve.t, ev, ms: solve.ms, solveSec: (stopAt - startAt) / 1000, offset: (startAt - c.t0) / 1000, frames, video, at: Date.now() })
+        recPut({ id: solve.t, ev, evt: EV(), ms: solve.ms, solveSec: (stopAt - startAt) / 1000, offset: (startAt - c.t0) / 1000, frames, video, at: Date.now() })
           .then(() => { if (view === 'review') renderReviewSetup(); })
           .catch(() => toast('Could not store the recording in this browser.'));
       };
@@ -1530,7 +1865,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   function clipName(r) {
     const d = new Date(r.id), ext = /mp4/.test(r.video.type) ? 'mp4' : 'webm';
     // The claude.ai review page reads the event, timer reading and start offset from this name.
-    return `subx-${r.ev}-t${r.solveSec.toFixed(2)}-s${Math.max(0, r.offset || 0).toFixed(2)}-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.${ext}`;
+    return `subx-${r.evt || evOfKey(r.ev)}-t${r.solveSec.toFixed(2)}-s${Math.max(0, r.offset || 0).toFixed(2)}-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.${ext}`;
   }
 
   async function renderReviewSetup() {
@@ -1544,7 +1879,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (!rvRec && recs.length) rvRec = recs[0];
     $('rvList').innerHTML = recs.length ? recs.map(r => {
       const s = solveForRec(r);
-      return `<li><button type="button" data-rec="${r.id}" aria-current="${!!rvRec && rvRec.id === r.id}"><span>${EVENTS[r.ev] ? EVENTS[r.ev].name : ''} · <b>${s ? fmtSolve(s) : fmt(r.ms)}</b></span><span class="m">${new Date(r.at).toLocaleString()}</span></button></li>`;
+      return `<li><button type="button" data-rec="${r.id}" aria-current="${!!rvRec && rvRec.id === r.id}"><span>${sessLabel(r.ev)} · <b>${s ? fmtSolve(s) : fmt(r.ms)}</b></span><span class="m">${new Date(r.at).toLocaleString()}</span></button></li>`;
     }).join('') : '<li class="empty">Nothing recorded yet. Turn the camera on in the Timer tab and do a solve.</li>';
     const has = !!(rvRec && rvRec.video);
     $('rvClipPanel').hidden = !has;
@@ -1553,7 +1888,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (has) {
       if (vid.dataset.id !== String(rvRec.id)) { if (vid.src) URL.revokeObjectURL(vid.src); vid.src = URL.createObjectURL(rvRec.video); vid.dataset.id = rvRec.id; }
       const s = solveForRec(rvRec);
-      $('rvTitle').textContent = `${EVENTS[rvRec.ev].name} · ${s ? fmtSolve(s) : fmt(rvRec.ms)}`;
+      $('rvTitle').textContent = `${sessLabel(rvRec.ev)} · ${s ? fmtSolve(s) : fmt(rvRec.ms)}`;
       $('rvFile').textContent = clipName(rvRec);
       $('rvShare').hidden = NATIVE || !(navigator.canShare && navigator.canShare({ files: [new File([rvRec.video], clipName(rvRec), { type: rvRec.video.type })] }));
     }
@@ -1627,6 +1962,248 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   $('rvOpen').href = REVIEW_URL;
   if (NATIVE) $('rvOpen').addEventListener('click', e => { e.preventDefault(); location.href = REVIEW_URL; }); // the app opens outside links in the browser
 
+  // ---------- smart cube: state, scramble tracking and CFOP splits ----------
+  // Pure logic (no Bluetooth here), so it can be tested on its own.
+  const SmartCore = (() => {
+    const clone = st => st.map(k => ({ p: k.p.slice(), n: k.n.slice(), col: k.col }));
+    const HOME = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
+    const key = (p, n) => p.join() + '/' + n.join();
+    const ORDER = Cube.solved(3).map(k => key(k.p, k.n));
+    const sig = st => { const m = new Map(st.map(k => [key(k.p, k.n), k.col])); return ORDER.map(x => m.get(x)).join(''); };
+    const isSolved = st => st.every(k => k.col === HOME(k.n));
+    // Kociemba facelet order (U R F D L B, each read row by row) matches the layout of the net
+    const idx = c => (c + 2) / 2;
+    function faceletIndex(k) {
+      const [x, y, z] = k.p, f = HOME(k.n);
+      const [row, col] = f === 'U' ? [idx(z), idx(x)] : f === 'R' ? [2 - idx(y), 2 - idx(z)] : f === 'F' ? [2 - idx(y), idx(x)]
+        : f === 'D' ? [2 - idx(z), idx(x)] : f === 'L' ? [2 - idx(y), idx(z)] : [2 - idx(y), 2 - idx(x)];
+      return 'URFDLB'.indexOf(f) * 9 + row * 3 + col;
+    }
+    function fromFacelets(f) { const st = Cube.solved(3); for (const k of st) k.col = f[faceletIndex(k)]; return st; }
+    function toFacelets(st) { const a = []; for (const k of st) a[faceletIndex(k)] = k.col; return a.join(''); }
+
+    // Scramble tracking: compare the cube with the state after each scramble move.
+    function track(scramble) {
+      const toks = Cube.tokens(scramble), states = [], mids = [];
+      let st = Cube.solved(3); states.push(sig(st)); mids.push(null);
+      for (const t of toks) {
+        let mid = null;
+        if (/2/.test(t)) { mid = [t[0], t[0] + "'"].map(q => sig(Cube.apply(clone(st), 3, q))); }
+        Cube.apply(st, 3, t); states.push(sig(st)); mids.push(mid);
+      }
+      return { toks, states, mids, k: 0, off: [], done: false, lost: false };
+    }
+    // update tracking after the cube moved (m = the move just made, st = cube state now)
+    function step(T, st, m) {
+      const s = sig(st);
+      const j = T.states.indexOf(s, T.k);
+      if (j >= 0) { T.k = j; T.off = []; }
+      else if (T.k < T.toks.length && T.mids[T.k + 1] && T.mids[T.k + 1].includes(s) && !T.off.length) { /* half of a half turn */ }
+      else if (T.states.indexOf(s) >= 0) { T.k = T.states.indexOf(s); T.off = []; }
+      else if (m) T.off.push(m);
+      T.lost = T.off.length > 6;
+      T.sync = T.states[T.k] === s || !!(T.mids[T.k + 1] && T.mids[T.k + 1].includes(s));
+      T.done = !T.off.length && T.k === T.toks.length;
+      return T;
+    }
+    const undoMoves = T => Cube.invert(T.off.join(' '));
+
+    // CFOP splits from the moves of one solve (t = ms since the first turn).
+    const FACES = { U: [1, 1], D: [1, -1], R: [0, 1], L: [0, -1], F: [2, 1], B: [2, -1] };
+    const OPP = { U: 'D', D: 'U', R: 'L', L: 'R', F: 'B', B: 'F' };
+    function pieceSolved(map, p) { const ks = map.get(p.join()); return !!ks && ks.every(k => k.col === HOME(k.n)); }
+    const layerCubies = (ax, v) => { const out = []; for (const a of [-2, 0, 2]) for (const b of [-2, 0, 2]) { const p = [0, 0, 0], o = [0, 1, 2].filter(i => i !== ax); p[ax] = v; p[o[0]] = a; p[o[1]] = b; out.push(p); } return out; };
+    const GEO = {};
+    for (const [f, [ax, s]] of Object.entries(FACES)) {
+      const layer = layerCubies(ax, 2 * s);
+      const edges = layer.filter(p => p.filter(v => v === 0).length === 1);
+      const corners = layer.filter(p => p.every(v => v !== 0));
+      GEO[f] = { edges, slots: corners.map(c => { const e = c.slice(); e[ax] = 0; return [c, e]; }) };
+    }
+    function splits(startSt, moves) {
+      const st = clone(startSt), res = { face: null, cross: null, pairs: [], oll: null, total: moves.length ? moves[moves.length - 1].t : 0, moves: moves.length };
+      for (const mv of moves) {
+        Cube.apply(st, 3, mv.m);
+        const map = new Map(); for (const k of st) { const id = k.p.join(); if (!map.has(id)) map.set(id, []); map.get(id).push(k); }
+        const crossOn = f => GEO[f].edges.every(p => pieceSolved(map, p));
+        if (!res.face) { for (const f of Object.keys(FACES)) if (crossOn(f)) { res.face = f; res.cross = mv.t; break; } }
+        if (res.face && res.pairs.length < 4 && crossOn(res.face)) {
+          const n = GEO[res.face].slots.filter(([c, e]) => pieceSolved(map, c) && pieceSolved(map, e)).length;
+          while (res.pairs.length < n) res.pairs.push(mv.t);
+        }
+        if (res.pairs.length === 4 && res.oll === null) {
+          const o = OPP[res.face], [ax, s] = FACES[o];
+          if (st.filter(k => k.n[ax] === s).every(k => k.col === o)) res.oll = mv.t;
+        }
+      }
+      if (!res.face || res.pairs.length < 4) return null;
+      if (res.oll === null) res.oll = res.total;
+      return res;
+    }
+    return { clone, sig, isSolved, fromFacelets, toFacelets, track, step, undoMoves, splits };
+  })();
+
+  // ---------- smart cube: Bluetooth connection and timer ----------
+  var SM = { conn: null, lib: null, cur: Cube.solved(3), T: null, moves: [], raw: [], readySt: null, battery: null, sub: null };
+  const GAN_URL = 'https://cdn.jsdelivr.net/npm/gan-web-bluetooth@3.0.2/+esm';
+  const SMART_EVENTS = ['333', 'oh'];
+  const smartOk = () => !!navigator.bluetooth && !NATIVE;
+  const smartInfo = msg => { $('smartInfo').textContent = msg; };
+  function smartUI() {
+    const c = SM.conn;
+    $('smartState').textContent = c ? (c.deviceName || 'connected') + (SM.battery != null ? ` · ${SM.battery}%` : '') : 'not connected';
+    $('smartConnect').hidden = !!c; $('smartReset').hidden = $('smartDisc').hidden = !c;
+  }
+  // called whenever a new scramble is shown
+  function smartScramble() {
+    const note = $('smartNote');
+    if (!SM.conn) { note.hidden = true; SM.T = null; return; }
+    if (drill || db.scrMode === 'own' || !SMART_EVENTS.includes(EV())) {
+      SM.T = null; note.hidden = false; note.classList.remove('err');
+      note.textContent = 'Smart cube connected: the timer stops by itself when the cube is solved. Scramble tracking works with generated 3×3 scrambles.';
+      return;
+    }
+    SM.T = SmartCore.track(scramble); SmartCore.step(SM.T, SM.cur, null); smartShow();
+  }
+  function smartShow() {
+    const T = SM.T, note = $('smartNote'); if (!T) return;
+    $('scramble').innerHTML = T.toks.map((t, i) => `<span class="${i < T.k ? 'sdone' : ''}">${esc(t)}</span>`).join(' ');
+    const lost = T.lost || (!T.sync && !T.off.length);
+    note.hidden = false; note.classList.toggle('err', lost || T.off.length > 0);
+    note.textContent = T.done ? (db.inspection ? 'Scrambled. Inspection is running: your first turn starts the timer.' : 'Scrambled. Your first turn starts the timer.')
+      : lost ? "Your cube doesn't match the scramble. Solve it and follow the scramble from the start, or tap “My cube is solved” if it already is."
+      : T.off.length ? 'Off the scramble. Undo with: ' + SmartCore.undoMoves(T)
+      : `Follow the scramble on your smart cube: ${T.k} of ${T.toks.length} moves done.`;
+  }
+  function smartReadyGo() {
+    if (state !== 'idle') return;
+    if (typeof camStart === 'function') camStart();
+    if (db.inspection) { inspStart = performance.now(); holdFrom = 'inspecting'; setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
+    else { holdFrom = 'idle'; setState('smartReady'); clock.textContent = '0.00'; }
+  }
+  function smartMove(m, ts, ev) {
+    const before = SmartCore.clone(SM.cur);
+    Cube.apply(SM.cur, 3, m);
+    if (state === 'running') {
+      SM.moves.push({ m, t: ts }); if (ev) SM.raw.push(ev);
+      if (SmartCore.isSolved(SM.cur)) smartFinish();
+      return;
+    }
+    if ((state === 'inspecting' || state === 'smartReady') && SM.T && SM.T.done) {
+      start(); runStart = ts;                         // the first turn starts the timer
+      SM.readySt = before; SM.moves = [{ m, t: ts }]; SM.raw = ev ? [ev] : [];
+      return;
+    }
+    if (SM.T) { SmartCore.step(SM.T, SM.cur, m); smartShow(); if (SM.T.done) smartReadyGo(); }
+  }
+  function smartFinish() {
+    const t0 = SM.moves[0].t, moves = SM.moves.map(x => ({ m: x.m, t: Math.round(x.t - t0) })), raw = SM.raw.slice(), wasDrill = !!drill;
+    stop(); ignoreRelease = false;
+    if (wasDrill) return;
+    const list = db.solves[db.event], s = list[list.length - 1]; if (!s) return;
+    let ms = moves[moves.length - 1].t;              // first turn to solved, on this device's clock
+    try {   // the cube's own clock is steadier: fit it to ours (the csTimer method) and use it if it agrees
+      if (SM.lib && raw.length > 2 && raw.every(r => r.cubeTimestamp != null && r.localTimestamp != null)) {
+        const fit = SM.lib.cubeTimestampLinearFit(raw), d = fit[fit.length - 1].cubeTimestamp - fit[0].cubeTimestamp;
+        if (d > 0 && Math.abs(d - ms) < Math.max(300, ms * 0.1)) ms = d;
+      }
+    } catch (e) {}
+    s.ms = Math.round(ms); s.smart = true;
+    const sp = SmartCore.splits(SM.readySt, moves); if (sp) s.splits = sp;
+    save(); clock.innerHTML = fmtSolve(s).replace(/\+$/, '<span class="pen">+2</span>'); renderStats();
+  }
+  function smartCleanup() {
+    try { if (SM.sub) SM.sub.unsubscribe(); } catch (e) {}
+    SM.sub = null; SM.conn = null; SM.T = null; SM.battery = null; smartUI();
+    $('smartNote').hidden = true;
+    if (!drill && db.scrMode !== 'own') $('scramble').textContent = scramble;
+    if (state === 'smartReady') { setState('idle'); if (typeof camAbort === 'function') camAbort(); }
+  }
+  function onSmartEvent(ev) {
+    if (ev.type === 'MOVE') smartMove(ev.move, ev.localTimestamp != null ? ev.localTimestamp : ev.timestamp, ev);
+    else if (ev.type === 'FACELETS') {
+      if (state === 'running') return;
+      SM.cur = SmartCore.fromFacelets(ev.facelets);
+      if (SM.T) { SmartCore.step(SM.T, SM.cur, null); smartShow(); if (SM.T.done) smartReadyGo(); }
+    }
+    else if (ev.type === 'BATTERY') { SM.battery = ev.batteryLevel; smartUI(); }
+    else if (ev.type === 'DISCONNECT') { smartCleanup(); toast('Smart cube disconnected'); }
+  }
+  // GAN cubes need their MAC address for encryption. Chrome can often read it; otherwise ask once.
+  const macProvider = (device, isFallback) => {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('subx-macs') || '{}')[device.name] || null; } catch (e) {}
+    if (saved || !isFallback) return Promise.resolve(saved);
+    return new Promise(resolve => {
+      $('smartMac').hidden = false; $('smartMacInput').focus();
+      smartInfo('One more step: Chrome could not read the cube\'s address, so type it below.');
+      $('smartMacOk').onclick = () => {
+        const v = $('smartMacInput').value.trim().toUpperCase().replace(/-/g, ':');
+        if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(v)) { smartInfo("That doesn't look like a MAC address. It is 6 pairs of characters, like AB:12:CD:34:EF:56."); return; }
+        try { const m = JSON.parse(localStorage.getItem('subx-macs') || '{}'); m[device.name] = v; localStorage.setItem('subx-macs', JSON.stringify(m)); } catch (e) {}
+        $('smartMac').hidden = true; resolve(v);
+      };
+    });
+  };
+  async function smartConnect() {
+    if (!smartOk()) {
+      smartInfo(NATIVE ? "The Android app can't use Bluetooth. Open bluex7710.github.io/sub-x in Chrome on your phone to use a smart cube."
+        : "This browser can't use Bluetooth. Use Chrome or Edge on Android, Windows, Mac or ChromeOS. iPhone and iPad browsers don't support it.");
+      return;
+    }
+    $('smartConnect').disabled = true; $('smartState').textContent = 'connecting…';
+    try {
+      SM.lib = SM.lib || await import(GAN_URL);
+      const conn = await SM.lib.connectGanCube(macProvider);
+      SM.conn = conn; SM.cur = Cube.solved(3);
+      SM.sub = conn.events$.subscribe(onSmartEvent);
+      smartUI(); smartInfo('Connected. Your cube should be solved before you start a scramble. If Sub-X disagrees, solve it and tap “My cube is solved”.');
+      await conn.sendCubeCommand({ type: 'REQUEST_FACELETS' });
+      await conn.sendCubeCommand({ type: 'REQUEST_BATTERY' });
+      smartScramble();
+    } catch (e) {
+      smartCleanup();
+      smartInfo(e && e.name === 'NotFoundError' ? 'No cube was chosen. Wake the cube up by turning a face, then try again.'
+        : `Couldn't connect (${e && e.message ? e.message : e}). Make sure the cube is awake and not connected to another app.`);
+    } finally { $('smartConnect').disabled = false; }
+  }
+  // load the library as soon as the button is touched, so the Bluetooth picker opens straight from the click
+  const preloadGan = () => { if (!SM.lib && smartOk()) import(GAN_URL).then(l => { SM.lib = SM.lib || l; }).catch(() => {}); };
+  $('smartConnect').addEventListener('pointerdown', preloadGan);
+  $('smartConnect').addEventListener('focus', preloadGan);
+  $('smartConnect').addEventListener('click', smartConnect);
+  $('smartDisc').addEventListener('click', async () => { const c = SM.conn; smartCleanup(); try { await c.disconnect(); } catch (e) {} });
+  $('smartReset').addEventListener('click', async () => {
+    if (!SM.conn) return;
+    try { await SM.conn.sendCubeCommand({ type: 'REQUEST_RESET' }); } catch (e) {}
+    SM.cur = Cube.solved(3); smartScramble(); toast('Cube marked as solved');
+  });
+  if (!navigator.bluetooth || NATIVE) smartInfo(NATIVE
+    ? "Smart cubes work in Chrome, not in the Android app: open bluex7710.github.io/sub-x in Chrome on your phone."
+    : "Smart cubes need Chrome or Edge on Android, Windows, Mac or ChromeOS (iPhone and iPad browsers don't support Bluetooth).");
+
+  // test hook for simulated cubes; only on a local development server
+  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble };
+
+  // ---------- splits ----------
+  const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];   // usual share of a CFOP solve
+  const phaseTimes = p => [p.cross, p.pairs[3] - p.cross, p.oll - p.pairs[3], p.total - p.oll].map(v => Math.max(0, v));
+  function splitsText(s) {
+    const p = s.splits, t = phaseTimes(p);
+    return PHASES.map((n, i) => `${n} ${fmt(t[i])}`).join(' · ') + ` · ${p.moves} moves, ${(p.moves / Math.max(0.001, p.total / 1000)).toFixed(1)} TPS`;
+  }
+  function renderSplits() {
+    const panel = $('splitsPanel'); if (!panel) return;
+    const list = solvesFor(db.event).filter(s => s.splits).slice(-12);
+    panel.hidden = !list.length; if (!list.length) return;
+    const last = phaseTimes(list[list.length - 1].splits);
+    const avg = [0, 1, 2, 3].map(i => list.reduce((a, s) => a + phaseTimes(s.splits)[i], 0) / list.length);
+    const total = avg.reduce((a, b) => a + b, 0) || 1, ratio = avg.map((v, i) => v / (total * TYPICAL[i])), slow = ratio.indexOf(Math.max(...ratio));
+    $('splitsCount').textContent = `last ${list.length} smart-cube solve${list.length === 1 ? '' : 's'}`;
+    $('splitsBody').innerHTML = PHASES.map((n, i) => `<tr${i === slow ? ' class="slow"' : ''}><th>${n}</th><td>${fmt(last[i])}</td><td class="best">${fmt(avg[i])}</td></tr>`).join('');
+    $('splitsNote').textContent = `${PHASES[slow]} takes a bigger share of your solves than it does for most CFOP solvers, so it's the best place to practise.`;
+  }
+
   // ---------- installable app ----------
   // Also registered inside the Android app, which loads this site and relies on the cache when offline.
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register("sw.js").catch(() => {});
@@ -1648,7 +2225,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   $('ownScr').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
   $('scrMode').addEventListener('change', e => { db.scrMode = e.target.value; save(); cancel(); newScramble(); e.target.blur(); });
   $('scrMode').value = db.scrMode === 'own' ? 'own' : 'gen';
-  $('event').value = db.event; $('insp').checked = db.inspection; $('goal').value = db.goal;
+  $('event').value = EV(); fillSessions(); $('insp').checked = db.inspection; $('goal').value = db.goal;
   setState('idle'); newScramble(); renderStats();
   showView(location.hash.slice(1) || 'timer');
 })();

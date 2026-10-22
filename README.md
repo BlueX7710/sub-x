@@ -6,9 +6,11 @@ A speedcubing timer you can use in the browser, install as an app, or run on And
 
 ## What it does
 
-- **Timer**: WCA-style scrambles for 2×2, 3×3 and 4×4 (or scramble it yourself and optionally type the scramble), a picture of the scrambled cube, 15-second inspection with +2/DNF, and a hold-to-start timer that works with the space bar or by touch.
-- **Stats**: current and best single, mo3, ao5, ao12, ao50 and ao100, a trend chart, and a sub-X goal.
-- **Learn**: a CFOP guide, notation, 23 F2L cases, 2-look OLL (10 cases), full OLL (all 57) and all 21 PLLs. F2L cases are shown in 3D, and every case has a "Watch in 3D" player that animates the algorithm move by move. Each case has its algorithm and the setup moves that create it on a solved cube, plus "mark learned", a recognition drill, and timed drills of single cases.
+- **Timer**: WCA-style scrambles for 2×2 to 5×5, one-handed, Pyraminx and Skewb (or scramble it yourself and optionally type the scramble), a picture of the scrambled cube, 15-second inspection with +2/DNF, and a hold-to-start timer that works with the space bar or by touch.
+- **Sessions and stats**: separate sessions per event (for example "Comp sim"), with current and best single, mo3, ao5, ao12, ao50 and ao100, a trend chart, and a sub-X goal.
+- **Smart cubes**: connect a GAN (Gen2/3/4) or MoYu AI 2023 cube in Chrome or Edge. Sub-X follows the scramble, starts on your first turn, stops when the cube is solved, and records exact cross, F2L, OLL and PLL splits. Uses [gan-web-bluetooth](https://github.com/afedotov/gan-web-bluetooth) (MIT).
+- **Backup**: save all sessions, solves, learned cases and review schedules to a file, and restore (merge) it on any device.
+- **Learn**: a CFOP guide, a cross trainer that finds the shortest cross for every scramble, notation, 23 F2L cases, 2-look OLL (10 cases), full OLL (all 57) and all 21 PLLs. F2L cases are shown in 3D, and every case has a "Watch in 3D" player that animates the algorithm move by move. Each case has its algorithm and the setup moves that create it on a solved cube, plus "mark learned", a recognition drill with spaced repetition, and timed drills of single cases.
 - **Camera**: records each solve while the timer runs, so every clip starts and stops with the solve.
 - **AI review**: tap **Review with AI** after a recorded solve. Sub-X saves the clip and opens the claude.ai review page (in the Claude app if installed); pick the clip and you get a breakdown of where the time went (cross, F2L, OLL, PLL, pauses and tips). It runs on your Claude plan, so there's no API bill.
 
