@@ -218,6 +218,19 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .clear-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; align-items: center; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
 
 /* ---- learn view ---- */
+.method-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 14px; }
+.seg { display: inline-flex; gap: 2px; background: var(--sunk); border-radius: 9px; padding: 3px; }
+.seg button { border: 0; background: none; border-radius: 7px; padding: 6px 20px; font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+.method-bar .def { font-size: 13px; color: var(--muted); }
+.lesson { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; max-width: 980px; }
+.lesson summary { cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: .02em; }
+.lesson summary small { font-family: var(--font-body); font-weight: 500; font-size: 13px; letter-spacing: 0; color: var(--muted); margin-left: 8px; }
+.lesson p { margin: 10px 0 0; line-height: 1.55; max-width: 72ch; }
+.lesson ul, .lesson ol { margin: 6px 0 0; padding-left: 20px; line-height: 1.55; max-width: 72ch; }
+.lesson ul { color: var(--muted); }
+.lesson h4 { margin: 12px 0 0; font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--muted); }
 .learn-head { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; justify-content: space-between; margin-bottom: 16px; }
 .learn-head h2 { font-family: var(--font-display); font-size: 30px; font-weight: 700; margin: 0; line-height: 1.05; text-wrap: balance; }
 .learn-head p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
@@ -257,17 +270,6 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .learn-btn[aria-pressed="true"] { background: var(--ready); border-color: var(--ready); color: var(--accent-ink); }
 .case .setup { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 .case .setup span { font-family: var(--font-mono); color: var(--ink); word-spacing: .15em; overflow-wrap: anywhere; }
-.cfop { display: grid; gap: 12px; max-width: 860px; }
-.cfop-step { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 14px; }
-.cfop-step .num { grid-row: span 3; width: 44px; height: 44px; border-radius: 10px; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 22px; }
-.cfop-step h3 { margin: 0; font-family: var(--font-display); font-size: 22px; line-height: 1.1; }
-.cfop-step h3 small { font-family: var(--font-body); font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 6px; }
-.cfop-step p { margin: 0; line-height: 1.55; max-width: 68ch; }
-.cfop-step ul { margin: 4px 0 0; padding-left: 18px; line-height: 1.55; color: var(--muted); }
-.cfop-step .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-.cfop-path { background: var(--sunk); border-radius: 10px; padding: 14px 16px; }
-.cfop-path h3 { margin: 0 0 6px; font-family: var(--font-display); font-size: 16px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-.cfop-path ol { margin: 0; padding-left: 20px; line-height: 1.7; }
 .notation { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .note-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
 .note-card h3 { margin: 0 0 6px; font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
@@ -496,6 +498,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
 
   <!-- ================= LEARN ================= -->
   <main id="view-learn" hidden>
+    <div class="method-bar" id="methodBar"></div>
     <div class="learn-head">
       <div>
         <h2 id="learnTitle">PLL</h2>
@@ -503,6 +506,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       </div>
       <div class="chips" id="learnChips"></div>
     </div>
+    <div id="learnLesson"></div>
     <div id="learnBody"></div>
   </main>
 
@@ -1292,7 +1296,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (b.dataset.p3d) { const c = caseById(b.dataset.p3d); if (c) openPlayer(c); }
     else if (b.dataset.drill !== undefined) { const c = caseById(b.dataset.drill); if (c) startDrill(c); }
     else if (b.dataset.learn !== undefined) { const id = b.dataset.learn; db.learned[id] = !db.learned[id]; save(); renderLearn(); }
-    else if (b.dataset.lset) { learnSet = b.dataset.lset; renderLearn(); }
+    else if (b.dataset.lset) { learnSet = lastStep[learnMethod] = b.dataset.lset; renderLearn(); }
+    else if (b.dataset.method) { learnMethod = b.dataset.method; learnSet = lastStep[learnMethod] || METHODS[learnMethod].steps[0][0]; renderLearn(); }
+    else if (b.dataset.defmethod) { db.defMethod = b.dataset.defmethod; save(); renderLearn(); toast(`Learn now opens on ${METHODS[db.defMethod].name}`); }
     else if (b.dataset.quiz) quizAction(b.dataset.quiz);
     if (view === 'timer') b.blur();
   });
@@ -1576,35 +1582,35 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       { id: 'ollf:56', name: 'OLL 56', alg: "r' U' r U' R' U R U' R' U R r' U r" },
     ] },
   ];
+  // How to do each step. Every step page in Learn opens with its lesson, then the practice for it.
   const CFOP_STEPS = [
-    { n: 'C', title: 'Cross', sub: 'no algorithms', text: 'Solve the four white edges so they form a cross on the bottom, each one matching the center next to it.',
-      set: 'cross', btn: 'Open the cross trainer',
-      tips: ['Plan the whole cross during the 15-second inspection, then do it without stopping.', 'Most crosses take 8 moves or fewer. If yours takes more, look for a shorter way.', 'Solve it on the bottom (white down) so you can see the F2L pieces on top while you work.'] },
-    { n: 'F', title: 'F2L', sub: 'first two layers', text: 'Fill the four slots between the cross edges. For each slot, find the white corner and its matching edge, join them into a pair on top, then insert the pair.',
-      tips: ['Start with the 4 short inserts. Many other cases turn into one of them.', 'Turn the cube (y) so the slot you are solving is front-right, which is how the cases here are shown.', 'Track the next pair while you insert the current one. That is where most time is saved.'], set: 'f2l', btn: 'Open F2L cases' },
-    { n: 'O', title: 'OLL', sub: 'orient the last layer', text: 'Make the whole top face yellow. 2-look OLL does it in two steps with 10 algorithms: first the yellow cross, then the corners.',
-      tips: ['Learn Sune and Antisune first; they come up a lot.', 'Full OLL (57 cases, in the Full OLL tab) does this in one step. Learn it once 2-look is fast, starting with the cases you see most.'], set: 'oll', btn: 'Open 2-look OLL' },
-    { n: 'P', title: 'PLL', sub: 'permute the last layer', text: 'Move the last-layer pieces to their places without breaking the yellow top. Start with 2-look PLL: fix the corners with the T perm (two adjacent corners swapped) or the Y perm (two diagonal corners swapped), then the edges with Ua, Ub, H or Z.',
-      tips: ['Recognise the case from the colours on the sides, not the top.', 'After 2-look PLL, learn the rest of the 21 so every solve finishes with one algorithm.'], set: 'pll', btn: 'Open PLL' },
+    { title: 'Cross', sub: 'no algorithms', text: 'Solve the four white edges so they form a cross on the bottom, each one matching the center next to it.',
+      tips: ['Plan the whole cross during the 15-second inspection, then do it without stopping.', 'Most crosses take 8 moves or fewer. If yours takes more, look for a shorter way.', 'Solve it on the bottom (white down) so you can see the F2L pieces on top while you work.'],
+      more: { title: 'What to learn, in order', ol: true, tips: ['Cross on the bottom, plus the 4 short F2L inserts (F2L 1–4).', '2-look OLL: the 3 cross cases, then Sune and Antisune, then the other 5.', '2-look PLL: T and Y perms for corners, then Ua, Ub, H and Z for edges.', 'The rest of F2L, so every pair goes in efficiently.', 'The remaining PLLs, then full OLL.'] } },
+    { title: 'F2L', sub: 'first two layers', text: 'Fill the four slots between the cross edges. For each slot, find the white corner and its matching edge, join them into a pair on top, then insert the pair.',
+      tips: ['Start with the 4 short inserts. Many other cases turn into one of them.', 'Turn the cube (y) so the slot you are solving is front-right, which is how the cases here are shown.', 'Track the next pair while you insert the current one. That is where most time is saved.'],
+      more: { title: 'Block-building ideas from Roux', tips: ['After the cross, look for pieces the scramble already joined: a corner and edge side by side, or a 2×2×1 square. Solve those pairs first.', 'Build each pair as a small block on top, then insert it in one go, the way Roux builds its blocks piece by piece.', 'While a slot next to your pair is still empty, you can use it to move pieces without breaking anything (this is called keyhole).', 'Plan the cross and the first pair together (an X-cross). It is the same skill as planning a Roux first block.'] } },
+    { title: 'OLL', sub: 'orient the last layer', text: 'Make the whole top face yellow. 2-look OLL does it in two steps with 10 algorithms: first the yellow cross, then the corners.',
+      tips: ['Learn Sune and Antisune first; they come up a lot.', 'Full OLL (57 cases) does this in one step. Learn it once 2-look is fast, starting with the cases you see most.'] },
+    { title: 'PLL', sub: 'permute the last layer', text: 'Move the last-layer pieces to their places without breaking the yellow top. Start with 2-look PLL: fix the corners with the T perm (two adjacent corners swapped) or the Y perm (two diagonal corners swapped), then the edges with Ua, Ub, H or Z.',
+      tips: ['Recognise the case from the colours on the sides, not the top.', 'After 2-look PLL, learn the rest of the 21 so every solve finishes with one algorithm.'] },
   ];
   const ROUX_STEPS = [
-    { n: 'F', title: 'First block', sub: '1×2×3 on the left', text: 'With white on the bottom, build a 1×2×3 block on the left: the white edge at the bottom left, the two white corners beside it and the two edges above them. Any side can be your left side.',
-      tips: ['Plan the whole block in inspection. Most first blocks take 6 to 8 moves.', 'Start with the bottom-left edge and the center, then add a corner pair on each side.', 'Look at all four sides before you choose: one is usually much shorter.'], set: 'fbt', btn: 'Open the first block trainer' },
-    { n: 'S', title: 'Second block', sub: '1×2×3 on the right', text: 'Build the matching block on the right without breaking the first one. R, r, U and M turns never touch the left block, so use only those.',
+    { title: 'First block', sub: '1×2×3 on the left', text: 'With white on the bottom, build a 1×2×3 block on the left: the white edge at the bottom left, the two white corners beside it and the two edges above them. Any side can be your left side.',
+      tips: ['Plan the whole block in inspection. Most first blocks take 6 to 8 moves.', 'Start with the bottom-left edge and the center, then add a corner pair on each side.', 'Look at all four sides before you choose: one is usually much shorter.'] },
+    { title: 'Second block', sub: '1×2×3 on the right', text: 'Build the matching block on the right without breaking the first one. R, r, U and M turns never touch the left block, so use only those.',
       tips: ['Build the square first (the bottom-right edge and one corner pair), then the last corner and edge pair.', 'Pairs go in much like F2L pairs, but r and M let you move edges around for free.', 'Leave the middle slice alone: the bottom center does not have to line up yet.'] },
-    { n: 'C', title: 'CMLL', sub: 'the four top corners', text: 'Solve all four top corners in one algorithm, ignoring the top edges and the middle slice. Full CMLL is 42 algorithms; start with two looks.',
-      tips: ['First orient the corners with the 2-look OLL corner algorithms you may already know: Sune, Antisune, H, Pi, Headlights, T and Bowtie.', 'Then swap corners with the T perm (two adjacent corners swapped) or the Y perm (two diagonal corners swapped). Both keep your blocks.'], set: 'oll', btn: 'Open 2-look OLL' },
-    { n: 'L', title: 'LSE', sub: 'last six edges', text: 'Finish with only M and U turns: orient the six edges, put the left and right top edges in place, then solve the last four edges of the middle slice.',
-      tips: ['An edge is badly oriented when its white or yellow sticker faces sideways. Short M and U sequences such as M′ U M′ fix them.', 'For the left and right top edges, bring both to the bottom of the middle slice, line them up with a U turn, then insert both with M2.', 'The last four edges take short M and U2 sequences, such as M′ U2 M U2.'] },
+    { title: 'CMLL', sub: 'the four top corners', text: 'Solve all four top corners in one algorithm, ignoring the top edges and the middle slice. Full CMLL is 42 algorithms; start with two looks, using the algorithms below.',
+      tips: ['First orient the corners so the top is yellow on all four: Sune, Antisune, H, Pi, Headlights, T or Bowtie.', 'Then swap corners with the T perm (two adjacent corners swapped) or the Y perm (two diagonal corners swapped). Both keep your blocks.'] },
+    { title: 'LSE', sub: 'last six edges', text: 'Finish with only M and U turns: orient the six edges, put the left and right top edges in place, then solve the last four edges of the middle slice.',
+      tips: ['An edge is badly oriented when its white or yellow sticker faces sideways. Short M and U sequences such as M\' U M\' fix them.', 'For the left and right top edges, bring both to the bottom of the middle slice, line them up with a U turn, then insert both with M2.', 'The last four edges take short M and U2 sequences, such as M\' U2 M U2.'] },
   ];
-  const ROUX_PATH = `<div class="cfop-path"><h3>Roux ideas for your CFOP F2L</h3><ul class="tips">
-      <li>After the cross, look for pieces the scramble already joined: a corner and edge side by side, or a 2×2×1 square. Solve those pairs first.</li>
-      <li>Build each pair as a small block on top, then insert it in one go, the way Roux builds its blocks piece by piece.</li>
-      <li>While a slot next to your pair is still empty, you can use it to move pieces without breaking anything (this is called keyhole).</li>
-      <li>Plan the cross and the first pair together (an X-cross). It is the same skill as planning a Roux first block, so the first block trainer helps here too.</li>
-    </ul></div>`;
+  // two-look CMLL from algorithms that keep the first two layers: orient the corners, then swap them
+  const CMLL_GROUPS = [
+    { group: 'Look 1 · Orient the corners', items: OLL[1].items, mode: 'oll' },
+    { group: 'Look 2 · Swap the corners', items: PLL.flatMap(g => g.items).filter(c => c.id === 'pll:t' || c.id === 'pll:y'), mode: 'pll' },
+  ];
   const SETS = {
-    cfop: { title: 'CFOP method', lead: 'CFOP is the method most speedcubers use. It solves the cube in four steps: Cross, F2L, OLL and PLL. Every case in Learn shows its algorithm and the setup moves that create it on a solved cube, so you can practise exactly the one you are learning.' },
     f2l: { title: 'F2L', lead: 'Pair a white corner with its matching edge, then insert the pair into its slot. These cases solve the front-right slot with yellow on top. For the other slots, turn the cube so the slot is front-right. Grey stickers are last-layer pieces that do not matter yet.', groups: F2L, mode: 'f2l' },
     notation: { title: 'Notation', lead: 'How to read an algorithm. Each letter turns one face a quarter turn clockwise, as if you were looking straight at that face.' },
     oll: { title: '2-Look OLL', lead: 'Get the whole top face yellow in two steps: first the cross, then the corners. Ten algorithms, and the first three share one trigger.', groups: OLL, mode: 'oll' },
@@ -1612,10 +1618,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     pll: { title: 'PLL', lead: 'With the top face yellow, these 21 algorithms move the last-layer pieces into place. Start with Ua, Ub, Aa, Ab, T and Jb.', groups: PLL, mode: 'pll' },
     ollt: { title: 'OLL trainer', lead: 'Practise one OLL case at a time: set it up on a solved cube, recognise it, make the top yellow, and see how long each part took.' },
     pllt: { title: 'PLL trainer', lead: 'Practise one PLL case at a time, from any angle: set it up, recognise it from the side colours, solve the cube, and see how long each part took.' },
-    roux: { title: 'Roux method', lead: 'Roux solves the cube with blocks instead of a cross: two 1×2×3 blocks, then the top corners, then the last six edges with only M and U turns. It takes fewer moves than CFOP, and its block building helps your CFOP F2L too.' },
-    fbt: { title: 'First block trainer', lead: 'Practise planning the Roux first block. Sub-X finds the shortest block on any of the four sides, so you can compare it with yours.' },
+    fbt: { title: 'First block', lead: 'Practise planning the first block. Sub-X finds the shortest block on any of the four sides, so you can compare it with yours.' },
+    sb: { title: 'Second block', lead: 'There is no trainer for this step yet. Build a first block in the First block trainer, then keep going and practise the second one on the same scramble.' },
+    cmll: { title: 'CMLL', lead: 'Two-look CMLL with algorithms you may already know from CFOP. Hold the cube with the blocks on the left and right and yellow on top.', groups: CMLL_GROUPS },
+    lse: { title: 'LSE', lead: 'The last six edges, solved with only M and U turns.' },
     f2lt: { title: 'F2L trainer', lead: 'Practise one F2L pair at a time: set up a random case, recognise it, insert it, and see how long each part took.' },
-    cross: { title: 'Cross trainer', lead: 'Practise planning the cross. Sub-X finds the shortest possible cross for every scramble, so you can compare it with yours.' },
+    cross: { title: 'Cross', lead: 'Practise planning the cross. Sub-X finds the shortest possible cross for every scramble, so you can compare it with yours.' },
     quiz: { title: 'Recognition drill', lead: 'Name the case, then reveal it. This uses spaced repetition: cases you miss come back within minutes, and cases you know come back after 1, 3, 7, 16 and then 35 days. Your schedule is saved and included in backups.' },
   };
   const NOTATION = [
@@ -1630,7 +1638,28 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   ];
   const ALL_CASES = [...F2L, ...OLL, ...OLL_FULL, ...PLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.id.startsWith('ollf:') ? 'oll' : c.id.split(':')[0] })));
   const caseById = id => ALL_CASES.find(c => c.id === id);
-  let learnSet = 'cfop';
+  // Learn is organised by method; Learn opens on your default one, at its first step
+  const METHODS = {
+    cfop: { name: 'CFOP', steps: [['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['quiz', 'Drill'], ['notation', 'Notation']] },
+    roux: { name: 'Roux', steps: [['fbt', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['notation', 'Notation']] },
+  };
+  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], fbt: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
+  const defMethod = () => db.defMethod === 'roux' ? 'roux' : 'cfop';
+  let learnMethod = defMethod(), learnSet = METHODS[learnMethod].steps[0][0];
+  const lastStep = {};
+  function lessonHtml(key) {
+    const s = LESSON[key]; if (!s) return '';
+    const steps = ROUX_STEPS.includes(s) ? ROUX_STEPS : CFOP_STEPS, id = (steps === ROUX_STEPS ? 'roux' : 'cfop') + steps.indexOf(s);
+    const only = !SETS[key].groups && !TRAINERS.includes(key), shut = !only && !!(db.lessonShut || {})[id];   // a page with nothing else stays open
+    const list = (items, tag) => `<${tag}>${items.map(t => `<li>${esc(t)}</li>`).join('')}</${tag}>`;
+    return `<details class="lesson" data-lesson="${id}"${shut ? '' : ' open'}><summary>Step ${steps.indexOf(s) + 1} · ${esc(s.title)}<small>how to do it · ${esc(s.sub)}</small></summary>
+      <p>${esc(s.text)}</p>${list(s.tips, 'ul')}
+      ${s.more ? `<h4>${esc(s.more.title)}</h4>${list(s.more.tips, s.more.ol ? 'ol' : 'ul')}` : ''}</details>`;
+  }
+  $('learnLesson').addEventListener('toggle', e => {
+    const d = e.target; if (!d.dataset || !d.dataset.lesson) return;
+    db.lessonShut = db.lessonShut || {}; db.lessonShut[d.dataset.lesson] = !d.open; save();
+  }, true);
   // ---------- practice clock shared by the cross and F2L trainers ----------
   // Scramble, then "I've scrambled" starts the planning clock, "Start solving" (or the first
   // smart-cube turn) starts the solve clock, and "Done" (or the smart cube seeing the step solved)
@@ -2312,8 +2341,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     $('learnLead').textContent = set.lead;
     const count = key => ALL_CASES.filter(c => c.id.startsWith(key + ':')).length;
     const done = key => ALL_CASES.filter(c => c.id.startsWith(key + ':') && db.learned[c.id]).length;
-    $('learnChips').innerHTML = [['cfop', 'CFOP guide', ''], ['roux', 'Roux guide', ''], ['notation', 'Notation', ''], ['cross', 'Cross trainer', ''], ['f2lt', 'F2L trainer', ''], ['ollt', 'OLL trainer', ''], ['pllt', 'PLL trainer', ''], ['fbt', 'First block trainer', ''], ['f2l', 'F2L', `${done('f2l')}/${count('f2l')}`], ['oll', '2-Look OLL', `${done('oll')}/${count('oll')}`], ['ollf', 'Full OLL', `${done('ollf')}/${count('ollf')}`], ['pll', 'PLL', `${done('pll')}/${count('pll')}`], ['quiz', 'Drill', '']]
+    const M = METHODS[learnMethod];
+    $('methodBar').innerHTML = `<div class="seg" role="group" aria-label="Method">${Object.entries(METHODS).map(([k, m]) => `<button type="button" data-method="${k}" aria-pressed="${learnMethod === k}">${m.name}</button>`).join('')}</div>` +
+      (defMethod() === learnMethod ? `<span class="def">${M.name} is your default: Learn opens here.</span>` : `<button type="button" class="pill-btn" data-defmethod="${learnMethod}">Make ${M.name} my default</button>`);
+    $('learnChips').innerHTML = M.steps.map(([k, label]) => { const n = SETS[k].groups && count(k) ? `${done(k)}/${count(k)}` : ''; return [k, label, n]; })
       .map(([k, label, n]) => `<button type="button" class="chip" data-lset="${k}" aria-pressed="${learnSet === k}">${label}${n ? `<small>${n}</small>` : ''}</button>`).join('');
+    $('learnLesson').innerHTML = lessonHtml(learnSet);
 
     const body = $('learnBody');
     if (learnSet === 'notation') {
@@ -2325,25 +2358,15 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (learnSet === 'f2lt') { renderF2LT(); return; }
     if (learnSet === 'ollt' || learnSet === 'pllt') { renderLLT(); return; }
     if (learnSet === 'fbt') { renderFB(); return; }
-    if (learnSet === 'cfop' || learnSet === 'roux') {
-      const roux = learnSet === 'roux';
-      body.innerHTML = `<div class="cfop">${(roux ? ROUX_STEPS : CFOP_STEPS).map(s => `<section class="cfop-step"><div class="num">${s.n}</div><h3>${esc(s.title)}<small>${esc(s.sub)}</small></h3><p>${esc(s.text)}</p><div><ul>${s.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul>${s.set ? `<div class="acts"><button type="button" class="pill-btn" data-lset="${s.set}">${esc(s.btn)}</button>${count(s.set) ? `<span class="drill-stats" style="margin:0;align-self:center">${done(s.set)} of ${count(s.set)} learned</span>` : ''}</div>` : ''}</div></section>`).join('')}
-        ${roux ? ROUX_PATH : `<div class="cfop-path"><h3>Suggested order</h3><ol>
-          <li>Cross on the bottom, plus the 4 short F2L inserts (F2L 1–4).</li>
-          <li>2-look OLL: the 3 cross cases, then Sune and Antisune, then the other 5.</li>
-          <li>2-look PLL: T and Y perms for corners, then Ua, Ub, H and Z for edges.</li>
-          <li>The rest of F2L, so every pair goes in efficiently.</li>
-          <li>The remaining PLLs, then full OLL.</li>
-        </ol><p style="margin:8px 0 0;color:var(--muted)">On any case card, <b>Drill on timer</b> gives you setup moves for a solved cube (yellow on top, green in front) and times you solving just that case.</p></div>`}</div>`;
-      return;
-    }
-    const pct = Math.round(done(learnSet) / count(learnSet) * 100);
-    let html = `<div class="progress" aria-label="${pct}% learned"><i style="width:${pct}%"></i></div>`;
+    if (!set.groups) { body.innerHTML = ''; return; }
+    const pct = count(learnSet) ? Math.round(done(learnSet) / count(learnSet) * 100) : null;
+    let html = pct === null ? '' : `<div class="progress" aria-label="${pct}% learned"><i style="width:${pct}%"></i></div>`;
     for (const g of set.groups) {
+      const mode = g.mode || set.mode;
       html += `<div class="group-title">${esc(g.group)}</div><div class="cards">`;
       for (const c of g.items) {
         const L = !!db.learned[c.id];
-        html += `<article class="case${L ? ' learned' : ''}">${caseDiagram({ ...c, mode: set.mode })}<h3>${esc(c.name)}${set.mode === 'pll' ? '<small>perm</small>' : ''}</h3><p class="alg">${esc(c.alg)}</p>` +
+        html += `<article class="case${L ? ' learned' : ''}">${caseDiagram({ ...c, mode })}<h3>${esc(c.name)}${mode === 'pll' ? '<small>perm</small>' : ''}</h3><p class="alg">${esc(c.alg)}</p>` +
           (c.tip ? `<p class="tip">${esc(c.tip)}</p>` : '') +
           `<p class="setup">Setup from solved: <span>${esc(Cube.invert(c.alg))}</span></p>` +
           `<div class="acts"><button type="button" class="pill-btn learn-btn" data-learn="${c.id}" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn" data-drill="${c.id}">Drill on timer</button></div></article>`;
