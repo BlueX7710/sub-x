@@ -30,6 +30,8 @@ Solves and recordings are stored only on your own device.
 | `docs/` | The web app, served by GitHub Pages: one `index.html`, plus the manifest, offline service worker and icons. |
 | `android-app/` | Capacitor project that wraps the site as an Android app (`npx cap sync android`, then build with Gradle). |
 | `claude-ai/` | The claude.ai artifact version, which adds the AI Review tab. |
+| `tools/` | `sync.sh` copies website changes into the other two copies; `smoke.js` tests a copy in a browser. |
+| `.claude/skills/effortless/` | The `/effortless` Claude Code skill: sync, test, commit, push and republish in one go. |
 
 ## Building the Android app
 
