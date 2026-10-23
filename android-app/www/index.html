@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Chivo+Mono:wght@400;500;700&family=Inter:wght@200;400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Chivo+Mono:wght@400;500;700&family=Inter:wght@200;400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&family=Orbitron:wght@700;900&family=Outfit:wght@400;500;600;700&display=swap">
 <script>try { var skin = (JSON.parse(localStorage.getItem('subx-cube-timer-v1')) || {}).skin; if (skin) document.documentElement.dataset.skin = skin; } catch (e) {}</script>
 <style>
 /* Layout: one header with three views (Timer, Learn, AI Review). Timer = stage left + session panel right; stacks on phones. */
@@ -456,12 +456,179 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
 [data-skin="minimal"] .pill-btn:hover, [data-skin="minimal"] .mini-btn:hover, [data-skin="minimal"] .btn.ghost:hover { border-color: var(--ink); color: var(--ink); }
 [data-skin="minimal"] .pill-btn[aria-pressed="true"], [data-skin="minimal"] .learn-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 [data-skin="minimal"] select, [data-skin="minimal"] input[type=number], [data-skin="minimal"] .field, [data-skin="minimal"] .own-scr { background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding-left: 0; }
-[data-skin="minimal"] .stats td.best, [data-skin="minimal"] .solve-row.pb .t { color: var(--ink); font-weight: 600; }
+[data-skin="minimal"] #statsBody td.best, [data-skin="minimal"] .solve-row.pb .t { color: var(--ink); font-weight: 600; }
 [data-skin="minimal"] .stats td, [data-skin="minimal"] .solve-row .t { font-weight: 400; }
 [data-skin="minimal"] .solve-row.goal .t::before { color: var(--muted); }
 [data-skin="minimal"] .progress { height: 1px; background: var(--line); }
 [data-skin="minimal"] .progress i { background: var(--ink); }
 [data-skin="minimal"] .trend path[stroke="var(--accent)"] { stroke: var(--ink); }
+
+/* ---- Midnight look: deep navy with a bright blue accent. Always dark. ---- */
+:root[data-skin="midnight"] {
+  --bg: #0B1220; --surface: #121B2E; --sunk: #1A2540; --ink: #E7ECF7; --muted: #8693B0; --line: #2C3D66;
+  --accent: #4D8DFF; --accent-ink: #0B1220; --hold: #FF5C6C; --ready: #3DDC97; --warn: #F2B33D; --plastic: #05080F; --ll-off: #3A4A70;
+  --ph-insp: #5F6C8A; --ph-cross: #4D8DFF; --ph-f2l: #3DDC97; --ph-oll: #F2B33D; --ph-pll: #FF7AC6;
+  --font-display: "Space Grotesk", system-ui, sans-serif; --font-body: "Space Grotesk", system-ui, sans-serif; --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+[data-skin="midnight"] body { background: radial-gradient(80vmax 60vmax at 50% -10%, #16254A, transparent 60%) no-repeat, var(--bg); }
+/* cards: a faint top highlight separates them on navy better than a drop shadow */
+[data-skin="midnight"] .panel, [data-skin="midnight"] .scramble-card, [data-skin="midnight"] .stage, [data-skin="midnight"] .case, [data-skin="midnight"] .lesson, [data-skin="midnight"] .note-card, [data-skin="midnight"] .sess-panel {
+  border-radius: 12px; box-shadow: inset 0 1px 0 rgb(255 255 255 / .04), 0 8px 24px -12px #000;
+}
+[data-skin="midnight"] .p3d, [data-skin="midnight"] .race-pad, [data-skin="midnight"] .tr-clock { border-radius: 12px; }
+[data-skin="midnight"] .btn, [data-skin="midnight"] .field, [data-skin="midnight"] select, [data-skin="midnight"] input { border-radius: 8px; }
+[data-skin="midnight"] .mini-btn { border-radius: 999px; padding: 4px 10px; }
+[data-skin="midnight"] .ctl, [data-skin="midnight"] .panel h2, [data-skin="midnight"] .label, [data-skin="midnight"] .tabs a, [data-skin="midnight"] .chip, [data-skin="midnight"] .btn, [data-skin="midnight"] .pill-btn, [data-skin="midnight"] .mini-btn { letter-spacing: .04em; }
+/* one selected style everywhere: blue */
+[data-skin="midnight"] .tabs a[aria-current="page"], [data-skin="midnight"] .seg button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+[data-skin="midnight"] .chip[aria-pressed="true"], [data-skin="midnight"] .mini-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+[data-skin="midnight"] .clock { font-family: var(--font-display); font-variant-numeric: tabular-nums; font-weight: 500; font-size: clamp(72px, 15vw, 160px); letter-spacing: -.04em; }
+[data-skin="midnight"] .stage[data-s="ready"] .clock, [data-skin="midnight"] .stage[data-s="smartReady"] .clock { text-shadow: 0 0 24px rgb(61 220 151 / .35); }
+[data-skin="midnight"] .lights i { border-color: var(--ll-off); }
+/* new PBs in pink on the trend chart, so they don't blend with the blue ao5 line */
+[data-skin="midnight"] .trend circle[fill="var(--accent)"] { fill: var(--ph-pll); }
+[data-skin="midnight"] .legend i.dot { background: var(--ph-pll); }
+[data-skin="midnight"] .trend text { font-size: 11px; }
+
+/* ---- Terminal look: green text on black, square corners, all monospace. Always dark. ---- */
+/* Green is the text colour; a brighter phosphor tone marks bests and "ready", so they stand out from it. */
+:root[data-skin="terminal"] {
+  --bg: #050805; --surface: #0A120A; --sunk: #0F1C0F; --ink: #4CFF7A; --muted: #2E9E4B; --line: #1B3A20;
+  --accent: #C8FFD6; --accent-ink: #050805; --hold: #FF4C4C; --ready: #A6FF4C; --warn: #FFD24C; --plastic: #000; --ll-off: #1F3D25;
+  --ph-insp: #2E9E4B; --ph-cross: #7AF0FF; --ph-f2l: #2BD4C0; --ph-oll: #FFD24C; --ph-pll: #FF7A4C;
+  --font-display: "IBM Plex Mono", ui-monospace, monospace; --font-body: "IBM Plex Mono", ui-monospace, monospace; --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+[data-skin="terminal"] body { font-size: 14px; background: repeating-linear-gradient(0deg, rgb(76 255 122 / .03) 0 1px, transparent 1px 3px), var(--bg); }
+[data-skin="terminal"] :is(.panel, .scramble-card, .stage, .case, .lesson, .note-card, .sess-panel, .tabs, .tabs a, .seg, .seg button, .btn, .pill-btn, .mini-btn, .chip, select, input, .field, .own-scr, .progress, .progress i,
+  .cam-box, .hint kbd, .race-pad, .p3d, .p3d canvas, .p3d-moves span, .tr-clock, .toast, .toast button, .notice, .callout, .solve-detail, .vid, .frames img, .l3-grid canvas, .conf, .rec-dot, .example-note, .lights i) { border-radius: 0; }
+[data-skin="terminal"] .brand::before { content: "> "; color: var(--muted); }
+[data-skin="terminal"] .brand span { color: var(--ink); }
+/* glow only on the brand and the clock, in their own colour (red while holding, yellow in late inspection) */
+[data-skin="terminal"] .brand { text-shadow: 0 0 10px color-mix(in srgb, currentColor 55%, transparent); }
+[data-skin="terminal"] .clock { position: relative; font-weight: 400; text-shadow: 0 0 18px color-mix(in srgb, currentColor 60%, transparent); }
+/* ready is inverse video: green to lime alone is too close to tell apart (and there's no red step on a smart cube) */
+[data-skin="terminal"] .stage:is([data-s="ready"], [data-s="smartReady"]) .clock { background: var(--ready); color: var(--bg); text-shadow: none; box-shadow: 0 0 28px rgb(166 255 76 / .6); padding: 0 .08em; }
+/* trend: PBs in cyan so they don't sit on the mint ao5 line; the single line at full strength so it isn't mistaken for a gridline */
+[data-skin="terminal"] .trend circle[fill="var(--accent)"] { fill: var(--ph-cross); }
+[data-skin="terminal"] .legend i.dot { background: var(--ph-cross); }
+[data-skin="terminal"] .trend path[stroke="var(--muted)"] { opacity: 1; }
+/* square checkboxes: [■] when checked */
+[data-skin="terminal"] .toggle input[type=checkbox] { appearance: none; -webkit-appearance: none; margin: 0; width: 16px; height: 16px; border: 1px solid var(--muted); background: transparent; }
+[data-skin="terminal"] .toggle input[type=checkbox]:checked { background: var(--ink); border-color: var(--ink); box-shadow: inset 0 0 0 3px var(--bg); }
+/* on Learn cards the algorithm comes first; the buttons step back until used */
+[data-skin="terminal"] .case .acts .pill-btn:not([aria-pressed="true"]) { color: var(--muted); font-weight: 500; }
+@media (hover: hover) { [data-skin="terminal"] .case .acts .pill-btn:hover { color: var(--ink); } }
+[data-skin="terminal"] .case .alg { font-size: 14px; }
+/* the cursor sits outside the digits, so the time stays centred and doesn't jump when you start holding */
+[data-skin="terminal"] .stage[data-s="idle"] .clock::after { content: "_"; position: absolute; left: 100%; bottom: 0; margin-left: .05em; animation: blink 1s steps(2) infinite; }
+/* the next scramble move is a block cursor */
+[data-skin="terminal"] .scramble .snext { background: var(--ink); color: var(--bg); text-decoration: none; text-shadow: none; box-shadow: 0 0 10px rgb(76 255 122 / .5); padding: 0 .12em; }
+[data-skin="terminal"] .stats td.best { font-weight: 600; }
+[data-skin="terminal"] .lights i { border-color: var(--muted); }
+[data-skin="terminal"] .stage[data-s="holding"] .lights .l-red, [data-skin="terminal"] .stage[data-s="ready"] .lights .l-red { box-shadow: 0 0 10px var(--hold); }
+[data-skin="terminal"] .stage[data-s="ready"] .lights .l-green { box-shadow: 0 0 10px var(--ready); }
+/* selected and pressed things are inverse video */
+[data-skin="terminal"] .tabs a[aria-current="page"], [data-skin="terminal"] .seg button[aria-pressed="true"], [data-skin="terminal"] .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); box-shadow: none; }
+[data-skin="terminal"] .btn:not(.ghost) { box-shadow: 0 0 14px -4px var(--accent); }
+[data-skin="terminal"] .btn.ghost, [data-skin="terminal"] .pill-btn, [data-skin="terminal"] .mini-btn, [data-skin="terminal"] .chip { background: transparent; border-color: color-mix(in srgb, var(--muted) 65%, var(--line)); }
+[data-skin="terminal"] .mini-btn[aria-pressed="true"], [data-skin="terminal"] .pill-btn[aria-pressed="true"], [data-skin="terminal"] .learn-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+@media (hover: hover) { [data-skin="terminal"] .pill-btn:hover, [data-skin="terminal"] .mini-btn:hover, [data-skin="terminal"] .chip:hover { border-color: var(--ink); } }
+[data-skin="terminal"] .ctl, [data-skin="terminal"] .panel h2, [data-skin="terminal"] .label, [data-skin="terminal"] .tabs a, [data-skin="terminal"] .chip, [data-skin="terminal"] .btn, [data-skin="terminal"] .pill-btn, [data-skin="terminal"] .mini-btn, [data-skin="terminal"] .seg button { letter-spacing: .02em; }
+/* long text in a softer phosphor tone, so the bright green is kept for headings and numbers */
+[data-skin="terminal"] .lesson p, [data-skin="terminal"] .learn-head p, [data-skin="terminal"] .note-card p { color: #B4F5C4; }
+[data-skin="terminal"] .lesson ul { color: color-mix(in srgb, #B4F5C4 75%, var(--muted)); }
+[data-skin="terminal"] .trend text { font-size: 11px; }
+[data-skin="terminal"] .legend { font-size: 13px; }
+[data-skin="terminal"] .progress { height: 4px; background: var(--line); }
+
+/* ---- Speed look: racing red on carbon fibre, italic labels and a slanted race-clock. Always dark. ---- */
+/* Red is for go-faster things (brand, selected, primary); bests are F1 "fastest sector" purple and inspection is blue,
+   so neither is confused with the red hold state. */
+:root[data-skin="speed"] {
+  --bg: #111111; --surface: #1A1A1A; --sunk: #262626; --ink: #F5F5F5; --muted: #A6A6A6; --line: #3A3A3A;
+  --accent: #FF4D4D; --accent-ink: #140000; --hold: #FF4D4D; --ready: #2AFF7A; --warn: #FFC23D; --plastic: #050505; --ll-off: #4A4A4A;
+  --ph-insp: #6B6B6B; --ph-cross: #FF8A3D; --ph-f2l: #2AFF7A; --ph-oll: #FFC23D; --ph-pll: #7FD3FF;
+  --pb: #C77DFF; --info: #4DB8FF;
+  --font-race: "Orbitron", "Barlow Condensed", system-ui, sans-serif;
+  color-scheme: dark;
+}
+[data-skin="speed"] body { background: repeating-linear-gradient(135deg, rgb(255 255 255 / .022) 0 6px, transparent 6px 12px), var(--bg); }
+[data-skin="speed"] .brand { font-family: var(--font-race); font-weight: 900; font-style: normal; letter-spacing: .02em; transform: skewX(-8deg); }
+[data-skin="speed"] :is(.ctl, .panel h2, .label, .tabs a, .chip, .btn, .pill-btn, .mini-btn, .seg button, .scramble-label, .stats thead th, .list-head, .group-title, .lesson h4, .phase-table th, .l3-set summary, .tr-label, .rp-name) { font-style: italic; }
+[data-skin="speed"] :is(select, input, .field, .panel h2 b, .chip small) { font-style: normal; }
+[data-skin="speed"] .panel, [data-skin="speed"] .scramble-card, [data-skin="speed"] .stage, [data-skin="speed"] .case, [data-skin="speed"] .lesson, [data-skin="speed"] .note-card, [data-skin="speed"] .sess-panel { border-radius: 4px; }
+/* a real italic with tabular digits: they don't shift sideways while it runs, and the "." stays tight */
+[data-skin="speed"] .clock { font-family: "Barlow Condensed", var(--font-mono); font-style: italic; font-weight: 700; font-variant-numeric: tabular-nums; font-size: clamp(80px, 17vw, 190px); letter-spacing: 0; }
+[data-skin="speed"] .stage[data-s="arming"] .clock, [data-skin="speed"] .stage[data-s="inspecting"]:not(.warn):not(.over) .clock { color: var(--info); }
+[data-skin="speed"] .stage[data-s="ready"] .clock, [data-skin="speed"] .stage[data-s="smartReady"] .clock { text-shadow: 0 0 24px rgb(42 255 122 / .45); }
+[data-skin="speed"] .stage[data-s="holding"] .clock { text-shadow: 0 0 24px rgb(255 77 77 / .45); }
+[data-skin="speed"] .lights i { border-color: var(--ll-off); }
+[data-skin="speed"] .tabs, [data-skin="speed"] .seg { border-radius: 4px; }
+[data-skin="speed"] .tabs a, [data-skin="speed"] .seg button { border-radius: 2px; }
+[data-skin="speed"] .tabs a[aria-current="page"], [data-skin="speed"] .seg button[aria-pressed="true"] { background: var(--sunk); color: var(--ink); box-shadow: inset 0 -3px 0 var(--accent); }
+[data-skin="speed"] .chip, [data-skin="speed"] .pill-btn, [data-skin="speed"] .mini-btn, [data-skin="speed"] .btn { border-radius: 3px; }
+[data-skin="speed"] .chip[aria-pressed="true"], [data-skin="speed"] .mini-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+/* the next scramble move in white with a red underline: red text would read as "wrong move" */
+[data-skin="speed"] .scramble .snext { color: var(--ink); text-decoration-color: var(--accent); }
+[data-skin="speed"] #statsBody td.best, [data-skin="speed"] .solve-row.pb .t { color: var(--pb); }
+[data-skin="speed"] #splitsBody tr:not(.slow) td.best { color: var(--muted); }
+[data-skin="speed"] .trend circle[fill="var(--accent)"] { fill: var(--pb); }
+[data-skin="speed"] .legend i.dot { background: var(--pb); }
+[data-skin="speed"] .race-pad.win { border-color: var(--pb); background: color-mix(in srgb, var(--pb) 12%, var(--surface)); }
+[data-skin="speed"] .race-pad.win .rp-name { color: var(--pb); }
+[data-skin="speed"] .tr-clock[data-phase="plan"] b { color: var(--info); }
+/* the stripe on top of the timer shows the timing state, so you can see it at the edge of your eye */
+[data-skin="speed"] .stage { border-top: 3px solid var(--line); transition: border-color .08s; }
+[data-skin="speed"] .stage:is([data-s="arming"], [data-s="inspecting"]) { border-top-color: var(--info); }
+[data-skin="speed"] .stage[data-s="inspecting"].warn { border-top-color: var(--warn); }
+[data-skin="speed"] .stage:is([data-s="holding"], [data-s="inspecting"].over) { border-top-color: var(--hold); }
+[data-skin="speed"] .stage:is([data-s="ready"], [data-s="smartReady"]) { border-top-color: var(--ready); }
+[data-skin="speed"] .trend text { font-size: 11px; }
+[data-skin="speed"] .panel h2 { color: var(--ink); letter-spacing: .06em; }
+[data-skin="speed"] .p3d-moves span.cur { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+[data-skin="speed"] .scramble-card.drill { border-color: var(--info); }
+
+/* ---- Dracula look: dark purple, with code-editor colours for each section. Always dark. ---- */
+:root[data-skin="dracula"] {
+  --bg: #21222C; --surface: #282A36; --sunk: #343746; --ink: #F8F8F2; --muted: #A9AFD0; --line: #44475A;
+  --accent: #BD93F9; --accent-ink: #21222C; --hold: #FF5555; --ready: #50FA7B; --warn: #FFB86C; --plastic: #191A21; --ll-off: #4A4D63;
+  --ph-insp: #6272A4; --ph-cross: #8BE9FD; --ph-f2l: #50FA7B; --ph-oll: #F1FA8C; --ph-pll: #FF79C6;
+  --font-display: "Outfit", system-ui, sans-serif; --font-body: "Outfit", system-ui, sans-serif; --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+[data-skin="dracula"] .brand span { color: #FF79C6; }
+[data-skin="dracula"] .panel, [data-skin="dracula"] .scramble-card, [data-skin="dracula"] .stage, [data-skin="dracula"] .case, [data-skin="dracula"] .lesson, [data-skin="dracula"] .note-card, [data-skin="dracula"] .sess-panel { border-radius: 12px; }
+[data-skin="dracula"] .mini-btn { border-radius: 999px; padding: 1px 10px; }
+[data-skin="dracula"] select, [data-skin="dracula"] .field { border-radius: 8px; }
+[data-skin="dracula"] .clock { color: #FF79C6; }
+/* pink to red alone is a weak change, so holding and ready also light up the timer's frame */
+[data-skin="dracula"] .stage[data-s="holding"] { box-shadow: inset 0 0 0 2px var(--hold); }
+[data-skin="dracula"] .stage[data-s="ready"], [data-skin="dracula"] .stage[data-s="smartReady"] { box-shadow: inset 0 0 0 2px var(--ready); }
+[data-skin="dracula"] .stage[data-s="holding"] .clock { text-shadow: 0 0 24px rgb(255 85 85 / .5); }
+[data-skin="dracula"] .scramble .snext { color: #FF79C6; }
+[data-skin="dracula"] #statsBody td.best, [data-skin="dracula"] .solve-row.pb .t { color: var(--ready); }
+[data-skin="dracula"] .trend circle[fill="var(--accent)"] { fill: var(--ready); }
+[data-skin="dracula"] .legend i.dot { background: var(--ready); }
+/* panel titles in syntax colours, kept away from the green (ready, PB) and red (slow) that carry meaning */
+[data-skin="dracula"] .side > .panel:nth-child(6n+1) h2 { color: #8BE9FD; }
+[data-skin="dracula"] .side > .panel:nth-child(6n+2) h2 { color: #F1FA8C; }
+[data-skin="dracula"] .side > .panel:nth-child(6n+3) h2 { color: #BD93F9; }
+[data-skin="dracula"] .side > .panel:nth-child(6n+4) h2 { color: #FF79C6; }
+[data-skin="dracula"] .side > .panel:nth-child(6n+5) h2 { color: #8BE9FD; }
+[data-skin="dracula"] .side > .panel:nth-child(6n+6) h2 { color: #F1FA8C; }
+[data-skin="dracula"] .tabs a[aria-current="page"], [data-skin="dracula"] .seg button[aria-pressed="true"] { background: var(--line); color: var(--ink); box-shadow: inset 0 -2px 0 #FF79C6; }
+[data-skin="dracula"] .chip[aria-pressed="true"], [data-skin="dracula"] .mini-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+[data-skin="dracula"] .lesson { border-left-color: #FF79C6; }
+[data-skin="dracula"] #splitsBody tr:not(.slow) td.best { color: var(--muted); }
+/* the goal in cyan, so green means only "PB" and "ready" */
+[data-skin="dracula"] .trend line[stroke="var(--ready)"] { stroke: #8BE9FD; }
+[data-skin="dracula"] .legend i[style*="--ready"] { background: #8BE9FD !important; }
+[data-skin="dracula"] .solve-row.goal .t::before { color: #8BE9FD; }
+[data-skin="dracula"] .stage[data-s="inspecting"].warn { box-shadow: inset 0 0 0 2px var(--warn); }
+[data-skin="dracula"] .stage[data-s="inspecting"].over { box-shadow: inset 0 0 0 2px var(--hold); }
+[data-skin="dracula"] .trend text { font-size: 11px; }
 </style>
 </head>
 <body>
@@ -475,7 +642,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       <a href="#review" data-view="review">Recordings</a>
     </nav>
     <label class="ctl skin-pick" for="skin">Look
-      <select id="skin"><option value="">Classic</option><option value="minimal">Minimal</option></select>
+      <select id="skin"><option value="">Classic</option><option value="minimal">Minimal</option><option value="midnight">Midnight</option><option value="terminal">Terminal</option><option value="speed">Speed</option><option value="dracula">Dracula</option></select>
     </label>
     <button type="button" class="pill-btn" id="installBtn" hidden>Install app</button>
     <p class="install-hint" id="iosHint" hidden>To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.</p>
@@ -1077,7 +1244,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
 
   // ---------- views ----------
   let view = 'timer';
-  // the look: Classic or Minimal (set before the page draws, in <head>, so it doesn't flash)
+  // the look: Classic, Minimal or one of the dark looks (set before the page draws, in <head>, so it doesn't flash)
   const applySkin = () => { if (db.skin) document.documentElement.dataset.skin = db.skin; else delete document.documentElement.dataset.skin; };
   if (db.skin && !$('skin').querySelector(`option[value="${db.skin}"]`)) db.skin = '';
   $('skin').value = db.skin || ''; applySkin();   // again here for the claude.ai page, which has no <head>
