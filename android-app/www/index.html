@@ -15,7 +15,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Chivo+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Chivo+Mono:wght@400;500;700&family=Inter:wght@200;400;500;600&display=swap">
+<script>try { var skin = (JSON.parse(localStorage.getItem('subx-cube-timer-v1')) || {}).skin; if (skin) document.documentElement.dataset.skin = skin; } catch (e) {}</script>
 <style>
 /* Layout: one header with three views (Timer, Learn, AI Review). Timer = stage left + session panel right; stacks on phones. */
 :root {
@@ -401,6 +402,66 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
 .rec-list span.m { color: var(--muted); font-size: 12px; }
 .top #installBtn { margin-left: auto; }
 .install-hint { margin: 0 0 0 auto; font-size: 13px; color: var(--muted); }
+.skin-pick { margin-left: auto; }
+
+/* ---- Minimal look: black and white, no boxes, lots of space and a huge thin clock. Follows light/dark. ---- */
+:root[data-skin="minimal"] {
+  --bg: #FAFAF9; --surface: transparent; --sunk: #F0F0EE; --ink: #0B0B0C; --muted: #8B8B8F; --line: #E4E4E2;
+  --accent: #0B0B0C; --accent-ink: #FAFAF9; --hold: #E5484D; --ready: #2F9E64; --warn: #C98A00;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="minimal"]:not([data-theme="light"]) {
+    --bg: #0B0B0C; --sunk: #18181A; --ink: #ECECEE; --muted: #7C7C82; --line: #232326;
+    --accent: #ECECEE; --accent-ink: #0B0B0C; --hold: #FF6369; --ready: #4CC38A; --warn: #F1B13A;
+    color-scheme: dark;
+  }
+}
+[data-skin="minimal"] body { font-size: 15px; }
+[data-skin="minimal"] .wrap { max-width: 1120px; }
+[data-skin="minimal"] .brand { font-weight: 600; font-size: 22px; letter-spacing: -.03em; }
+[data-skin="minimal"] .brand span { color: var(--muted); }
+/* labels: small, quiet, widely spaced capitals */
+[data-skin="minimal"] .ctl, [data-skin="minimal"] .panel h2, [data-skin="minimal"] .label, [data-skin="minimal"] .scramble-label, [data-skin="minimal"] .group-title, [data-skin="minimal"] .stats thead th, [data-skin="minimal"] .list-head, [data-skin="minimal"] .phase-table th, [data-skin="minimal"] .lesson h4 {
+  font-size: 11px; font-weight: 500; letter-spacing: .14em;
+}
+/* no boxes: sections are separated by hairlines */
+[data-skin="minimal"] .panel, [data-skin="minimal"] .scramble-card, [data-skin="minimal"] .sess-panel, [data-skin="minimal"] .note-card {
+  background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; padding: 18px 0;
+}
+[data-skin="minimal"] .side { gap: 4px; }
+[data-skin="minimal"] .stage { background: none; border: 0; border-radius: 0; min-height: 360px; }
+[data-skin="minimal"] .case, [data-skin="minimal"] .lesson { background: none; border: 1px solid var(--line); border-radius: 2px; box-shadow: none; }
+[data-skin="minimal"] .lesson { border-width: 0 0 0 1px; border-color: var(--ink); border-radius: 0; padding: 4px 0 4px 18px; }
+[data-skin="minimal"] .case.learned { border-color: var(--ink); }
+[data-skin="minimal"] .clock { font-family: var(--font-body); font-weight: 200; font-size: clamp(76px, 15vw, 180px); letter-spacing: -.06em; }
+[data-skin="minimal"] .lights i { width: 6px; height: 6px; border: 0; background: var(--line); }
+[data-skin="minimal"] .hint { font-size: 13px; }
+[data-skin="minimal"] .scramble { font-weight: 400; word-spacing: .35em; }
+[data-skin="minimal"] .scramble .snext { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 7px; }
+[data-skin="minimal"] .scramble .sdone { opacity: .22; text-decoration-thickness: 1px; }
+/* navigation and buttons: plain text, underlined when chosen */
+[data-skin="minimal"] .tabs, [data-skin="minimal"] .seg { background: none; padding: 0; gap: 18px; }
+[data-skin="minimal"] .tabs a, [data-skin="minimal"] .seg button { padding: 4px 0; border-radius: 0; font-size: 13px; font-weight: 500; letter-spacing: .1em; }
+[data-skin="minimal"] .tabs a[aria-current="page"], [data-skin="minimal"] .seg button[aria-pressed="true"] { background: none; color: var(--ink); box-shadow: inset 0 -1px 0 var(--ink); }
+[data-skin="minimal"] .chips { gap: 4px 16px; }
+[data-skin="minimal"] .chip { background: none; border: 0; border-radius: 0; padding: 4px 0; font-weight: 500; color: var(--muted); }
+[data-skin="minimal"] .chip:hover { color: var(--ink); }
+[data-skin="minimal"] .chip[aria-pressed="true"] { background: none; color: var(--ink); box-shadow: inset 0 -1px 0 var(--ink); }
+[data-skin="minimal"] .btn { border-radius: 2px; font-size: 12px; font-weight: 500; letter-spacing: .12em; padding: 10px 18px; }
+[data-skin="minimal"] .btn.ghost, [data-skin="minimal"] .pill-btn, [data-skin="minimal"] .mini-btn { background: none; border: 1px solid var(--line); border-radius: 2px; font-weight: 500; letter-spacing: .1em; }
+[data-skin="minimal"] .pill-btn { font-size: 11px; padding: 6px 12px; }
+[data-skin="minimal"] .pill-btn:hover, [data-skin="minimal"] .mini-btn:hover, [data-skin="minimal"] .btn.ghost:hover { border-color: var(--ink); color: var(--ink); }
+[data-skin="minimal"] .pill-btn[aria-pressed="true"], [data-skin="minimal"] .learn-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+[data-skin="minimal"] select, [data-skin="minimal"] input[type=number], [data-skin="minimal"] .field, [data-skin="minimal"] .own-scr { background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding-left: 0; }
+[data-skin="minimal"] .stats td.best, [data-skin="minimal"] .solve-row.pb .t { color: var(--ink); font-weight: 600; }
+[data-skin="minimal"] .stats td, [data-skin="minimal"] .solve-row .t { font-weight: 400; }
+[data-skin="minimal"] .solve-row.goal .t::before { color: var(--muted); }
+[data-skin="minimal"] .progress { height: 1px; background: var(--line); }
+[data-skin="minimal"] .progress i { background: var(--ink); }
+[data-skin="minimal"] .trend path[stroke="var(--accent)"] { stroke: var(--ink); }
 </style>
 </head>
 <body>
@@ -413,6 +474,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       <a href="#learn" data-view="learn">Learn</a>
       <a href="#review" data-view="review">Recordings</a>
     </nav>
+    <label class="ctl skin-pick" for="skin">Look
+      <select id="skin"><option value="">Classic</option><option value="minimal">Minimal</option></select>
+    </label>
     <button type="button" class="pill-btn" id="installBtn" hidden>Install app</button>
     <p class="install-hint" id="iosHint" hidden>To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.</p>
   </header>
@@ -1013,6 +1077,11 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
 
   // ---------- views ----------
   let view = 'timer';
+  // the look: Classic or Minimal (set before the page draws, in <head>, so it doesn't flash)
+  const applySkin = () => { if (db.skin) document.documentElement.dataset.skin = db.skin; else delete document.documentElement.dataset.skin; };
+  if (db.skin && !$('skin').querySelector(`option[value="${db.skin}"]`)) db.skin = '';
+  $('skin').value = db.skin || ''; applySkin();   // again here for the claude.ai page, which has no <head>
+  $('skin').addEventListener('change', e => { db.skin = e.target.value; save(); applySkin(); e.target.blur(); });
   function showView(v) {
     if (!['timer', 'learn', 'review'].includes(v)) v = 'timer';
     if (view === 'timer' && v !== 'timer') cancel();
