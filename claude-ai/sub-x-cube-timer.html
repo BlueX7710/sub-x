@@ -1902,19 +1902,27 @@ body.racing { overflow: hidden; }
   // on top are turned over for it, and their slice turns and rotations become the face turns it sees.
   const toCube = toks => CrossSolver.flip(Solver.faceTurns(toks.join(' '))).join(' ');
   function trStart(setup, yellowTop) {
-    TR.phase = 'scramble'; TR.t0 = TR.t1 = TR.t2 = 0; TR.moves = 0; TR.yellow = !!yellowTop;
+    TR.phase = 'scramble'; TR.t0 = TR.t1 = TR.t2 = 0; TR.moves = 0; TR.yellow = !!yellowTop; TR.setup = setup;
     TR.track = trSmartOn() ? SmartCore.track(setup, yellowTop ? toCube : null) : null;
     if (TR.track) SmartCore.step(TR.track, SM.cur, null);
+  }
+  // Track the setup that's on screen: after switching trainers TR still holds the other one's, and a
+  // cube connected after the case appeared has nothing to follow yet.
+  function trSync(setup) {
+    if (!setup) return;
+    if (TR.setup !== setup) { trStart(setup, !['cross', 'fbt'].includes(learnSet)); return; }
+    if (!trSmartOn()) TR.track = null;
+    else if (!TR.track && TR.phase === 'scramble') { TR.track = SmartCore.track(setup, TR.yellow ? toCube : null); SmartCore.step(TR.track, SM.cur, null); }
   }
   // a setup being followed on a smart cube: turns done are crossed out, the next one is underlined
   const trackSpans = (T, toks) => toks.map((t, i) => `<span class="${i < T.k ? 'sdone' : i === T.k && !T.done ? 'snext' + (T.half ? ' shalf' : '') : ''}">${esc(t)}</span>`).join(' ');
   const trScr = txt => TR.track && TR.phase === 'scramble' ? trackSpans(TR.track, Cube.tokens(txt)) : esc(txt);
   // the quickest fix, written the way you are holding the cube at that point of the setup
-  function trFix(T) {
+  function trFix(T, yellow = TR.yellow) {
     const fix = SmartCore.fixMoves(T, SM.cur); if (!fix) return null;
-    return (TR.yellow ? Solver.heldAs(CrossSolver.flip(fix), T.toks.slice(0, T.k).join(' ')) : fix).join(' ');
+    return (yellow ? Solver.heldAs(CrossSolver.flip(fix), T.toks.slice(0, T.k).join(' ')) : fix).join(' ');
   }
-  function renderTrainer() { ({ cross: renderCross, f2lt: renderF2LT, ollt: renderLLT, pllt: renderLLT, collt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
+  function renderTrainer() { const D = trData(); if (D) trSync(D.scr); ({ cross: renderCross, f2lt: renderF2LT, ollt: renderLLT, pllt: renderLLT, collt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
   function trNext() {
     const now = performance.now();
     if (TR.phase === 'scramble') { TR.phase = 'plan'; TR.t0 = now; }
@@ -1993,6 +2001,7 @@ body.racing { overflow: hidden; }
   // smart-cube moves while a trainer is open (website and app only; see smartMove)
   function trSmartMove(m) {
     if (TR.phase === 'scramble') {
+      const D = trData(); if (D) trSync(D.scr);
       if (!TR.track) return false;
       SmartCore.step(TR.track, SM.cur, m);
       if (TR.track.done) trNext(); else renderTrainer();
@@ -2295,15 +2304,36 @@ body.racing { overflow: hidden; }
   const ll3DSetup = setup => Cube3D.svg(Cube3D.frame(Cube.apply(Cube.solved(3), 3, setup), { ...LL_VIEW, body: 'var(--plastic)', colorOf: k => PAL_LL[k.col] }), 'The case in 3D: yellow on top, green in front');
   const rxPicture = (kind, scr) => kind === 'sb' ? f2l3DSetup(scr) : ll3DSetup(scr);
   const rxWatch = (kind, scr, sol) => openPlayer({ id: 'rx', name: 'Shortest ' + RX[kind].name, alg: [sol.rot, ...sol.moves].filter(Boolean).join(' '), mode: RX[kind].mode, setup: RX[kind].setup(scr) });
-  // Teach: a worked example
+  // Teach: a worked example. On a smart cube its setup is tracked like a trainer's (the first block's
+  // scramble is done white on top, the cube's own frame; the others are set up yellow on top).
   const workedExamples = {};
+  const exampleActive = () => view === 'learn' && !!RX[learnSet] && !!workedExamples[learnSet];
+  function exScr(kind, E) {
+    if (!trSmartOn()) { E.track = null; return esc(E.scr); }
+    if (!E.track) { E.track = SmartCore.track(E.scr, kind === 'fb' ? null : toCube); SmartCore.step(E.track, SM.cur, null); }
+    return trackSpans(E.track, E.track.toks);
+  }
+  function exNote(kind, E) {
+    const T = E.track; if (!T) return '';
+    const fix = T.sync ? null : trFix(T, kind !== 'fb');
+    const msg = T.done ? 'Smart cube: set up. Now try the moves below.'
+      : T.sync ? `Smart cube: ${T.k} of ${T.toks.length} moves done.`
+      : fix ? 'Smart cube: off the setup. Fix it with ' + fix
+      : "Smart cube: it doesn't match. Solve it and start the setup again, or tap “My cube is solved” in the Timer tab.";
+    return `<p class="drill-note${T.sync ? '' : ' err'}">${esc(msg)}</p>`;
+  }
+  function exSmartMove(m) {
+    const E = workedExamples[learnSet]; if (!E.track || E.track.done) return false;
+    SmartCore.step(E.track, SM.cur, m); renderExample(learnSet);
+    return true;
+  }
   function renderExample(kind) {
     const E = workedExamples[kind] || (workedExamples[kind] = { scr: kind === 'fb' ? genScramble('333') : rxSetup(kind), sol: null }), X = RX[kind];
     if (!E.sol && Roux.ready(kind)) E.sol = X.solve(E.scr);
     const s = E.sol, n = s ? s.moves.length : 0;
     $('learnBody').innerHTML = `<section class="panel" style="max-width:980px">
       <div class="label"><span>Worked example · ${kind === 'fb' ? 'scramble with white on top, green in front' : 'set up on a solved cube, yellow on top, green in front'}</span><button type="button" class="mini-btn" data-ex="new">New example</button></div>
-      <p class="scramble">${esc(E.scr)}</p>
+      <p class="scramble">${exScr(kind, E)}</p>${exNote(kind, E)}
       ${kind === 'fb' ? '<svg class="net" id="exNet" role="img" aria-label="The cube after the scramble"></svg>' : `<div class="f2lt-pic">${rxPicture(kind, E.scr)}</div>`}
       ${rxWorkNote}
       ${s ? `<div class="cross-sol">
@@ -2810,11 +2840,7 @@ body.racing { overflow: hidden; }
       return;
     }
     if (learnSet === 'quiz') { renderQuiz(); return; }
-    if (learnSet === 'cross') { renderCross(); return; }
-    if (learnSet === 'f2lt') { renderF2LT(); return; }
-    if (learnSet === 'ollt' || learnSet === 'pllt' || learnSet === 'collt' || learnSet === 'cmllt') { renderLLT(); return; }
-    if (learnSet === 'fbt') { renderFB(); return; }
-    if (learnSet === 'sbt' || learnSet === 'lset') { renderRx(); return; }
+    if (TRAINERS.includes(learnSet)) { renderTrainer(); return; }
     if (learnSet === 'fb' || learnSet === 'sb' || learnSet === 'lse') { renderExample(learnSet); return; }
     if (!set.groups) { body.innerHTML = ''; return; }
     const pct = count(learnSet) ? Math.round(done(learnSet) / count(learnSet) * 100) : null;
