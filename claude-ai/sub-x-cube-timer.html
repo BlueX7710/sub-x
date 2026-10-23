@@ -261,6 +261,13 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .learn-btn[aria-pressed="true"] { background: var(--ready); border-color: var(--ready); color: var(--accent-ink); }
 .case .setup { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 .case .setup span { font-family: var(--font-mono); color: var(--ink); word-spacing: .15em; overflow-wrap: anywhere; }
+.saved-card { display: flex; flex-direction: column; gap: 6px; }
+.saved-card h3 { margin: 0; font-family: var(--font-mono); font-size: 26px; font-weight: 500; display: flex; gap: 4px 10px; align-items: baseline; flex-wrap: wrap; }
+.saved-card h3 small { font-family: var(--font-body); font-size: 12px; color: var(--muted); }
+.saved-card p { margin: 0; font-size: 12px; color: var(--muted); }
+.saved-card p span { display: block; font-family: var(--font-mono); font-size: 13px; color: var(--ink); word-spacing: .15em; overflow-wrap: anywhere; }
+.saved-card .net { width: 132px; }
+.saved-card .row-btns { margin-top: 4px; }
 .notation { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .note-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
 .note-card h3 { margin: 0 0 6px; font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
@@ -599,7 +606,7 @@ body.racing { overflow: hidden; }
   const db = load() || {};
   db.event = db.event || '333'; db.goal = db.goal || 20; if (db.inspection === undefined) db.inspection = true;
   db.solves = db.solves || {}; db.learned = db.learned || {};
-  db.sessions = db.sessions || {}; db.lastSess = db.lastSess || {};
+  db.sessions = db.sessions || {}; db.lastSess = db.lastSess || {}; db.saved = db.saved || [];
 
   const EVENTS = {
     '222': { name: '2×2×2', n: 2, faces: ['R', 'U', 'F'], len: 11, wide: false },
@@ -958,8 +965,9 @@ body.racing { overflow: hidden; }
       ownScrChanged();
     } else if (friendScr && friendScr.ev === EV()) {
       scramble = friendScr.scr;
-      $('scrLabel').innerHTML = `<strong>Scramble from a friend</strong><button class="mini-btn" id="dropFriend" type="button">Back to scrambles</button>`;
-      $('drillNote').hidden = false; $('drillNote').textContent = 'Someone shared this scramble with you. Solve it and compare times. The solve is saved like any other.';
+      const mine = friendScr.beat;   // a saved solve of your own, done again from Learn → My solves
+      $('scrLabel').innerHTML = `<strong>${mine ? 'Your saved solve · ' + esc(mine) : 'Scramble from a friend'}</strong><button class="mini-btn" id="dropFriend" type="button">Back to scrambles</button>`;
+      $('drillNote').hidden = false; $('drillNote').textContent = mine ? `The scramble of your saved ${mine} solve. Scramble the same way and try to beat it. The solve is saved like any other.` : 'Someone shared this scramble with you. Solve it and compare times. The solve is saved like any other.';
       $('scrCard').classList.add('drill');
       drawNetFor(scramble);
     } else if (db.scrMode === 'daily' && dailyDone().length < 5) {
@@ -1075,7 +1083,7 @@ body.racing { overflow: hidden; }
       if (openIdx === i) {
         const solBtn = solvable(s) ? `<button type="button" class="pill-btn" data-sol="${i}" aria-pressed="${solIdx === i}">${solIdx === i ? 'Hide solution' : 'Solution'}</button>` : '', tt = turnsText(s);
         html += `<div class="solve-detail"><p>${esc(s.scr)}</p><p class="meta">${new Date(s.t).toLocaleString()}${s.ex ? ' · example' : ''}</p>${tt ? `<p class="meta">${tt}</p>` : ''}` +
-          (ex ? (solBtn ? `<div class="row">${solBtn}</div>` : '') : `<div class="row">${penButtons(s, i)}<button type="button" class="pill-btn" data-review="${i}">${s.review ? 'See AI review' : 'Review with AI'}</button>${solBtn}</div>`) +
+          (ex ? (solBtn ? `<div class="row">${solBtn}</div>` : '') : `<div class="row">${penButtons(s, i)}${saveBtn(s, i)}<button type="button" class="pill-btn" data-review="${i}">${s.review ? 'See AI review' : 'Review with AI'}</button>${solBtn}</div>`) +
           (solIdx === i && solBtn ? solutionHtml(s, i, ex) : '') + '</div>';
       }
       html += '</li>';
@@ -1089,8 +1097,20 @@ body.racing { overflow: hidden; }
     const box = $('lastActions'), list = db.solves[db.event];
     if (!list.length || !justSolved) { box.innerHTML = ''; return; }
     const i = list.length - 1;
-    box.innerHTML = penButtons(list[i], i) + `<button type="button" class="pill-btn" data-review="${i}">Review with AI</button>`;
+    const pb = list.length > 1 && eff(list[i]) !== Infinity && list.every(s => eff(s) >= eff(list[i]));
+    box.innerHTML = penButtons(list[i], i) + saveBtn(list[i], i, pb) + `<button type="button" class="pill-btn" data-review="${i}">Review with AI</button>`;
   }
+
+  // ---------- saved solves: copies kept in Learn → My solves, to do again and learn from ----------
+  // A copy, so it stays when the session is cleared. It keeps the scramble, and a smart cube's moves.
+  const savedOf = s => db.saved.find(x => x.t === s.t && x.scr === s.scr);
+  function toggleSaved(s) {
+    const old = savedOf(s);
+    if (old) { db.saved.splice(db.saved.indexOf(old), 1); save(); toast('Removed from My solves'); return; }
+    db.saved.push({ ...s, ev: EV(), sess: sessLabel(db.event) }); save();
+    toast('Saved. Find it in Learn → My solves.');
+  }
+  const saveBtn = (s, i, pb) => `<button type="button" class="pill-btn" data-save="${i}" aria-pressed="${!!savedOf(s)}">${savedOf(s) ? 'Saved' : pb ? 'Save this PB' : 'Save'}</button>`;
 
   // ---------- solution: the best way, and how you solved it ----------
   let solIdx = -1;
@@ -1312,6 +1332,8 @@ body.racing { overflow: hidden; }
       if (bad.length) { toast('Not recognised: ' + bad.join(' ') + ". Use moves like R U' F2."); return; }
       s.my = txt; save(); renderList(solvesFor(db.event), db.goal * 1000);
     }
+    else if (b.dataset.save !== undefined) { const s = db.solves[db.event][+b.dataset.save]; if (s) { toggleSaved(s); renderList(solvesFor(db.event), db.goal * 1000); renderLastActions(); } }
+    else if (b.dataset.sv) savedAction(b.dataset.sv);
     else if (b.dataset.sol3d) {
       const [w, i] = b.dataset.sol3d.split(':'), s = solvesFor(db.event)[+i]; if (!s) return;
       const alg = w === 'best' ? (bestFor(s.scr) || { steps: [] }).steps.map(x => x.alg).filter(Boolean).join(' ') : (yourMoves(s) || []).join(' ');
@@ -1483,6 +1505,7 @@ body.racing { overflow: hidden; }
       mine.sort((a, b) => a.t - b.t);
     }
     for (const [k, v] of Object.entries(data.learned || {})) if (v) db.learned[k] = true;
+    for (const s of Array.isArray(data.saved) ? data.saved : []) if (s && typeof s.t === 'number' && typeof s.scr === 'string' && !savedOf(s)) db.saved.push(s);
     db.srs = db.srs || {};
     for (const [k, v] of Object.entries(data.srs || {})) if (v && (!db.srs[k] || (v.seen || 0) > (db.srs[k].seen || 0))) db.srs[k] = v;
     for (const [k, v] of Object.entries(data.caseStats || {})) if (v && Array.isArray(v.rec) && (!db.caseStats[k] || (v.last || 0) > (db.caseStats[k].last || 0))) db.caseStats[k] = v;
@@ -1841,6 +1864,7 @@ body.racing { overflow: hidden; }
     lset: { title: 'LSE', lead: 'Practise the last six edges: set up a case with M and U turns, solve it, and compare with the shortest way.' },
     f2lt: { title: 'F2L trainer', lead: 'Practise one F2L pair at a time: set up a random case, recognise it, insert it, and see how long each part took.' },
     cross: { title: 'Cross', lead: 'Practise planning the cross. Sub-X finds the shortest possible cross for every scramble, so you can compare it with yours.' },
+    saved: { title: 'My solves', lead: 'Solves you saved from the Timer, like a new best. Do the same scramble again to try to beat it, or watch how you solved it in 3D, one move at a time. Saved solves stay here when you clear a session, and are in backups.' },
     quiz: { title: 'Recognition drill', lead: 'Name the case, then reveal it. This uses spaced repetition: cases you miss come back within minutes, and cases you know come back after 1, 3, 7, 16 and then 35 days. Your schedule is saved and included in backups.' },
   };
   const NOTATION = [
@@ -1857,8 +1881,8 @@ body.racing { overflow: hidden; }
   const caseById = id => ALL_CASES.find(c => c.id === id);
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
-    cfop: { name: 'CFOP', steps: [['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['notation', 'Notation']] },
-    roux: { name: 'Roux', steps: [['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['notation', 'Notation']] },
+    cfop: { name: 'CFOP', steps: [['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation']] },
+    roux: { name: 'Roux', steps: [['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['saved', 'My solves'], ['notation', 'Notation']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
   const ROUX_PAGES = { fb: { teach: 'fb', train: 'fbt' }, sb: { teach: 'sb', train: 'sbt' }, cmll: { teach: 'cmll', train: 'cmllt' }, lse: { teach: 'lse', train: 'lset' } };
@@ -2820,6 +2844,44 @@ body.racing { overflow: hidden; }
   })();
 
 
+  // ---------- Learn → My solves ----------
+  const is3x3 = s => ['333', 'oh'].includes(s.ev) && Cube.tokens(s.scr).length > 0 && Cube.tokens(s.scr).every(t => /^[URFDLB](2|')?$/.test(t));
+  function renderSaved() {
+    const body = $('learnBody');
+    if (!db.saved.length) { body.innerHTML = '<p class="empty">Nothing saved yet. In the Timer, open a solve in the list, or finish one, and press <b>Save</b>. A new best says <b>Save this PB</b>.</p>'; return; }
+    const order = Object.keys(EVENTS);
+    const list = db.saved.slice().sort((a, b) => order.indexOf(a.ev) - order.indexOf(b.ev) || eff(a) - eff(b));   // by puzzle, fastest first
+    body.innerHTML = '<div class="cards">' + list.map(s => {
+      const mv = yourMoves(s) || [], three = is3x3(s), tt = s.splits ? splitsText(s) : turnsText(s);
+      return `<article class="panel saved-card">
+        <h3>${fmtSolve(s)}<small>${esc(s.sess || (EVENTS[s.ev] || {}).name || s.ev)} · ${new Date(s.t).toLocaleDateString()}</small></h3>
+        ${three ? `<svg class="net" id="svNet${s.t}" role="img" aria-label="The cube after the scramble"></svg>` : ''}
+        <p>Scramble<span>${esc(s.scr)}</span></p>
+        ${mv.length ? `<p>Your moves, white on the bottom<span>${esc(mv.join(' '))}</span></p>` : ''}
+        ${tt ? `<p>${esc(tt)}</p>` : ''}
+        <div class="row-btns">
+          <button type="button" class="btn" data-sv="redo:${s.t}">Do this scramble</button>
+          ${three && mv.length ? `<button type="button" class="pill-btn" data-sv="mine:${s.t}">Watch yours in 3D</button>` : ''}
+          ${three ? `<button type="button" class="pill-btn" data-sv="best:${s.t}">Best way in 3D</button>` : ''}
+          <button type="button" class="pill-btn danger" data-sv="del:${s.t}">Remove</button>
+        </div></article>`;
+    }).join('') + '</div>';
+    for (const s of list) if (is3x3(s)) drawNet(s.scr, 3, PAL_WCA, 'svNet' + s.t);
+  }
+  function savedAction(a) {
+    const k = a.indexOf(':'), w = a.slice(0, k), s = db.saved.find(x => String(x.t) === a.slice(k + 1)); if (!s) return;
+    if (w === 'redo') {   // the same scramble on the timer, until "Back to scrambles"
+      friendScr = { ev: s.ev, scr: s.scr, beat: fmtSolve(s) }; drill = null;
+      if (EV() !== s.ev) { const last = db.lastSess[s.ev]; switchSession(last && (last === s.ev || db.sessions[last]) ? last : s.ev); } else newScramble();
+      location.hash = 'timer';
+    } else if (w === 'mine' || w === 'best') {
+      const alg = w === 'best' ? (bestFor(s.scr) || { steps: [] }).steps.map(x => x.alg).filter(Boolean).join(' ') : (yourMoves(s) || []).join(' ');
+      if (alg) openPlayer({ id: 'sol', name: w === 'best' ? 'Best way' : `Your ${fmtSolve(s)} solve`, alg, mode: 'solve', setup: s.scr + ' z2' });
+    } else if (w === 'del') {
+      const at = db.saved.indexOf(s); db.saved.splice(at, 1); save(); renderSaved();
+      toast('Removed from My solves', () => { db.saved.splice(at, 0, s); save(); if (view === 'learn' && learnSet === 'saved') renderSaved(); });
+    }
+  }
   function renderLearn() {
     const set = SETS[learnSet];
     $('learnTitle').textContent = set.title;
@@ -2840,6 +2902,7 @@ body.racing { overflow: hidden; }
       return;
     }
     if (learnSet === 'quiz') { renderQuiz(); return; }
+    if (learnSet === 'saved') { renderSaved(); return; }
     if (TRAINERS.includes(learnSet)) { renderTrainer(); return; }
     if (learnSet === 'fb' || learnSet === 'sb' || learnSet === 'lse') { renderExample(learnSet); return; }
     if (!set.groups) { body.innerHTML = ''; return; }
