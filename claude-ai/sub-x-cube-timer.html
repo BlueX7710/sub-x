@@ -182,7 +182,14 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .trend { width: 100%; height: auto; display: block; }
 .trend text { font-family: var(--font-mono); font-size: 9px; fill: var(--muted); }
 .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.legend { flex-wrap: wrap; gap: 4px 14px; }
 .legend i { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 5px; }
+.legend i.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.trend-range { display: inline-flex; gap: 4px; }
+.mini-btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.slow-list h4 { margin: 14px 0 0; font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--muted); }
+.slow-list .phase-table { margin-top: 4px; font-size: 13px; }
+.slow-list .phase-table td, .slow-list .phase-table th { padding: 5px 4px; }
 .solves { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow-y: auto; font-variant-numeric: tabular-nums; }
 .solve-row { width: 100%; display: grid; grid-template-columns: 2.6em 1fr 1fr; gap: 8px; align-items: baseline; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 7px 4px; text-align: right; }
 .solve-row:hover { background: var(--sunk); }
@@ -312,6 +319,23 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 9px 12px 9px 16px; display: flex; gap: 12px; align-items: center; font-size: 14px; box-shadow: 0 6px 24px rgb(0 0 0 / .25); max-width: calc(100% - 32px); z-index: 5; }
 .toast button { background: none; border: 1px solid currentColor; border-radius: 5px; color: inherit; padding: 2px 10px; font-family: var(--font-display); letter-spacing: .06em; text-transform: uppercase; font-size: 13px; }
+.race-overlay { position: fixed; inset: 0; z-index: 10; background: var(--bg); display: flex; justify-content: center; overflow-y: auto; padding: max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.race-overlay[hidden] { display: none; }
+.race { width: min(980px, 100%); display: flex; flex-direction: column; gap: 12px; }
+.race .p3d-head h3 { margin: 0; font-family: var(--font-display); font-size: 24px; }
+.race-score { font-family: var(--font-mono); font-size: 15px; margin-left: auto; margin-right: 8px; }
+.race-pads { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 280px; }
+@media (max-width: 600px) { .race-pads { grid-template-columns: minmax(0, 1fr); } .race-pad[data-p="0"] { transform: rotate(180deg); } }
+.race-pad { border: 2px solid var(--line); background: var(--surface); border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 18px 10px; user-select: none; -webkit-user-select: none; touch-action: none; -webkit-touch-callout: none; cursor: pointer; min-height: 140px; }
+.rp-name { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--muted); }
+.rp-clock { font-family: var(--font-mono); font-size: clamp(44px, 9vw, 84px); line-height: 1; font-variant-numeric: tabular-nums; }
+.rp-hint { font-size: 13px; color: var(--muted); text-align: center; min-height: 1.3em; }
+.race-pad[data-s="holding"] .rp-clock { color: var(--hold); }
+.race-pad[data-s="ready"] .rp-clock { color: var(--ready); }
+.race-pad[data-s="ready"] { border-color: var(--ready); }
+.race-pad.win { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.race-pad.win .rp-name { color: var(--accent); }
+body.racing { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 
@@ -347,6 +371,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
         <label class="ctl" for="scrMode">Scramble
           <select id="scrMode">
             <option value="gen">Generated</option>
+            <option value="daily">Daily 5</option>
             <option value="own">My own</option>
           </select>
         </label>
@@ -354,6 +379,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
           <input id="goal" type="number" min="1" max="600" step="1" value="20">
         </label>
         <label class="ctl toggle" for="insp"><input id="insp" type="checkbox" checked> 15s inspection</label>
+        <button type="button" class="mini-btn" id="raceBtn">Race a friend</button>
       </div>
       <div class="sess-panel" id="sessPanel" hidden>
         <input id="sessName" class="field" type="text" maxlength="30" placeholder="Session name, e.g. Comp sim" aria-label="Session name">
@@ -394,9 +420,10 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
         <div class="summary" id="summary"></div>
       </section>
       <section class="panel">
-        <h2>Trend <b id="trendCount"></b></h2>
-        <svg class="trend" id="trend" viewBox="0 0 320 110" role="img" aria-label="Solve times over the session"></svg>
-        <div class="legend"><span><i style="background:var(--muted)"></i>single</span><span><i style="background:var(--accent)"></i>ao5</span><span><i style="background:var(--ready)"></i>goal</span></div>
+        <h2>Trend <span class="trend-range" id="trendRange"></span></h2>
+        <svg class="trend" id="trend" viewBox="0 0 320 120" role="img" aria-label="Solve times over the session"></svg>
+        <div class="legend"><span><i style="background:var(--muted)"></i>single</span><span><i style="background:var(--accent)"></i>ao5</span><span><i style="background:var(--ph-oll)"></i>ao12</span><span><i class="dot"></i>new PB</span><span><i style="background:var(--ready)"></i>goal</span></div>
+        <p class="lead" id="trendNote" style="margin:6px 0 0"></p>
       </section>
       <section class="panel">
         <h2>Solves</h2>
@@ -409,8 +436,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
         <p class="lead" id="backupInfo"></p>
         <div class="row-btns">
           <button type="button" class="pill-btn" id="exportBtn">Save backup</button>
-          <label class="pill-btn" for="importFile" style="cursor:pointer">Restore backup</label>
-          <input type="file" id="importFile" accept=".json,application/json" hidden>
+          <label class="pill-btn" for="importFile" style="cursor:pointer">Restore or import</label>
+          <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" hidden>
         </div>
       </section>
     </aside>
@@ -484,6 +511,18 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       <select id="p3dSpeed" aria-label="Speed"><option value="0.5">Slow</option><option value="1" selected>Normal</option><option value="2">Fast</option></select>
     </div>
     <label class="toggle" id="p3dAllWrap" for="p3dAll"><input type="checkbox" id="p3dAll"> Show last-layer colours</label>
+  </div>
+</div>
+<div class="race-overlay" id="race" hidden role="dialog" aria-modal="true" aria-labelledby="raceTitle">
+  <div class="race">
+    <div class="p3d-head"><h3 id="raceTitle">Race</h3><span class="race-score" id="raceScore"></span><button type="button" class="mini-btn" id="raceClose">Close</button></div>
+    <p class="scramble" id="raceScr"></p>
+    <div class="race-pads">
+      <div class="race-pad" data-p="0" data-s="idle"><span class="rp-name">Player 1</span><span class="rp-clock">0.00</span><span class="rp-hint"></span></div>
+      <div class="race-pad" data-p="1" data-s="idle"><span class="rp-name">Player 2</span><span class="rp-clock">0.00</span><span class="rp-hint"></span></div>
+    </div>
+    <div class="row-btns"><button type="button" class="btn" id="raceNext">Next scramble</button><button type="button" class="pill-btn" id="raceReset">Reset score</button></div>
+    <p class="drill-note">Both of you scramble with the same moves. Hold your side until it turns green, let go to start, and touch it again to stop. On a keyboard, player 1 uses <b>A</b> and player 2 uses <b>L</b>. Race times are not saved.</p>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -577,30 +616,38 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   const EV = () => evOfKey(db.event);
   const sessLabel = key => { const s = db.sessions[key], ev = evOfKey(key); return (EVENTS[ev] ? EVENTS[ev].name : ev) + (s ? ' · ' + s.name : ''); };
   // Random-move scrambles for the non-cube puzzles: no face twice in a row, then random tips.
-  function randomMoves(faces, len) {
+  // `rnd` is Math.random, or a seeded generator for the daily scrambles.
+  function randomMoves(faces, len, rnd) {
     const out = []; let last = null;
-    while (out.length < len) { const f = faces[Math.floor(Math.random() * faces.length)]; if (f === last) continue; out.push(f + (Math.random() < 0.5 ? "'" : '')); last = f; }
+    while (out.length < len) { const f = faces[Math.floor(rnd() * faces.length)]; if (f === last) continue; out.push(f + (rnd() < 0.5 ? "'" : '')); last = f; }
     return out;
   }
-  function genPyraminx() {
-    const tips = ['u', 'l', 'r', 'b'].map(t => [null, t, t + "'"][Math.floor(Math.random() * 3)]).filter(Boolean);
-    return randomMoves(['U', 'L', 'R', 'B'], 10).concat(tips).join(' ');
+  function genPyraminx(rnd) {
+    const moves = randomMoves(['U', 'L', 'R', 'B'], 10, rnd);
+    const tips = ['u', 'l', 'r', 'b'].map(t => [null, t, t + "'"][Math.floor(rnd() * 3)]).filter(Boolean);
+    return moves.concat(tips).join(' ');
   }
-  function genSkewb() { return randomMoves(['R', 'L', 'U', 'B'], 10).join(' '); }
+  function genSkewb(rnd) { return randomMoves(['R', 'L', 'U', 'B'], 10, rnd).join(' '); }
 
-  function genScramble(ev) {
+  function genScramble(ev, rnd = Math.random) {
     const e = EVENTS[ev], out = [];
-    if (e.gen) return e.gen();
+    if (e.gen) return e.gen(rnd);
     let last = null, prev = null;
     while (out.length < e.len) {
-      const f = e.faces[Math.floor(Math.random() * e.faces.length)];
+      const f = e.faces[Math.floor(rnd() * e.faces.length)];
       if (f === last) continue;
       if (last && prev && AXIS[f][0] === AXIS[last][0] && AXIS[f][0] === AXIS[prev][0]) continue;
-      const w = e.wide && (e.wideFaces || 'RUF').includes(f) && Math.random() < 0.35 ? 'w' : '';
-      out.push(f + w + ['', "'", '2'][Math.floor(Math.random() * 3)]);
+      const w = e.wide && (e.wideFaces || 'RUF').includes(f) && rnd() < 0.35 ? 'w' : '';
+      out.push(f + w + ['', "'", '2'][Math.floor(rnd() * 3)]);
       prev = last; last = f;
     }
     return out.join(' ');
+  }
+  // A generator seeded by a string (FNV-1a hash, then mulberry32), so everyone gets the same daily scrambles.
+  function seeded(str) {
+    let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    let a = h >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   }
 
   // White on top, green in front (WCA scrambling orientation)
@@ -807,7 +854,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   function llDiagramSetup(setup, mode) {
     const st = Cube.apply(Cube.solved(3), 3, setup);
     const idx = c => (c + 2) / 2, c = 24, o = 17, s = 8;
-    const fill = k => mode === 'oll' ? (k.col === 'U' ? PAL_LL.U : 'var(--ll-off)') : PAL_LL[k.col];
+    // COLL: the corners in full colour; the edges only show that they are oriented
+    const fill = k => mode === 'oll' ? (k.col === 'U' ? PAL_LL.U : 'var(--ll-off)') : mode === 'coll' && (k.p[0] === 0) !== (k.p[2] === 0) && k.n[1] !== 1 ? 'var(--ll-off)' : PAL_LL[k.col];
     let out = `<rect x="${o - 2}" y="${o - 2}" width="${c * 3 + 4}" height="${c * 3 + 4}" rx="4" fill="var(--plastic)"/>`;
     for (const k of st) {
       if (k.p[1] !== 2) continue;
@@ -864,11 +912,37 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     if (v === 'learn') renderLearn();
     if (v === 'review') renderReviewSetup();
   }
-  window.addEventListener('hashchange', () => showView(location.hash.slice(1)));
+  // a shared scramble arrives as #timer?e=333&s=R%20U...
+  function readHash() {
+    const [v, q] = location.hash.slice(1).split('?');
+    if (q) {
+      const P = new URLSearchParams(q), ev = P.get('e'), scr = (P.get('s') || '').trim().slice(0, 400);
+      if (scr && EVENTS[ev]) {
+        friendScr = { ev, scr };
+        try { history.replaceState(null, '', '#timer'); } catch (e) {}
+        if (EV() !== ev) { const last = db.lastSess[ev]; switchSession(last && (last === ev || db.sessions[last]) ? last : ev); } else newScramble();
+      }
+    }
+    showView(v);
+  }
+  window.addEventListener('hashchange', readHash);
 
   // ---------- scramble / drill ----------
   let scramble = '', drill = null; // drill = {name, alg, times: []}
+  // the daily scrambles: five per event, the same for everyone on the same date
+  let friendScr = null, dailyOn = null;   // friendScr = {ev, scr} from a shared link; dailyOn = the date of the daily being shown
+  const today = () => { const d = new Date(), p2 = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
+  const dailyDone = () => db.solves[db.event].filter(s => s.daily === today());
+  const SHARE_BASE = 'https://bluex7710.github.io/sub-x/';
+  async function shareScramble() {
+    const url = `${SHARE_BASE}#timer?e=${encodeURIComponent(EV())}&s=${encodeURIComponent(scramble)}`;
+    const text = `Race me on this ${EVENTS[EV()].name} scramble in Sub-X: ${scramble}`;
+    try { if (navigator.share && matchMedia('(pointer: coarse)').matches) { await navigator.share({ title: 'Sub-X scramble', text, url }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text + '\n' + url); toast('Link copied. Send it to a friend: they get this scramble.'); }
+    catch (e) { toast('Copy this link: ' + url); }
+  }
   function newScramble() {
+    dailyOn = null;
     if (drill) {
       scramble = (Cube.invert(drill.alg) + ' ' + ['', 'U', "U'", 'U2'][Math.floor(Math.random() * 4)]).trim();
       $('scrLabel').innerHTML = `<strong>Drill: ${esc(drill.name)}</strong><span>Setup moves</span><button class="mini-btn" id="exitDrill" type="button">Back to scrambles</button>`;
@@ -882,10 +956,25 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       $('scrCard').classList.remove('drill');
       $('ownScr').value = '';
       ownScrChanged();
+    } else if (friendScr && friendScr.ev === EV()) {
+      scramble = friendScr.scr;
+      $('scrLabel').innerHTML = `<strong>Scramble from a friend</strong><button class="mini-btn" id="dropFriend" type="button">Back to scrambles</button>`;
+      $('drillNote').hidden = false; $('drillNote').textContent = 'Someone shared this scramble with you. Solve it and compare times. The solve is saved like any other.';
+      $('scrCard').classList.add('drill');
+      drawNetFor(scramble);
+    } else if (db.scrMode === 'daily' && dailyDone().length < 5) {
+      const done = dailyDone().length, d = today();
+      dailyOn = d; scramble = genScramble(EV(), seeded(`sub-x daily ${d} ${EV()} ${done}`));
+      $('scrLabel').innerHTML = `<strong>Daily ${done + 1} of 5 · ${d}</strong><button class="mini-btn" id="shareScr" type="button">Share</button><button class="mini-btn" id="copyScr" type="button">Copy</button>`;
+      $('drillNote').hidden = false; $('drillNote').textContent = 'Everyone using Sub-X gets the same five scrambles today. Finish all five for your daily ao5, and compare it with friends.';
+      $('scrCard').classList.add('drill');
+      drawNetFor(scramble);
     } else {
       scramble = genScramble(EV());
-      $('scrLabel').innerHTML = `<span>Scramble</span><button class="mini-btn" id="newScr" type="button">New</button><button class="mini-btn" id="copyScr" type="button">Copy</button>`;
-      $('drillNote').hidden = true;
+      $('scrLabel').innerHTML = `<span>Scramble</span><button class="mini-btn" id="newScr" type="button">New</button><button class="mini-btn" id="copyScr" type="button">Copy</button><button class="mini-btn" id="shareScr" type="button">Share</button>`;
+      const dd = db.scrMode === 'daily' ? dailyDone() : null;
+      $('drillNote').hidden = !dd;
+      if (dd) $('drillNote').textContent = `Today's daily is done: ao5 ${fmt(avgOf(dd, 5, 5))}, best ${fmt(Math.min(...dd.map(eff)))}. New daily scrambles come tomorrow; until then these are random.`;
       $('scrCard').classList.remove('drill');
       drawNetFor(scramble);
     }
@@ -938,13 +1027,18 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo();
   }
 
+  // the last 50 or 100 solves, or all of them; new personal bests are marked
   function renderTrend(list, goal) {
-    const svg = $('trend'), W = 320, H = 110, padL = 38, padR = 6, padT = 8, padB = 8;
-    const start = Math.max(0, list.length - 50), seg = list.slice(start);
-    $('trendCount').textContent = seg.length ? `last ${seg.length}` : '';
+    const svg = $('trend'), W = 320, H = 120, padL = 38, padR = 6, padT = 8, padB = 8, N = db.trendN === undefined ? 50 : db.trendN;
+    $('trendRange').innerHTML = [[50, 'Last 50'], [100, 'Last 100'], [0, 'All']].map(([n, l]) => `<button type="button" class="mini-btn" data-trend="${n}" aria-pressed="${N === n}">${l}</button>`).join('');
+    const start = N ? Math.max(0, list.length - N) : 0, seg = list.slice(start);
+    $('trendNote').textContent = '';
     if (seg.length < 2) { svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle">Finish two solves to see a trend</text>`; return; }
-    const singles = seg.map(eff), ao5 = seg.map((_, i) => avgOf(list, 5, start + i + 1));
-    const vals = singles.concat(ao5).filter(v => v !== null && v !== Infinity);
+    const singles = seg.map(eff), ao5 = seg.map((_, i) => avgOf(list, 5, start + i + 1)), ao12 = seg.map((_, i) => avgOf(list, 12, start + i + 1));
+    // a solve is a new PB when it beats every solve before it (including the ones left of the chart)
+    let best = Infinity; for (let i = 0; i < start; i++) best = Math.min(best, eff(list[i]));
+    const pbs = []; singles.forEach((v, i) => { if (v < best) { if (start + i > 0 || best !== Infinity) pbs.push(i); best = v; } });
+    const vals = singles.concat(ao5, ao12).filter(v => v !== null && v !== Infinity);
     if (!vals.length) { svg.innerHTML = ''; return; }
     let lo = Math.min(...vals, goal), hi = Math.max(...vals);
     if (goal > hi * 1.25) lo = Math.min(...vals);
@@ -956,9 +1050,14 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     for (const v of [Math.min(...vals), Math.max(...vals)]) g += `<line x1="${padL}" x2="${W - padR}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${padL - 5}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end">${fmt(v)}</text>`;
     if (goal >= lo && goal <= hi) g += `<line x1="${padL}" x2="${W - padR}" y1="${Y(goal).toFixed(1)}" y2="${Y(goal).toFixed(1)}" stroke="var(--ready)" stroke-width="1" stroke-dasharray="3 3"/>`;
     const dnfs = singles.map((v, i) => v === Infinity ? `<text x="${X(i).toFixed(1)}" y="${H - 1}" text-anchor="middle" style="fill:var(--hold)">×</text>` : '').join('');
+    const thin = seg.length > 150 ? 0.8 : 1.2;
+    const pbDots = pbs.map(i => `<circle cx="${X(i).toFixed(1)}" cy="${Y(singles[i]).toFixed(1)}" r="3.2" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.2"><title>New PB: ${fmt(singles[i])} (solve ${start + i + 1})</title></circle>`).join('');
     const lastI = singles.length - 1, lastV = singles[lastI];
     const dot = lastV !== Infinity ? `<circle cx="${X(lastI).toFixed(1)}" cy="${Y(lastV).toFixed(1)}" r="3" fill="var(--ink)"/>` : '';
-    svg.innerHTML = g + `<path d="${path(singles)}" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-linejoin="round" opacity=".7"/><path d="${path(ao5)}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>` + dnfs + dot;
+    svg.innerHTML = g + `<path d="${path(singles)}" fill="none" stroke="var(--muted)" stroke-width="${thin}" stroke-linejoin="round" opacity=".6"/><path d="${path(ao12)}" fill="none" stroke="var(--ph-oll)" stroke-width="2" stroke-linejoin="round"/><path d="${path(ao5)}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>` + dnfs + pbDots + dot;
+    // how the latest ao12 compares with the one 12 solves earlier
+    const a1 = avgOf(list, 12, list.length), a0 = avgOf(list, 12, list.length - 12);
+    if (a1 && a0 && a1 !== Infinity && a0 !== Infinity) $('trendNote').textContent = a1 < a0 ? `Your ao12 is ${((a0 - a1) / 1000).toFixed(2)}s faster than 12 solves ago.` : a1 > a0 ? `Your ao12 is ${((a1 - a0) / 1000).toFixed(2)}s slower than 12 solves ago.` : 'Your ao12 is the same as 12 solves ago.';
   }
 
   let openIdx = -1, confirmClear = false;
@@ -1112,6 +1211,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now() };
     db.solves[db.event].push(solve); save();
     justSolved = true; openIdx = -1;
+    if (dailyOn) solve.daily = dailyOn;
+    if (friendScr && friendScr.scr === scramble) { solve.shared = true; friendScr = null; }
     clock.innerHTML = fmtSolve(solve).replace(/\+$/, '<span class="pen">+2</span>');
     setState('idle'); newScramble(); renderStats();
   }
@@ -1123,7 +1224,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 
   const typing = el => el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA');
   document.addEventListener('keydown', e => {
-    if (view !== 'timer') return;
+    if (view !== 'timer' || (typeof RACE !== 'undefined' && RACE.open)) return;
     if (typing(e.target) && state !== 'running') return;
     if (e.repeat) { if (e.code === 'Space') e.preventDefault(); return; }
     if (state === 'running') { e.preventDefault(); stop(); return; }
@@ -1131,7 +1232,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     if (e.code === 'Space') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); press(); }
   });
   document.addEventListener('keyup', e => {
-    if (view !== 'timer') return;
+    if (view !== 'timer' || (typeof RACE !== 'undefined' && RACE.open)) return;
     if (ignoreRelease) { ignoreRelease = false; return; }
     if (typing(e.target)) return;
     if (e.code === 'Space') { e.preventDefault(); release(); }
@@ -1160,7 +1261,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   });
   $('cancelTimer').addEventListener('click', () => cancel());
   document.addEventListener('pointerup', e => {
-    if (view !== 'timer') return;
+    if (view !== 'timer' || (typeof RACE !== 'undefined' && RACE.open)) return;
     if (e.target.closest && e.target.closest('button') && !ignoreRelease) return;
     release();
   });
@@ -1194,7 +1295,10 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       const ev = db.event, old = db.solves[ev]; db.solves[ev] = []; save(); confirmClear = false; justSolved = false; openIdx = -1; renderStats();
       toast(`Cleared ${old.length} solves`, () => { db.solves[ev] = old.concat(db.solves[ev]); save(); renderStats(); });
     }
+    else if (b.dataset.trend !== undefined) { db.trendN = +b.dataset.trend; save(); renderTrend(solvesFor(db.event), db.goal * 1000); }
     else if (b.id === 'newScr') newScramble();
+    else if (b.id === 'shareScr') shareScramble();
+    else if (b.id === 'dropFriend') { friendScr = null; newScramble(); }
     else if (b.id === 'copyScr') { try { navigator.clipboard.writeText(scramble).then(() => toast('Scramble copied'), selectScr); } catch (err) { selectScr(); } }
     else if (b.id === 'exitDrill') { drill = null; newScramble(); setState('idle'); clock.textContent = '0.00'; }
     else if (b.dataset.tr) trNext();
@@ -1232,11 +1336,76 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     switchSession(last && (last === ev || db.sessions[last]) ? last : ev); e.target.blur();
   });
 
+  // ---------- race: two timers on one device, the same scramble for both ----------
+  const RACE = { open: false, scr: '', pads: [0, 1].map(() => ({ s: 'idle', t0: 0, ms: null, hold: 0 })), wins: [0, 0], raf: 0 };
+  const racePad = i => document.querySelector(`.race-pad[data-p="${i}"]`);
+  function raceUI() {
+    const done = RACE.pads.every(p => p.s === 'done');
+    const winner = done ? (RACE.pads[0].ms === RACE.pads[1].ms ? -1 : RACE.pads[0].ms < RACE.pads[1].ms ? 0 : 1) : null;
+    RACE.pads.forEach((p, i) => {
+      const el = racePad(i); el.dataset.s = p.s; el.classList.toggle('win', winner === i);
+      if (p.s !== 'running') el.querySelector('.rp-clock').textContent = p.ms === null ? '0.00' : fmt(p.ms);
+      el.querySelector('.rp-hint').textContent = { idle: matchMedia('(pointer: coarse)').matches ? 'Touch and hold to get ready' : `Hold ${i ? 'L' : 'A'} to get ready`, holding: 'Keep holding…', ready: 'Let go to start', running: 'Touch to stop', done: done ? (winner === i ? 'Winner!' : winner === -1 ? 'A tie!' : `+${((p.ms - RACE.pads[1 - i].ms) / 1000).toFixed(2)}s`) : 'Waiting for the other player…' }[p.s];
+    });
+    $('raceScore').textContent = `${RACE.wins[0]} – ${RACE.wins[1]}`;
+  }
+  function raceNew() {
+    RACE.scr = genScramble(EV());
+    $('raceScr').textContent = RACE.scr;
+    RACE.pads.forEach(p => { clearTimeout(p.hold); Object.assign(p, { s: 'idle', t0: 0, ms: null }); });
+    raceUI();
+  }
+  function raceTick() {
+    if (!RACE.open) return;
+    RACE.pads.forEach((p, i) => { if (p.s === 'running') racePad(i).querySelector('.rp-clock').textContent = fmt(performance.now() - p.t0); });
+    RACE.raf = requestAnimationFrame(raceTick);
+  }
+  function raceDown(i) {
+    const p = RACE.pads[i];
+    if (p.s === 'running') {
+      p.ms = Math.round(performance.now() - p.t0); p.s = 'done';
+      if (RACE.pads.every(q => q.s === 'done')) { const [a, b] = RACE.pads.map(q => q.ms); if (a !== b) RACE.wins[a < b ? 0 : 1]++; }
+      raceUI(); return;
+    }
+    if (p.s !== 'idle') return;
+    p.s = 'holding'; raceUI();
+    p.hold = setTimeout(() => { if (p.s === 'holding') { p.s = 'ready'; raceUI(); } }, HOLD_MS);
+  }
+  function raceUp(i) {
+    const p = RACE.pads[i];
+    if (p.s === 'holding') { clearTimeout(p.hold); p.s = 'idle'; raceUI(); }
+    else if (p.s === 'ready') { p.s = 'running'; p.t0 = performance.now(); raceUI(); }
+  }
+  function openRace() {
+    cancel(); RACE.open = true; $('race').hidden = false; document.body.classList.add('racing');
+    raceNew(); cancelAnimationFrame(RACE.raf); RACE.raf = requestAnimationFrame(raceTick);
+  }
+  function closeRace() { RACE.open = false; $('race').hidden = true; document.body.classList.remove('racing'); cancelAnimationFrame(RACE.raf); }
+  $('raceBtn').addEventListener('click', openRace);
+  $('raceClose').addEventListener('click', closeRace);
+  $('raceNext').addEventListener('click', raceNew);
+  $('raceReset').addEventListener('click', () => { RACE.wins = [0, 0]; raceUI(); });
+  document.querySelectorAll('.race-pad').forEach(el => {
+    const i = +el.dataset.p;
+    el.addEventListener('pointerdown', e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (err) {} raceDown(i); });
+    el.addEventListener('pointerup', () => raceUp(i));
+    el.addEventListener('pointercancel', () => raceUp(i));
+    el.addEventListener('contextmenu', e => e.preventDefault());
+  });
+  document.addEventListener('keydown', e => {
+    if (!RACE.open) return;
+    if (e.key === 'Escape') { closeRace(); return; }
+    const i = e.code === 'KeyA' ? 0 : e.code === 'KeyL' ? 1 : -1;
+    if (i < 0) { if (RACE.pads.some(p => p.s === 'running')) { e.preventDefault(); RACE.pads.forEach((p, j) => { if (p.s === 'running') raceDown(j); }); } return; }
+    e.preventDefault(); if (!e.repeat) raceDown(i);
+  });
+  document.addEventListener('keyup', e => { if (!RACE.open) return; const i = e.code === 'KeyA' ? 0 : e.code === 'KeyL' ? 1 : -1; if (i >= 0) raceUp(i); });
+
   // ---------- backup ----------
   function backupInfo() {
     const n = Object.values(db.solves).reduce((a, l) => a + l.length, 0);
     const stale = n && (!db.lastBackup || Date.now() - db.lastBackup > 7 * 864e5);
-    $('backupInfo').innerHTML = `Saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings to a file you keep. Recordings are not included.<br>Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
+    $('backupInfo').innerHTML = `Saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings to a file you keep. Recordings are not included. Restore takes a Sub-X backup, or a csTimer export (each csTimer session becomes a session here).<br>Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
   }
   async function saveTextFile(name, text) {
     if (typeof NATIVE !== 'undefined' && NATIVE) {           // Android app: no browser downloads
@@ -1260,12 +1429,48 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     try { const msg = await saveTextFile(name, text); db.lastBackup = Date.now(); save(); backupInfo(); toast(msg); }
     catch (e) { toast(e && e.code === 'declined' ? 'Backup not saved.' : "Couldn't save the backup. Try again."); }
   });
+  // csTimer exports: { session1: [[[penalty, ms], scramble, comment, unix seconds], ...], properties: { sessionData: "<json>" } }.
+  // Penalty 0 is OK, 2000 is +2 and -1 is DNF. Each session goes into a Sub-X session of the same name, by its scramble type.
+  const CS_TYPES = { '333': '333', '222so': '222', '444wca': '444', '555wca': '555', '333oh': 'oh', '333ni': '333', '333fm': '333', pyrso: 'pyram', skbso: 'skewb' };
+  function importCsTimer(j) {
+    let meta = {}; try { meta = JSON.parse((j.properties || {}).sessionData || '{}'); } catch (e) {}
+    let added = 0, sessions = 0, skipped = 0;
+    for (const k of Object.keys(j).filter(k => /^session\d+$/.test(k)).sort((a, b) => a.slice(7) - b.slice(7))) {
+      const list = Array.isArray(j[k]) ? j[k] : [], m = meta[k.slice(7)] || {}, type = (m.opt && m.opt.scrType) || '333', ev = CS_TYPES[type];
+      if (!list.length) continue;
+      if (!ev) { skipped += list.length; continue; }
+      const name = ('csTimer ' + (m.name !== undefined ? m.name : k.slice(7))).slice(0, 30);
+      let key = Object.keys(db.sessions).find(x => db.sessions[x].event === ev && db.sessions[x].name === name);
+      if (!key) { key = 's' + Date.now().toString(36) + sessions; db.sessions[key] = { name, event: ev }; db.solves[key] = []; sessions++; }
+      const mine = db.solves[key], seen = new Set(mine.map(s => s.t));
+      list.forEach((r, i) => {
+        if (!Array.isArray(r) || !Array.isArray(r[0]) || typeof r[0][1] !== 'number') return;
+        const pen = r[0][0] === -1 ? 'dnf' : r[0][0] > 0 ? '+2' : null, t = typeof r[3] === 'number' ? r[3] * 1000 + (i % 1000) / 1000 : Date.now() - (list.length - i) * 1000;
+        if (seen.has(t)) return;
+        const s = { ms: Math.round(r[0][1]), pen, scr: String(r[1] || 'Scrambled by hand'), t };
+        if (r[2]) s.note = String(r[2]).slice(0, 200);
+        mine.push(s); seen.add(t); added++;
+      });
+      mine.sort((a, b) => a.t - b.t);
+    }
+    return { added, sessions, skipped };
+  }
   // Restoring merges: solves already here are kept, missing ones are added (matched by time stamp).
   $('importFile').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-    let data;
-    try { const j = JSON.parse(await f.text()); if (j.app !== 'sub-x' || !j.data || typeof j.data.solves !== 'object') throw 0; data = j.data; }
-    catch (err) { toast("That file isn't a Sub-X backup."); return; }
+    let data, j;
+    try { j = JSON.parse(await f.text()); } catch (err) { toast("That file isn't a Sub-X backup or a csTimer export."); return; }
+    if (j && j.app !== 'sub-x' && Object.keys(j).some(k => /^session\d+$/.test(k))) {
+      const before = JSON.stringify(db), r = importCsTimer(j);
+      save(); fillSessions(); renderStats();
+      toast(`Imported ${r.added} csTimer solve${r.added === 1 ? '' : 's'}${r.sessions ? ` into ${r.sessions} new session${r.sessions === 1 ? '' : 's'}` : ''}${r.skipped ? ` (${r.skipped} from puzzles Sub-X doesn't time were left out)` : ''}. Pick them in Session.`, () => {
+        for (const k of Object.keys(db)) delete db[k];
+        Object.assign(db, JSON.parse(before)); save(); fillSessions(); renderStats();
+      });
+      return;
+    }
+    if (!j || j.app !== 'sub-x' || !j.data || typeof j.data.solves !== 'object') { toast("That file isn't a Sub-X backup or a csTimer export."); return; }
+    data = j.data;
     const before = JSON.stringify(db);
     let added = 0, newSessions = 0;
     for (const [k, s] of Object.entries(data.sessions || {})) {
@@ -1280,6 +1485,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     for (const [k, v] of Object.entries(data.learned || {})) if (v) db.learned[k] = true;
     db.srs = db.srs || {};
     for (const [k, v] of Object.entries(data.srs || {})) if (v && (!db.srs[k] || (v.seen || 0) > (db.srs[k].seen || 0))) db.srs[k] = v;
+    for (const [k, v] of Object.entries(data.caseStats || {})) if (v && Array.isArray(v.rec) && (!db.caseStats[k] || (v.last || 0) > (db.caseStats[k].last || 0))) db.caseStats[k] = v;
     save(); fillSessions(); renderStats(); if (view === 'learn') renderLearn();
     toast(`Restored ${added} solve${added === 1 ? '' : 's'}${newSessions ? ` and ${newSessions} session${newSessions === 1 ? '' : 's'}` : ''}`, () => {
       for (const k of Object.keys(db)) delete db[k];
@@ -1378,41 +1584,61 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       { id: 'pll:nb', name: 'Nb', alg: "R' U R U' R' F' U' F R U R' F R' F' R U' R" },
     ] },
   ];
-  // Every F2L algorithm below was checked in the cube model: it solves the front-right
-  // pair and leaves the cross and the other three pairs untouched.
+  // All 41 F2L cases. Every algorithm below was checked in the cube model: it solves the front-right
+  // pair and leaves the cross and the other three pairs untouched, and no two cases are the same.
   const F2L = [
-    { group: 'Corner and edge on top · short inserts', items: [
+    { group: 'Basic inserts', items: [
       { id: 'f2l:1', name: 'F2L 1', alg: "U R U' R'" },
       { id: 'f2l:2', name: 'F2L 2', alg: "U' F' U F" },
       { id: 'f2l:3', name: 'F2L 3', alg: "R U R'" },
       { id: 'f2l:4', name: 'F2L 4', alg: "F' U' F" },
     ] },
-    { group: 'Corner and edge on top · split pair', items: [
+    { group: 'Both on top · white sticker facing the side', items: [
       { id: 'f2l:5', name: 'F2L 5', alg: "U' R U R' U2 R U' R'" },
       { id: 'f2l:6', name: 'F2L 6', alg: "U F' U' F U2 F' U F" },
       { id: 'f2l:7', name: 'F2L 7', alg: "U' R U2 R' U2 R U' R'" },
       { id: 'f2l:8', name: 'F2L 8', alg: "U F' U2 F U2 F' U F" },
       { id: 'f2l:9', name: 'F2L 9', alg: "U' R U' R' U R U R'" },
       { id: 'f2l:10', name: 'F2L 10', alg: "U F' U F U' F' U' F" },
+      { id: 'f2l:26', name: 'F2L 26', alg: "R U' R' U' R U R'" },
+      { id: 'f2l:27', name: 'F2L 27', alg: "R U' R' U F' U' F" },
+      { id: 'f2l:30', name: 'F2L 30', alg: "F' U F U2 R U R'" },
+      { id: 'f2l:33', name: 'F2L 33', alg: "F' U2 F U' R U R'" },
+      { id: 'f2l:36', name: 'F2L 36', alg: "R U2 R' U F' U' F" },
+      { id: 'f2l:38', name: 'F2L 38', alg: "R U' R' U2 F' U' F" },
     ] },
-    { group: 'White sticker facing up', items: [
+    { group: 'Both on top · white sticker facing up', items: [
       { id: 'f2l:11', name: 'F2L 11', alg: "R U2 R' U' R U R'" },
       { id: 'f2l:12', name: 'F2L 12', alg: "F' U2 F U F' U' F" },
       { id: 'f2l:13', name: 'F2L 13', alg: "U R U2 R' U R U' R'" },
       { id: 'f2l:14', name: 'F2L 14', alg: "U' F' U2 F U' F' U F" },
+      { id: 'f2l:24', name: 'F2L 24', alg: "R U R' U R U' R'" },
+      { id: 'f2l:25', name: 'F2L 25', alg: "R U R' F' U' F" },
+      { id: 'f2l:31', name: 'F2L 31', alg: "R2 U2 R' U' R U' R2" },
+      { id: 'f2l:35', name: 'F2L 35', alg: "F2 U2 F U F' U F2" },
     ] },
     { group: 'Corner in the slot, edge on top', items: [
       { id: 'f2l:15', name: 'F2L 15', alg: "U R U' R' U' F' U F" },
       { id: 'f2l:16', name: 'F2L 16', alg: "U' F' U F U R U' R'" },
       { id: 'f2l:17', name: 'F2L 17', alg: "R U' R' U R U' R'" },
       { id: 'f2l:18', name: 'F2L 18', alg: "R U R' U' R U R'" },
+      { id: 'f2l:37', name: 'F2L 37', alg: "R U' R' F' U' F" },
+      { id: 'f2l:39', name: 'F2L 39', alg: "R U2 R' F' U2 F" },
     ] },
-    { group: 'Edge in the slot', items: [
-      { id: 'f2l:19', name: 'F2L 19', alg: "R U' R' U' R U R' U2 R U' R'" },
-      { id: 'f2l:20', name: 'F2L 20', alg: "R U' R' U R U2 R' U R U' R'" },
+    { group: 'Edge in the slot, corner on top', items: [
       { id: 'f2l:21', name: 'F2L 21', alg: "R U R' U' R U R' U' R U R'" },
       { id: 'f2l:22', name: 'F2L 22', alg: "R U' R' F' U2 F" },
+      { id: 'f2l:28', name: 'F2L 28', alg: "R U R' U2 R U R'" },
+      { id: 'f2l:29', name: 'F2L 29', alg: "F' U' F U' R U R'" },
+      { id: 'f2l:32', name: 'F2L 32', alg: "R U' R' U2 R U' R'" },
+      { id: 'f2l:34', name: 'F2L 34', alg: "R U R' U F' U' F" },
+    ] },
+    { group: 'Both in the slot', items: [
+      { id: 'f2l:19', name: 'F2L 19', alg: "R U' R' U' R U R' U2 R U' R'" },
+      { id: 'f2l:20', name: 'F2L 20', alg: "R U' R' U R U2 R' U R U' R'" },
       { id: 'f2l:23', name: 'F2L 23', alg: "R2 U2 F R2 F' U2 R' U R'" },
+      { id: 'f2l:40', name: 'F2L 40', alg: "R F U R U' R' F' U' R'" },
+      { id: 'f2l:41', name: 'F2L 41', alg: "R U F R U R' U' F' R'" },
     ] },
   ];
   // Full OLL. Every algorithm was checked in the cube model: it keeps the first two layers,
@@ -1506,6 +1732,65 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       { id: 'ollf:56', name: 'OLL 56', alg: "r' U' r U' R' U R U' R' U R r' U r" },
     ] },
   ];
+  // COLL: orient the last layer and solve its corners in one algorithm, when the top edges are already
+  // oriented (a yellow cross on top). Every algorithm was checked in the cube model: it keeps the first two
+  // layers and the edge orientation, and the 40 cases are all different (so together they cover every COLL).
+  const COLL = [
+    { group: 'H', items: [
+      { id: 'coll:h1', name: 'H 1', alg: "R U2 R' U' R U R' U' R U' R'" },
+      { id: 'coll:h2', name: 'H 2', alg: "R' F2 R2 U2 R' F2 R U2 R2 F2 R" },
+      { id: 'coll:h3', name: 'H 3', alg: "R U R' U R U L' U R' U' L" },
+      { id: 'coll:h4', name: 'H 4', alg: "F R U' R' U R U2 R' U' R U R' U' F'" },
+    ] },
+    { group: 'Pi', items: [
+      { id: 'coll:pi1', name: 'Pi 1', alg: "R U2 R2 U' R2 U' R2 U2 R" },
+      { id: 'coll:pi2', name: 'Pi 2', alg: "L F2 U' F2 U F2 U R L' U2 R'" },
+      { id: 'coll:pi3', name: 'Pi 3', alg: "L U' R' U L' U R U R' U R" },
+      { id: 'coll:pi4', name: 'Pi 4', alg: "R U R' U F2 R U2 R' U2 R' F2 R" },
+      { id: 'coll:pi5', name: 'Pi 5', alg: "F' R U F2 R' U R U' F2 U' R' F" },
+      { id: 'coll:pi6', name: 'Pi 6', alg: "F U R U' R' U R U' R2 F' R U R U' R'" },
+    ] },
+    { group: 'U', items: [
+      { id: 'coll:u1', name: 'U 1', alg: "R2 D' R U2 R' D R U2 R" },
+      { id: 'coll:u2', name: 'U 2', alg: "R2 D R' U2 R D' R' U2 R'" },
+      { id: 'coll:u3', name: 'U 3', alg: "F U2 F' R F R' U2 R F' R'" },
+      { id: 'coll:u4', name: 'U 4', alg: "R' U2 R F U' R' U' R U F'" },
+      { id: 'coll:u5', name: 'U 5', alg: "R' U' R U' R' U2 R2 U R' U R U2 R'" },
+      { id: 'coll:u6', name: 'U 6', alg: "R U2 R' U' R U' R' L2 D L' U2 L D' L' U2 L'" },
+    ] },
+    { group: 'T', items: [
+      { id: 'coll:t1', name: 'T 1', alg: "R' F' r U R U' r' F" },
+      { id: 'coll:t2', name: 'T 2', alg: "r U R' U' r' F R F'" },
+      { id: 'coll:t3', name: 'T 3', alg: "F' R' F U2 F' R F R' U2 R" },
+      { id: 'coll:t4', name: 'T 4', alg: "R' U R U2 R' L' U R U' L" },
+      { id: 'coll:t5', name: 'T 5', alg: "R2 U' R U F' U2 R' U2 R F U' R" },
+      { id: 'coll:t6', name: 'T 6', alg: "R U2 R' U' R U' R2 U2 R U R' U R" },
+    ] },
+    { group: 'L', items: [
+      { id: 'coll:l1', name: 'L 1', alg: "F R' F' r U R U' r'" },
+      { id: 'coll:l2', name: 'L 2', alg: "F' r U R' U' r' F R" },
+      { id: 'coll:l3', name: 'L 3', alg: "R U2 R D R' U2 R D' R2" },
+      { id: 'coll:l4', name: 'L 4', alg: "R' U2 R' D' R U2 R' D R2" },
+      { id: 'coll:l5', name: 'L 5', alg: "R U2 L' R' U R U' L U2 R'" },
+      { id: 'coll:l6', name: 'L 6', alg: "R U R' U R U' R' U R U' R' U R U2 R'" },
+    ] },
+    { group: 'Sune', items: [
+      { id: 'coll:s1', name: 'Sune 1', alg: "R U R' U R U2 R'" },
+      { id: 'coll:s2', name: 'Sune 2', alg: "R U' L' U R' U' L" },
+      { id: 'coll:s3', name: 'Sune 3', alg: "L' R U R' U' L U2 R U2 R'" },
+      { id: 'coll:s4', name: 'Sune 4', alg: "R' U2 R U F R' U R U' F'" },
+      { id: 'coll:s5', name: 'Sune 5', alg: "F R' U2 R F' R' F U2 F' R" },
+      { id: 'coll:s6', name: 'Sune 6', alg: "R' U2 L U' R U L' U R' U R" },
+    ] },
+    { group: 'Antisune', items: [
+      { id: 'coll:as1', name: 'Antisune 1', alg: "R U2 R' U' R U' R'" },
+      { id: 'coll:as2', name: 'Antisune 2', alg: "R' U L U' R U L'" },
+      { id: 'coll:as3', name: 'Antisune 3', alg: "F U R' U' R F' U' R' U2 R" },
+      { id: 'coll:as4', name: 'Antisune 4', alg: "R' F U2 F' R F R' U2 R F'" },
+      { id: 'coll:as5', name: 'Antisune 5', alg: "R U2 R' U2 L' U R U' R' L" },
+      { id: 'coll:as6', name: 'Antisune 6', alg: "R' U' R U' L U' R' U L' U2 R" },
+    ] },
+  ];
   // How to do each step. Every step page in Learn opens with its lesson, then the practice for it.
   const CFOP_STEPS = [
     { title: 'Cross', sub: 'no algorithms', text: 'Solve the four white edges so they form a cross on the bottom, each one matching the center next to it.',
@@ -1518,6 +1803,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       tips: ['Learn Sune and Antisune first; they come up a lot.', 'Full OLL (57 cases) does this in one step. Learn it once 2-look is fast, starting with the cases you see most.'] },
     { title: 'PLL', sub: 'permute the last layer', text: 'Move the last-layer pieces to their places without breaking the yellow top. Start with 2-look PLL: fix the corners with the T perm (two adjacent corners swapped) or the Y perm (two diagonal corners swapped), then the edges with Ua, Ub, H or Z.',
       tips: ['Recognise the case from the colours on the sides, not the top.', 'After 2-look PLL, learn the rest of the 21 so every solve finishes with one algorithm.'] },
+    { title: 'COLL', sub: 'next step after full PLL', text: 'When the last F2L pair leaves the top edges oriented (a yellow cross on top), COLL solves the corners while it orients them. Then only an edge PLL is left, and one time in twelve nothing at all.',
+      tips: ['Learn it one shape at a time. Sune and Antisune come up most, and you already know one case of each.', 'Recognise the case by the shape of the yellow corners first, then by the colours on the sides of the corners.', 'ZBLL goes one step further and solves the whole last layer in one algorithm (472 cases). The COLL trainer can mix up the edges too, so you practise those cases as COLL, then an edge PLL.'] },
   ];
   const ROUX_STEPS = [
     { title: 'First block', sub: '1×2×3 on the left', text: 'With white on the bottom, build a 1×2×3 block on the left: the white edge at the bottom left, the two white corners beside it and the two edges above them. Any side can be your left side.',
@@ -1540,6 +1827,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     oll: { title: '2-Look OLL', lead: 'Get the whole top face yellow in two steps: first the cross, then the corners. Ten algorithms, and the first three share one trigger.', groups: OLL, mode: 'oll' },
     ollf: { title: 'Full OLL', lead: 'All 57 OLL cases, grouped by the shape the yellow stickers make on top. Each one makes the whole top face yellow in a single algorithm. Learn 2-look OLL first: its 7 corner cases are OLL 21 to 27 here.', groups: OLL_FULL, mode: 'oll' },
     pll: { title: 'PLL', lead: 'With the top face yellow, these 21 algorithms move the last-layer pieces into place. Start with Ua, Ub, Aa, Ab, T and Jb.', groups: PLL, mode: 'pll' },
+    coll: { title: 'COLL', lead: 'When the top edges are already oriented (a yellow cross on top), one COLL algorithm makes the top yellow and solves the corners, so only an edge PLL (Ua, Ub, H or Z) is left, or nothing at all. 40 cases, grouped by the shape of the yellow corners. Grey stickers are edges, whose places do not matter yet.', groups: COLL, mode: 'coll' },
+    collt: { title: 'COLL trainer', lead: 'Practise one COLL case at a time: set it up, recognise it from the corners, solve them, and see how long each part took. Turn on random edges to practise all 472 ZBLL cases the two-look way: COLL, then an edge PLL.' },
     ollt: { title: 'OLL trainer', lead: 'Practise one OLL case at a time: set it up on a solved cube, recognise it, make the top yellow, and see how long each part took.' },
     pllt: { title: 'PLL trainer', lead: 'Practise one PLL case at a time, from any angle: set it up, recognise it from the side colours, solve the cube, and see how long each part took.' },
     fb: { title: 'First block', lead: 'How to build it, then a worked example: a scramble and the shortest first block for it.' },
@@ -1564,11 +1853,11 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     ['x  y  z', 'Rotate the whole cube: x like R, y like U, z like F. No pieces move relative to each other.'],
     ["(R U R' U')", 'The "sexy move". Brackets group a trigger you learn as one motion. Six in a row returns the cube to where it started.'],
   ];
-  const ALL_CASES = [...F2L, ...OLL, ...OLL_FULL, ...PLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.id.startsWith('ollf:') ? 'oll' : c.id.split(':')[0] })));
+  const ALL_CASES = [...F2L, ...OLL, ...OLL_FULL, ...PLL, ...COLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.id.startsWith('ollf:') ? 'oll' : c.id.split(':')[0] })));
   const caseById = id => ALL_CASES.find(c => c.id === id);
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
-    cfop: { name: 'CFOP', steps: [['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['quiz', 'Drill'], ['notation', 'Notation']] },
+    cfop: { name: 'CFOP', steps: [['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['notation', 'Notation']] },
     roux: { name: 'Roux', steps: [['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['notation', 'Notation']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
@@ -1576,7 +1865,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   const learnMode = () => db.learnMode === 'train' ? 'train' : 'teach';
   const stepOf = page => Object.keys(ROUX_PAGES).find(s => ROUX_PAGES[s].teach === page || ROUX_PAGES[s].train === page) || page;
   const pageOf = step => ROUX_PAGES[step] ? ROUX_PAGES[step][learnMode()] : step;
-  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
+  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
   const defMethod = () => db.defMethod === 'roux' ? 'roux' : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
   const lastStep = {};
@@ -1599,13 +1888,16 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   // stops it. Space does the next step as well.
   const TR = { phase: 'scramble', t0: 0, t1: 0, t2: 0, moves: 0, track: null, timer: 0 };
   const trSmartOn = () => typeof SM !== 'undefined' && !!SM && !!SM.conn && typeof SmartCore !== 'undefined';
-  const TRAINERS = ['cross', 'f2lt', 'ollt', 'pllt', 'fbt', 'sbt', 'cmllt', 'lset'];
+  const TRAINERS = ['cross', 'f2lt', 'ollt', 'pllt', 'collt', 'fbt', 'sbt', 'cmllt', 'lset'];
   const trainerActive = () => view === 'learn' && TRAINERS.includes(learnSet);
-  const trData = () => ({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
-  const trNew = () => ({ cross: newCross, f2lt: newF2L, ollt: () => newLL('oll'), pllt: () => newLL('pll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
+  const trData = () => ({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
+  const trNew = () => ({ cross: newCross, f2lt: newF2L, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
   // what "done" means for each trainer, on a smart cube's state (white on top)
-  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), cmllt: st => SmartCore.solvedUpToAuf(st),
-    fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.isSolved(st) };
+  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), cmllt: st => SmartCore.solvedUpToAuf(st),
+    fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.solvedAnyWay(st) };
+  // the last-layer corners are solved, up to a turn of that layer (on the bottom: the smart cube holds white on top)
+  const faceOfN = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
+  const cornersDoneBottom = st => ['', 'D', 'D2', "D'"].some(d => Cube.apply(st.map(k => ({ p: k.p.slice(), n: k.n.slice(), col: k.col })), 3, d).every(k => k.p[1] !== -2 || k.p.includes(0) || k.col === faceOfN(k.n)));
   // A smart cube counts turns with white on top, by its centers. Setups done on a solved cube held yellow
   // on top are turned over for it, and their slice turns and rotations become the face turns it sees.
   const toCube = toks => CrossSolver.flip(Solver.faceTurns(toks.join(' '))).join(' ');
@@ -1622,7 +1914,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     const fix = SmartCore.fixMoves(T, SM.cur); if (!fix) return null;
     return (TR.yellow ? Solver.heldAs(CrossSolver.flip(fix), T.toks.slice(0, T.k).join(' ')) : fix).join(' ');
   }
-  function renderTrainer() { ({ cross: renderCross, f2lt: renderF2LT, ollt: renderLLT, pllt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
+  function renderTrainer() { ({ cross: renderCross, f2lt: renderF2LT, ollt: renderLLT, pllt: renderLLT, collt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
   function trNext() {
     const now = performance.now();
     if (TR.phase === 'scramble') { TR.phase = 'plan'; TR.t0 = now; }
@@ -1631,6 +1923,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       TR.phase = 'done'; TR.t2 = now;
       const D = trData();
       D.hist.push({ plan: TR.t1 - TR.t0, solve: TR.t2 - TR.t1, moves: TR.moves }); D.shown = true;
+      if (D.c) recordCase(D.c.id, TR.t1 - TR.t0, TR.t2 - TR.t1);
     }
     else trNew();
     renderTrainer();
@@ -1656,7 +1949,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     const smart = trSmartText(goal);
     return `<div class="tr-clock" data-phase="${TR.phase}"><span class="tr-label">${label}</span><b id="trTime">${trTimeText()}</b>
       <button type="button" class="btn" data-tr="next">${btn}</button>
-      <span class="tr-hint">${done || 'On a computer, press space for the next step.'}</span>
+      <span class="tr-hint" id="trTurns">${done || (TR.phase === 'solve' && trSmartOn() ? `${TR.moves} turn${TR.moves === 1 ? '' : 's'} so far` : 'On a computer, press space for the next step.')}</span>
       ${smart ? `<p class="drill-note">${esc(smart)}</p>` : ''}</div>`;
   }
   function trTick() {
@@ -1668,12 +1961,35 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       el.classList.toggle('over', TR.phase === 'plan' && performance.now() - TR.t0 > 15000);
     }, 50);
   }
+  // Each case's last 12 timed tries in the trainers (recognition and solving), kept on this device and in backups.
+  db.caseStats = db.caseStats || {};
+  function recordCase(id, plan, solve) {
+    const r = db.caseStats[id] || (db.caseStats[id] = { n: 0, rec: [], sol: [] });
+    r.n++; r.rec.push(Math.round(plan)); r.sol.push(Math.round(solve)); r.last = Date.now();
+    if (r.rec.length > 12) { r.rec.shift(); r.sol.shift(); }
+    save();
+  }
+  const mean = l => l.reduce((a, b) => a + b, 0) / l.length;
+  const caseAvg = id => { const r = db.caseStats[id]; return r && r.rec.length ? { rec: mean(r.rec), sol: mean(r.sol), tot: mean(r.rec) + mean(r.sol), n: r.n } : null; };
+  // the slowest timed cases: recognition plus solving
+  const slowest = (cases, k) => cases.map(c => ({ c, a: caseAvg(c.id) })).filter(x => x.a).sort((x, y) => y.a.tot - x.a.tot).slice(0, k);
   const avgOfList = (arr, f) => arr.length ? arr.reduce((a, r) => a + f(r), 0) / arr.length : 0;
   const tpsOf = (n, ms) => (n / Math.max(0.001, ms / 1000)).toFixed(1);
   // turns and TPS, for the attempts where the turns are known (smart cube, or moves typed in to check)
   const tpsLine = H => { const M = H.filter(r => r.moves); return M.length ? ` · ${avgOfList(M, r => r.moves).toFixed(1)} turns at ${tpsOf(M.reduce((a, r) => a + r.moves, 0), M.reduce((a, r) => a + r.solve, 0))} TPS` : ''; };
   // after a timed attempt, typed-in moves give its turn count too
   function trTyped(D, n) { const last = TR.phase === 'done' && D.hist[D.hist.length - 1]; if (!last) return ''; if (!last.moves) last.moves = n; return ` At ${fmt(last.solve)} that's ${tpsOf(n, last.solve)} TPS.`; }
+  // Turns are counted the usual way: R2 is one turn, and so is a slice turn. A smart cube reports M as
+  // two face turns (R and L'), so turns of the two faces on one axis are added up together:
+  // when they cancel out (R with L', R2 with L2) they were a slice turn.
+  const AXIS_OF = { R: 'x', L: 'x', U: 'y', D: 'y', F: 'z', B: 'z' };
+  const grpTurns = g => { if (!g) return 0; const [a, b] = Object.values(g.q).map(q => ((q % 4) + 4) % 4).concat([0, 0]); return a && (a + b) % 4 === 0 ? 1 : (a ? 1 : 0) + (b ? 1 : 0); };
+  function trCount(m) {
+    const ax = AXIS_OF[m[0]], q = m.endsWith('2') ? 2 : m.endsWith("'") ? -1 : 1;
+    if (!TR.grp || TR.grp.ax !== ax) { TR.done += grpTurns(TR.grp); TR.grp = { ax, q: {} }; }
+    TR.grp.q[m[0]] = (TR.grp.q[m[0]] || 0) + q;
+    TR.moves = TR.done + grpTurns(TR.grp);
+  }
   // smart-cube moves while a trainer is open (website and app only; see smartMove)
   function trSmartMove(m) {
     if (TR.phase === 'scramble') {
@@ -1682,11 +1998,12 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       if (TR.track.done) trNext(); else renderTrainer();
       return true;
     }
-    if (TR.phase === 'plan') { TR.moves = 1; trNext(); return true; }
+    if (TR.phase === 'plan') { TR.done = 0; TR.grp = null; trCount(m); trNext(); return true; }
     if (TR.phase === 'solve') {
-      TR.moves++;
+      trCount(m);
       const solved = TR_DONE[learnSet](SM.cur);
-      if (solved) trNext(); else { const el = $('trTime'); if (el) el.textContent = trTimeText(); }
+      if (solved) trNext();
+      else { const el = $('trTime'), n = $('trTurns'); if (el) el.textContent = trTimeText(); if (n) n.textContent = `${TR.moves} turn${TR.moves === 1 ? '' : 's'} so far`; }
       return true;
     }
     return true;
@@ -1763,11 +2080,12 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   // A random F2L case for the front-right slot, set up on a solved cube (yellow on top, green in
   // front) with a random top-layer turn, so you practise recognising it as well as solving it.
   const f2lt = { c: null, scr: '', pool: 'all', shown: false, pic: true, hist: [] };
-  function newF2L() {
+  function newF2L(id) {
     const all = F2L.flatMap(g => g.items);
-    let pool = all.filter(c => f2lt.pool === 'all' || (f2lt.pool === 'learned') === !!db.learned[c.id]);
-    if (!pool.length) pool = all;
-    let c; do { c = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && f2lt.c && c.id === f2lt.c.id);
+    let pool = f2lt.pool === 'weak' ? slowest(all, 5).map(x => x.c) : all.filter(c => f2lt.pool === 'all' || (f2lt.pool === 'learned') === !!db.learned[c.id]);
+    if (pool.length < (f2lt.pool === 'weak' ? 3 : 1)) pool = all;
+    let c = id && all.find(x => x.id === id);
+    if (!c) do { c = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && f2lt.c && c.id === f2lt.c.id);
     const auf = ['', 'U', "U'", 'U2'][Math.floor(Math.random() * 4)];
     f2lt.c = c; f2lt.scr = (Cube.invert(c.alg) + ' ' + auf).trim(); f2lt.shown = false;
     trStart(f2lt.scr, true);
@@ -1775,7 +2093,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   function renderF2LT() {
     if (!f2lt.c) newF2L();
     const c = f2lt.c, H = f2lt.hist, L = !!db.learned[c.id];
-    const pools = [['all', 'All 23 cases'], ['learned', 'Learned'], ['new', 'Not learned yet']];
+    const pools = [['all', 'All 41 cases'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']];
     $('learnBody').innerHTML = `<div class="cross-grid">
       <section class="panel">
         <div class="label"><span>Setup · yellow on top, green in front</span><button type="button" class="mini-btn" data-f2lt="new">New case</button></div>
@@ -1795,57 +2113,73 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
           <div class="row-btns"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn learn-btn" data-f2lt="learn" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button></div>
         </div>` : ''}
         <p class="drill-stats">${H.length ? `This session: ${H.length} pair${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The cube picture shows the case after the setup. Hide it to practise recognising the case on your real cube.'}</p>
+        ${slowHtml(F2L.flatMap(g => g.items), 'f2lt')}
       </section></div>`;
     trTick();
   }
   function f2ltAction(a) {
     if (a === 'new') newF2L();
     else if (a.startsWith('pool:')) { f2lt.pool = a.slice(5); newF2L(); }
+    else if (a.startsWith('case:')) newF2L(a.slice(5));
     else if (a === 'pic') f2lt.pic = !f2lt.pic;
     else if (a === 'reveal') f2lt.shown = !f2lt.shown;
     else if (a === 'learn') { db.learned[f2lt.c.id] = !db.learned[f2lt.c.id]; save(); }
     renderF2LT();
   }
 
-  // ---------- OLL and PLL trainers ----------
+  // ---------- OLL, PLL and COLL trainers ----------
   // A random last-layer case on a solved cube (yellow on top, green in front). The setup is the
   // algorithm backwards, rewritten as plain face turns, with random U turns so the case can face any way.
-  const llt = Object.fromEntries(['oll', 'pll', 'cmll'].map(k => [k, { c: null, scr: '', pool: 'all', shown: false, pic: true, hist: [] }]));
+  const llt = Object.fromEntries(['oll', 'pll', 'cmll', 'coll'].map(k => [k, { c: null, scr: '', pool: 'all', shown: false, pic: true, hist: [], zb: false, ep: '' }]));
   const TWO_LOOK_PLL = ['pll:t', 'pll:y', 'pll:ua', 'pll:ub', 'pll:h', 'pll:z'];
-  const LL_POOLS = { oll: [['all', 'All 57'], ['2look', '2-look OLL'], ['learned', 'Learned'], ['new', 'Not learned yet']], pll: [['all', 'All 21'], ['2look', '2-look PLL'], ['learned', 'Learned'], ['new', 'Not learned yet']], cmll: [['all', 'All 9'], ['learned', 'Learned'], ['new', 'Not learned yet']] };
-  const lltKind = () => learnSet === 'pllt' ? 'pll' : learnSet === 'cmllt' ? 'cmll' : 'oll';
-  const caseKind = c => c.id.startsWith('pll:') ? 'pll' : 'oll';   // a CMLL case either orients or swaps corners
+  const LL_POOLS = { oll: [['all', 'All 57'], ['2look', '2-look OLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], pll: [['all', 'All 21'], ['2look', '2-look PLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], cmll: [['all', 'All 9'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], coll: [['all', 'All 40'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']] };
+  const lltKind = () => learnSet === 'pllt' ? 'pll' : learnSet === 'cmllt' ? 'cmll' : learnSet === 'collt' ? 'coll' : 'oll';
+  const caseKind = c => c.id.startsWith('pll:') ? 'pll' : c.id.startsWith('coll:') ? 'coll' : 'oll';   // a CMLL case either orients or swaps corners
+  const llGroups = kind => kind === 'cmll' ? CMLL_GROUPS : kind === 'pll' ? PLL : kind === 'coll' ? COLL : OLL_FULL;
   function llPool(kind, pool) {
-    let all = (kind === 'cmll' ? CMLL_GROUPS : kind === 'pll' ? PLL : pool === '2look' ? OLL : OLL_FULL).flatMap(g => g.items);
+    let all = (pool === '2look' && kind === 'oll' ? OLL : llGroups(kind)).flatMap(g => g.items);
     if (kind === 'pll' && pool === '2look') all = all.filter(c => TWO_LOOK_PLL.includes(c.id));
     if (pool === 'learned' || pool === 'new') { const f = all.filter(c => (pool === 'learned') === !!db.learned[c.id]); if (f.length) return f; }
+    if (pool === 'weak') { const w = slowest(all, 5); if (w.length >= 3) return w.map(x => x.c); }
     return all;
   }
   const randAuf = () => ['', 'U', "U'", 'U2'][Math.floor(Math.random() * 4)];
-  function newLL(kind) {
+  // the edge PLLs, for COLL cases with the edges mixed up too (ZBLL cases); '' leaves the edges solved
+  const EPLLS = ['', ...PLL[0].items.map(c => c.alg)];
+  function newLL(kind, id) {
     const T = llt[kind], pool = llPool(kind, T.pool);
-    let c; do { c = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && T.c && c.id === T.c.id);
+    let c = id && pool.concat(llGroups(kind).flatMap(g => g.items)).find(x => x.id === id);
+    if (!c) do { c = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && T.c && c.id === T.c.id);
     T.c = c; T.shown = false;
-    T.scr = Solver.faceTurns(`${caseKind(c) === 'pll' ? randAuf() : ''} ${Cube.invert(c.alg)} ${randAuf()}`).join(' ');
+    const ep = kind === 'coll' && T.zb ? `${randAuf()} ${EPLLS[Math.floor(Math.random() * EPLLS.length)]}` : '';
+    T.scr = Solver.faceTurns(`${caseKind(c) === 'pll' || ep ? randAuf() : ''} ${ep} ${Cube.invert(c.alg)} ${randAuf()}`).join(' ');
     trStart(T.scr, true);
+  }
+  // your slowest cases so far, with buttons to practise each one
+  function slowHtml(cases, act) {
+    const w = slowest(cases, 5);
+    if (!w.length) return '<p class="drill-stats">Time a few cases and your slowest ones show up here. They are saved, so they build up over days.</p>';
+    return `<div class="slow-list"><h4>Your slowest cases</h4><table class="phase-table"><thead><tr><th>Case</th><th class="num">Recognise</th><th class="num">Solve</th><th class="num">Tries</th><th></th></tr></thead><tbody>${w.map(({ c, a }) =>
+      `<tr><td>${esc(c.name)}</td><td class="num">${(a.rec / 1000).toFixed(1)}s</td><td class="num">${fmt(a.sol)}</td><td class="num">${a.n}</td><td class="num"><button type="button" class="mini-btn" data-${act}="case:${c.id}">Practise</button></td></tr>`).join('')}</tbody></table></div>`;
   }
   function renderLLT() {
     const kind = lltKind(), T = llt[kind]; if (!T.c) newLL(kind);
     const c = T.c, H = T.hist, L = !!db.learned[c.id], goal = kind.toUpperCase(), ck = caseKind(c), ans = Solver.answer(T.scr, c.alg, ck);
-    const group = ((kind === 'cmll' ? CMLL_GROUPS : kind === 'pll' ? PLL : [...OLL, ...OLL_FULL]).find(g => g.items.includes(c)) || {}).group || '';
-    const hint = ans ? [ans.a ? `turn the top with ${ans.a} first` : '', ans.b ? `finish with ${ans.b}` : ''].filter(Boolean).join(', then ') : '';
+    const group = ((kind === 'oll' ? [...OLL, ...OLL_FULL] : llGroups(kind)).find(g => g.items.includes(c)) || {}).group || '';
+    const hint = ans ? [ans.a ? `turn the top with ${ans.a} first` : '', ans.e ? `finish with ${ans.e.auf ? ans.e.auf + ' and ' : ''}${ans.e.name} perm${ans.b ? ', then ' + ans.b : ''}` : ans.b ? `finish with ${ans.b}` : ''].filter(Boolean).join(', then ') : '';
+    const zbOn = kind === 'coll' && T.zb;
     $('learnBody').innerHTML = `<div class="cross-grid">
       <section class="panel">
         <div class="label"><span>Setup · yellow on top, green in front</span><button type="button" class="mini-btn" data-llt="new">New case</button></div>
         <p class="scramble">${trScr(T.scr)}</p>
-        <p class="lead">Do these moves on a solved cube. They keep the first two layers solved and set up one ${goal} case${kind === 'pll' ? ' with the top already yellow' : ''}.</p>
-        ${T.pic ? `<div class="f2lt-pic">${llDiagramSetup(T.scr, ck)}</div>` : ''}
+        <p class="lead">Do these moves on a solved cube. They keep the first two layers solved and set up one ${goal} case${kind === 'pll' ? ' with the top already yellow' : kind === 'coll' ? (zbOn ? ', with the edges mixed up as well' : '') : ''}.</p>
+        ${T.pic ? `<div class="f2lt-pic">${llDiagramSetup(T.scr, zbOn ? 'pll' : ck)}</div>` : ''}
         <div class="chips" style="margin-top:12px">${LL_POOLS[kind].map(([k, l]) => `<button type="button" class="chip" data-llt="pool:${k}" aria-pressed="${T.pool === k}">${l}</button>`).join('')}
-          <button type="button" class="chip" data-llt="pic" aria-pressed="${!T.pic}">Hide picture</button></div>
+          <button type="button" class="chip" data-llt="pic" aria-pressed="${!T.pic}">Hide picture</button>${kind === 'coll' ? `<button type="button" class="chip" data-llt="zb" aria-pressed="${T.zb}">Random edges (ZBLL cases)</button>` : ''}</div>
       </section>
       <section class="panel">
-        ${trClockHtml(goal)}
-        <p class="lead">${kind === 'cmll' ? 'Recognise the case from the corners, then solve them.' : kind === 'oll' ? 'Look at the yellow stickers, recognise the case, then make the whole top yellow.' : 'Look at the side colours of the top layer, recognise the case, then solve the cube.'} Planning time is your recognition time.</p>
+        ${trClockHtml(zbOn ? 'last layer' : goal)}
+        <p class="lead">${kind === 'cmll' ? 'Recognise the case from the corners, then solve them.' : kind === 'coll' ? (zbOn ? 'Recognise the COLL from the corners, do it, then finish the edges with Ua, Ub, H or Z.' : 'Recognise the case from the yellow corners and their side colours, then solve the corners.') : kind === 'oll' ? 'Look at the yellow stickers, recognise the case, then make the whole top yellow.' : 'Look at the side colours of the top layer, recognise the case, then solve the cube.'} Planning time is your recognition time.</p>
         <div class="row-btns"><button type="button" class="btn ghost" data-llt="reveal">${T.shown ? 'Hide the case' : 'Show the case'}</button></div>
         ${T.shown ? `<div class="cross-sol">
           <p><b>${esc(c.name)}${ck === 'pll' ? ' perm' : ''}</b> · ${esc(group)}</p>
@@ -1853,7 +2187,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
           ${hint ? `<p class="lead">From this setup: ${esc(hint)}.</p>` : ''}
           <div class="row-btns"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn learn-btn" data-llt="learn" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button></div>
         </div>` : ''}
-        <p class="drill-stats">${H.length ? `This session: ${H.length} case${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average ${goal} ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'Hide the picture to practise recognising the case on your real cube.'}</p>
+        <p class="drill-stats">${H.length ? `This session: ${H.length} case${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average ${zbOn ? 'last layer' : goal} ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'Hide the picture to practise recognising the case on your real cube.'}</p>
+        ${slowHtml(llGroups(kind).flatMap(g => g.items), 'llt')}
       </section></div>`;
     trTick();
   }
@@ -1861,7 +2196,9 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     const kind = lltKind(), T = llt[kind];
     if (a === 'new') newLL(kind);
     else if (a.startsWith('pool:')) { T.pool = a.slice(5); newLL(kind); }
+    else if (a.startsWith('case:')) newLL(kind, a.slice(5));
     else if (a === 'pic') T.pic = !T.pic;
+    else if (a === 'zb') { T.zb = !T.zb; newLL(kind, T.c && T.c.id); }
     else if (a === 'reveal') T.shown = !T.shown;
     else if (a === 'learn') { db.learned[T.c.id] = !db.learned[T.c.id]; save(); }
     renderLLT();
@@ -2305,12 +2642,21 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       }
       return { steps, solved, total: count(moves), reached: solved ? 'solved' : olled ? 'OLL' : pairs ? `${pairs} pair${pairs === 1 ? '' : 's'}` : crossed ? 'cross' : 'nothing' };
     }
-    // the U turns around `alg` that solve a trainer setup: one before it, and for PLL one after it
+    // COLL: the top is yellow and the corners are solved, up to a U turn
+    const CORNERS = ofCubies(p => p[1] === 2 && !p.includes(0));
+    const collDone = S => ollDone(S) && AUFS.some(a => ok(mul(S, perm(a)), CORNERS));
+    // the U turns around `alg` that solve a trainer setup: one before it, and for PLL one after it.
+    // After a COLL, `e` is the edge PLL that is left (with the U turn before it), if there is one.
     function answer(setup, alg, kind) {
       const S = perm(setup);
       for (const a of AUFS) {
         const T = mul(mul(S, perm(a)), perm(alg));
-        if (kind === 'oll' ? ollDone(T) : solvedUpToAuf(T) !== undefined) return { a, b: kind === 'oll' ? '' : solvedUpToAuf(T) };
+        if (kind === 'coll' && collDone(T)) {
+          if (solvedUpToAuf(T) !== undefined) return { a, b: solvedUpToAuf(T) };
+          const e = findCase(T, [PLL[0]], X => solvedUpToAuf(X) !== undefined);
+          return e ? { a, e: { auf: e.auf, name: e.c.name }, b: solvedUpToAuf(e.S) } : { a, b: '' };
+        }
+        if (kind !== 'coll' && (kind === 'oll' ? ollDone(T) : solvedUpToAuf(T) !== undefined)) return { a, b: kind === 'oll' ? '' : solvedUpToAuf(T) };
       }
       return null;
     }
@@ -2466,7 +2812,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     if (learnSet === 'quiz') { renderQuiz(); return; }
     if (learnSet === 'cross') { renderCross(); return; }
     if (learnSet === 'f2lt') { renderF2LT(); return; }
-    if (learnSet === 'ollt' || learnSet === 'pllt' || learnSet === 'cmllt') { renderLLT(); return; }
+    if (learnSet === 'ollt' || learnSet === 'pllt' || learnSet === 'collt' || learnSet === 'cmllt') { renderLLT(); return; }
     if (learnSet === 'fbt') { renderFB(); return; }
     if (learnSet === 'sbt' || learnSet === 'lset') { renderRx(); return; }
     if (learnSet === 'fb' || learnSet === 'sb' || learnSet === 'lse') { renderExample(learnSet); return; }
@@ -2503,7 +2849,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   function renderQuiz() {
     if (!quiz.cur) pickQuiz();
     const c = quiz.cur;
-    $('learnBody').innerHTML = `<div class="chips" style="margin-bottom:16px">${[['all', 'All cases'], ['f2l', 'F2L only'], ['oll', 'OLL only'], ['pll', 'PLL only']].map(([k, l]) => `<button type="button" class="chip" data-quiz="pool:${k}" aria-pressed="${quiz.pool === k}">${l}</button>`).join('')}</div>
+    $('learnBody').innerHTML = `<div class="chips" style="margin-bottom:16px">${[['all', 'All cases'], ['f2l', 'F2L only'], ['oll', 'OLL only'], ['pll', 'PLL only'], ['coll', 'COLL only']].map(([k, l]) => `<button type="button" class="chip" data-quiz="pool:${k}" aria-pressed="${quiz.pool === k}">${l}</button>`).join('')}</div>
       <div class="panel"><div class="drill-box">${caseDiagram(c)}<div>
         <h3>${quiz.shown ? esc(c.name) + (c.mode === 'pll' ? ' perm' : '') : 'Which case is this?'}</h3>
         <p class="alg">${quiz.shown ? esc(c.alg) : ''}</p>
@@ -2758,9 +3104,17 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   $('ownScr').addEventListener('input', ownScrChanged);
   $('ownScr').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
   $('scrMode').addEventListener('change', e => { db.scrMode = e.target.value; save(); cancel(); newScramble(); e.target.blur(); });
-  $('scrMode').value = db.scrMode === 'own' ? 'own' : 'gen';
+  $('scrMode').value = ['own', 'daily'].includes(db.scrMode) ? db.scrMode : 'gen';
   $('event').value = EV(); fillSessions(); $('insp').checked = db.inspection; $('goal').value = db.goal;
   setState('idle'); newScramble(); renderStats();
-  showView(location.hash.slice(1) || 'timer');
+  readHash();
 })();
 </script>
+    // one stacked bar per solve, oldest on the left, so you can see which step is getting faster
+    const W = 320, H = 96, pad = 4, bw = Math.min(22, (W - pad * 2) / list.length - 4), top = Math.max(...list.map(s => s.splits.total)) || 1;
+    const COLS = ['var(--ph-cross)', 'var(--ph-f2l)', 'var(--ph-oll)', 'var(--ph-pll)'];
+    $('splitBars').innerHTML = list.map((s, j) => {
+      const t = phaseTimes(s.splits), x = pad + j * ((W - pad * 2) / list.length) + 2; let y = H - 12, out = '';
+      t.forEach((v, i) => { const h = (v / top) * (H - 16); y -= h; out += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, h).toFixed(1)}" fill="${COLS[i]}"><title>${PHASES[i]} ${fmt(v)}</title></rect>`; });
+      return out + `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 2}" text-anchor="middle">${fmt(s.splits.total).replace(/\.\d+$/, '')}</text>`;
+    }).join('');

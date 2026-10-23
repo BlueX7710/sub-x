@@ -12,7 +12,8 @@ android-app/android/app/src/main/assets/capacitor.config.json
 android-app/android/app/src/main/assets/capacitor.plugins.json
 
 # Local tooling
-.claude/
+.claude/*
+!.claude/skills/
 .netlify/
 .idea/
 
