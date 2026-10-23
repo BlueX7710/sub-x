@@ -376,6 +376,18 @@ body { margin: 0; }
 @keyframes blink { 50% { opacity: .2; } }
 .cam-ctl { display: flex; gap: 8px 12px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 14px; }
 .cam-ctl select { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; max-width: 100%; }
+/* ---- live 3D cube for smart cubes ---- */
+.live3d { width: min(220px, 56vw); aspect-ratio: 1; touch-action: none; cursor: grab; margin-bottom: -6px; }
+.live3d:active { cursor: grabbing; }
+.l3-set { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.l3-set summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--muted); }
+.l3-set .toggle { margin-top: 10px; font-size: 14px; }
+.l3-grid { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; align-items: center; margin-top: 10px; }
+.l3-grid canvas { width: 120px; height: 120px; touch-action: none; cursor: grab; border-radius: 8px; background: var(--sunk); }
+.l3-opts { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.l3-custom { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.l3-custom label { display: inline-flex; align-items: center; gap: 4px; }
+.l3-custom input { width: 30px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: none; }
 body.running .cam-panel { opacity: 1; }
 body.running .side { opacity: 1; }
 body.running .side > :not(.cam-panel) { opacity: .12; }
@@ -458,6 +470,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       </section>
 
       <section class="stage" id="stage" data-s="idle">
+        <canvas class="live3d" id="live3d" width="220" height="220" hidden aria-label="Your smart cube in 3D. Drag to look around it."></canvas>
         <div class="lights" aria-hidden="true"><i class="l-red"></i><i class="l-green"></i></div>
         <div class="clock" id="clock">0.00</div>
         <div class="hint" id="hint"></div>
@@ -489,6 +502,19 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <button type="button" class="pill-btn" id="smartDisc" hidden>Disconnect</button>
         </div>
         <div id="smartPick" class="smart-pick" hidden></div>
+        <details class="l3-set">
+          <summary>3D cube</summary>
+          <label class="toggle" for="l3On"><input id="l3On" type="checkbox"> Show a 3D cube on the timer that turns with yours</label>
+          <div class="l3-grid">
+            <canvas id="l3Preview" width="120" height="120" aria-label="Preview of the 3D cube's colours"></canvas>
+            <div class="l3-opts">
+              <label class="ctl" for="l3Hold">Hold <select id="l3Hold"><option value="up">White on top</option><option value="down">White on the bottom</option></select></label>
+              <label class="ctl" for="l3Scheme">Colours <select id="l3Scheme"></select></label>
+              <label class="ctl" for="l3Body">Plastic <select id="l3Body"><option value="black">Black</option><option value="white">White</option><option value="none">Stickerless</option></select></label>
+            </div>
+          </div>
+          <div class="l3-custom" id="l3Custom" hidden></div>
+        </details>
         <div id="smartMac" hidden style="margin-top:10px">
           <label class="lead" for="smartMacInput" style="display:block;margin-bottom:6px">Your cube's MAC address. Find it in the GAN app, or in your phone's Bluetooth settings for the cube:</label>
           <div class="cross-try"><input id="smartMacInput" class="own-scr" type="text" autocomplete="off" spellcheck="false" placeholder="AB:12:CD:34:EF:56"><button type="button" class="btn ghost" id="smartMacOk">Continue</button></div>
@@ -3506,7 +3532,104 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const c = SM.conn;
     $('smartState').textContent = c ? (c.deviceName || 'connected') + (SM.battery != null ? ` · ${SM.battery}%` : '') : 'not connected';
     $('smartConnect').hidden = !!c; $('smartReset').hidden = $('smartDisc').hidden = !c;
+    live3dShow();
   }
+
+  // ---------- smart cube: a 3D cube on the timer that turns with yours ----------
+  // It shows the cube as the smart cube reports it (white on top, by its centers), or turned over (z2)
+  // for solving with white on the bottom. Turns are animated; when they come faster, it catches up.
+  const L3_SCHEMES = {   // sticker colours by home face: U white, D yellow, F green, B blue, R red, L orange
+    standard: { name: 'Standard', U: '#FFFFFF', D: '#FFD500', F: '#009E60', B: '#0051BA', R: '#C41E3A', L: '#FF5800' },
+    bright: { name: 'Bright', U: '#FFFFFF', D: '#FFEE00', F: '#00D84A', B: '#1E6BFF', R: '#FF2D2D', L: '#FF8A00' },
+    pastel: { name: 'Pastel', U: '#F7F7F2', D: '#FFE89A', F: '#9BE3B4', B: '#9CC3F5', R: '#F59B9B', L: '#FFC48C' },
+    neon: { name: 'Neon', U: '#F2F2F2', D: '#E8FF3A', F: '#39FF88', B: '#3AC6FF', R: '#FF3A7A', L: '#FF9F1C' },
+    custom: { name: 'My own' },
+  };
+  const L3_FACES = [['U', 'White'], ['D', 'Yellow'], ['F', 'Green'], ['B', 'Blue'], ['R', 'Red'], ['L', 'Orange']];
+  db.l3 = Object.assign({ on: true, hold: 'up', scheme: 'standard', body: 'black', custom: { ...L3_SCHEMES.standard } }, db.l3 || {});
+  const l3Colors = () => db.l3.scheme === 'custom' ? db.l3.custom : L3_SCHEMES[db.l3.scheme] || L3_SCHEMES.standard;
+  const l3Body = () => db.l3.body === 'white' ? '#E9ECF1' : db.l3.body === 'black' ? '#16181C' : null;   // null: stickerless
+  const L3 = { st: null, q: [], anim: null, raf: 0, yaw: -0.62, pitch: 0.5, drag: null };
+  const live3dOn = () => !!SM.conn && db.l3.on;
+  function live3dShow() {
+    const cv = $('live3d'), on = live3dOn();
+    if (on && cv.hidden) { cv.hidden = false; live3dSync(); } else if (!on) cv.hidden = true;
+  }
+  function live3dSync() { L3.st = SmartCore.clone(SM.cur); L3.q = []; L3.anim = null; live3dKick(); }
+  function live3dMove(m) { if (!live3dOn()) return; if (!L3.st) { live3dSync(); return; } L3.q.push(m); live3dKick(); }
+  function live3dKick() { if (!L3.raf) L3.raf = requestAnimationFrame(live3dTick); }
+  function live3dTick(now) {
+    L3.raf = 0;
+    if (!live3dOn() || !L3.st) return;
+    if (!L3.anim && L3.q.length) {
+      while (L3.q.length > 2) Cube.apply(L3.st, 3, L3.q.shift());   // fallen behind: jump ahead
+      const m = L3.q.shift(), mv = Cube.parse(m, 3);
+      if (mv) L3.anim = { m, mv, t0: now, dur: mv.times === 2 ? 170 : 110 };
+    }
+    let turning = null;
+    if (L3.anim) {
+      const A = L3.anim, t = Math.min(1, (now - A.t0) / A.dur);
+      if (t >= 1) { Cube.apply(L3.st, 3, A.m); L3.anim = null; }
+      else turning = { pick: A.mv.pick, ax: A.mv.ax, angle: A.mv.q * A.mv.times * (Math.PI / 2) * t };
+    }
+    drawCube3D($('live3d'), L3.st, turning, L3);
+    if (L3.anim || L3.q.length) live3dKick();
+  }
+  // draws a cube state on a canvas in the chosen colours; `turning` is a layer part-way through a turn
+  function drawCube3D(cv, st, turning, viewAt) {
+    const d = window.devicePixelRatio || 1, w = Math.round((cv.clientWidth || cv.width) * d);
+    if (!w) return;
+    if (cv.width !== w) cv.width = cv.height = w;
+    if (db.l3.hold === 'down') {   // z2: x and y change sign, and turns about x and y go the other way
+      st = st.map(k => ({ p: [-k.p[0], -k.p[1], k.p[2]], n: [-k.n[0], -k.n[1], k.n[2]], col: k.col }));
+      if (turning) { const T = turning; turning = { pick: p => T.pick([-p[0], -p[1], p[2]]), ax: T.ax, angle: T.ax === 2 ? T.angle : -T.angle }; }
+    }
+    const C = l3Colors(), body = l3Body();
+    const polys = Cube3D.frame(st, { yaw: viewAt.yaw, pitch: viewAt.pitch, turning, body: body || '#2A2E35', colorOf: k => C[k.col] });
+    const ctx = cv.getContext('2d'), s = w / 10.8;
+    ctx.clearRect(0, 0, w, w); ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, w / 400);
+    for (const p of polys) {
+      if (!body && p.fill === '#2A2E35') continue;   // stickerless: no plastic between the tiles
+      ctx.beginPath();
+      p.pts.forEach(([x, y], i) => i ? ctx.lineTo(w / 2 + x * s, w / 2 + y * s) : ctx.moveTo(w / 2 + x * s, w / 2 + y * s));
+      ctx.closePath(); ctx.fillStyle = ctx.strokeStyle = p.fill; ctx.fill(); ctx.stroke();
+    }
+  }
+  // the settings, with a preview that shows the colours before a cube is connected
+  const L3P = { yaw: -0.62, pitch: 0.5, st: Cube.apply(Cube.solved(3), 3, "R U R' U'") };
+  function l3Preview() { drawCube3D($('l3Preview'), L3P.st, null, L3P); if (live3dOn()) live3dKick(); }
+  function l3Settings() {
+    $('l3On').checked = db.l3.on; $('l3Hold').value = db.l3.hold; $('l3Body').value = db.l3.body;
+    $('l3Scheme').innerHTML = Object.entries(L3_SCHEMES).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
+    $('l3Scheme').value = db.l3.scheme;
+    $('l3Custom').hidden = db.l3.scheme !== 'custom';
+    $('l3Custom').innerHTML = L3_FACES.map(([f, n]) => `<label>${n} <input type="color" data-face="${f}" value="${db.l3.custom[f]}"></label>`).join('');
+    l3Preview();
+  }
+  $('l3On').addEventListener('change', e => { db.l3.on = e.target.checked; save(); live3dShow(); });
+  $('l3Hold').addEventListener('change', e => { db.l3.hold = e.target.value; save(); l3Preview(); });
+  $('l3Body').addEventListener('change', e => { db.l3.body = e.target.value; save(); l3Preview(); });
+  $('l3Scheme').addEventListener('change', e => {
+    if (e.target.value === 'custom' && db.l3.scheme !== 'custom') db.l3.custom = { ...l3Colors() };   // start from the colours you had
+    db.l3.scheme = e.target.value; save(); l3Settings();
+  });
+  $('l3Custom').addEventListener('input', e => { const f = e.target.dataset.face; if (!f) return; db.l3.custom[f] = e.target.value; save(); l3Preview(); });
+  document.querySelector('.l3-set').addEventListener('toggle', l3Preview);
+  // drag either cube to look around it
+  for (const [id, V, draw] of [['live3d', L3, live3dKick], ['l3Preview', L3P, l3Preview]]) {
+    const cv = $(id);
+    cv.addEventListener('pointerdown', e => { e.stopPropagation(); V.drag = { x: e.clientX, y: e.clientY, yaw: V.yaw, pitch: V.pitch }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', e => {
+      if (!V.drag) return;
+      V.yaw = V.drag.yaw + (e.clientX - V.drag.x) * 0.01;
+      V.pitch = Math.max(-1.45, Math.min(1.45, V.drag.pitch + (e.clientY - V.drag.y) * 0.01));
+      draw();
+    });
+    const end = e => { V.drag = null; e.stopPropagation(); };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+    cv.addEventListener('dblclick', () => { V.yaw = -0.62; V.pitch = 0.5; draw(); });
+  }
+  l3Settings();
   // called whenever a new scramble is shown
   function smartScramble() {
     const note = $('smartNote');
@@ -3536,7 +3659,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   }
   function smartMove(m, ts, ev) {
     const before = SmartCore.clone(SM.cur);
-    Cube.apply(SM.cur, 3, m);
+    Cube.apply(SM.cur, 3, m); live3dMove(m);
     if (trainerActive() && trSmartMove(m)) return;
     if (exampleActive() && exSmartMove(m)) return;
     if (state === 'running') {
@@ -3579,7 +3702,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (ev.type === 'MOVE') smartMove(ev.move, ev.localTimestamp != null ? ev.localTimestamp : ev.timestamp, ev);
     else if (ev.type === 'FACELETS') {
       if (state === 'running') return;
-      SM.cur = SmartCore.fromFacelets(ev.facelets);
+      SM.cur = SmartCore.fromFacelets(ev.facelets); if (live3dOn()) live3dSync();
       if (SM.T) { SmartCore.step(SM.T, SM.cur, null); smartShow(); if (SM.T.done) smartReadyGo(); }
       if (trainerActive() && TR.phase === 'scramble' && TR.track) { SmartCore.step(TR.track, SM.cur, null); renderTrainer(); }
       else if (exampleActive() && workedExamples[learnSet].track) { SmartCore.step(workedExamples[learnSet].track, SM.cur, null); renderExample(learnSet); }
@@ -3639,7 +3762,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   $('smartReset').addEventListener('click', async () => {
     if (!SM.conn) return;
     try { await SM.conn.sendCubeCommand({ type: 'REQUEST_RESET' }); } catch (e) {}
-    SM.cur = Cube.solved(3); smartScramble(); toast('Cube marked as solved');
+    SM.cur = Cube.solved(3); smartScramble(); toast('Cube marked as solved'); if (live3dOn()) live3dSync();
     if (TR.track) SmartCore.step(TR.track, SM.cur, null);
     for (const E of Object.values(workedExamples)) if (E.track) SmartCore.step(E.track, SM.cur, null);
   });
@@ -3648,7 +3771,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     : "Smart cubes need Chrome or Edge on Android, Windows, Mac or ChromeOS (iPhone and iPad browsers don't support Bluetooth).");
 
   // test hook for simulated cubes; only on a local development server
-  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR };
+  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3 };
 
   // ---------- splits ----------
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];   // usual share of a CFOP solve
