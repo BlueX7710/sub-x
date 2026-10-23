@@ -25,11 +25,10 @@ claude.ai page. It's the owner's own project; `README.md` lists everything it do
 
 ## Where things stand (October 2026)
 
-- Work is on the branch `main-idnlw0`, three commits ahead of `main`: all 41 F2L cases, COLL with a
-  ZBLL-cases option, slowest-case drills, the trend chart with ao12 and PBs, csTimer import, smart-cube
-  step bars, Daily 5 scrambles, share links, race mode, the `/effortless` skill, and a fix for smart-cube
-  tracking in the Roux trainers. The claude.ai page already has all of it. The website and app get it
-  once `main-idnlw0` is merged into `main`: ask the owner before merging.
+- Everything is on `main` and live on the website, the app and the claude.ai page: all 41 F2L cases,
+  COLL with a ZBLL-cases option, slowest-case drills, the trend chart with ao12 and PBs, csTimer import,
+  smart-cube step bars, Daily 5 scrambles, share links, race mode, the `/effortless` skill, and a fix for
+  smart-cube tracking in the Roux trainers. `main-idnlw0` has been merged and isn't needed any more.
 - Never tested on real hardware: smart cubes (the owner has a GAN cube that needed charging), the
   phone camera, saving to Documents, and the app offline. The best first smart-cube test is
   Timer → Smart cube → Connect, then a Roux LSE case in Learn.
