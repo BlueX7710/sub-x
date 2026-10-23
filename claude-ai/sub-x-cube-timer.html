@@ -1894,7 +1894,7 @@ body.racing { overflow: hidden; }
   const trNew = () => ({ cross: newCross, f2lt: newF2L, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
   // what "done" means for each trainer, on a smart cube's state (white on top)
   const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), cmllt: st => SmartCore.solvedUpToAuf(st),
-    fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.isSolved(st) };
+    fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.solvedAnyWay(st) };
   // the last-layer corners are solved, up to a turn of that layer (on the bottom: the smart cube holds white on top)
   const faceOfN = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
   const cornersDoneBottom = st => ['', 'D', 'D2', "D'"].some(d => Cube.apply(st.map(k => ({ p: k.p.slice(), n: k.n.slice(), col: k.col })), 3, d).every(k => k.p[1] !== -2 || k.p.includes(0) || k.col === faceOfN(k.n)));
@@ -1949,7 +1949,7 @@ body.racing { overflow: hidden; }
     const smart = trSmartText(goal);
     return `<div class="tr-clock" data-phase="${TR.phase}"><span class="tr-label">${label}</span><b id="trTime">${trTimeText()}</b>
       <button type="button" class="btn" data-tr="next">${btn}</button>
-      <span class="tr-hint">${done || 'On a computer, press space for the next step.'}</span>
+      <span class="tr-hint" id="trTurns">${done || (TR.phase === 'solve' && trSmartOn() ? `${TR.moves} turn${TR.moves === 1 ? '' : 's'} so far` : 'On a computer, press space for the next step.')}</span>
       ${smart ? `<p class="drill-note">${esc(smart)}</p>` : ''}</div>`;
   }
   function trTick() {
@@ -1979,6 +1979,17 @@ body.racing { overflow: hidden; }
   const tpsLine = H => { const M = H.filter(r => r.moves); return M.length ? ` · ${avgOfList(M, r => r.moves).toFixed(1)} turns at ${tpsOf(M.reduce((a, r) => a + r.moves, 0), M.reduce((a, r) => a + r.solve, 0))} TPS` : ''; };
   // after a timed attempt, typed-in moves give its turn count too
   function trTyped(D, n) { const last = TR.phase === 'done' && D.hist[D.hist.length - 1]; if (!last) return ''; if (!last.moves) last.moves = n; return ` At ${fmt(last.solve)} that's ${tpsOf(n, last.solve)} TPS.`; }
+  // Turns are counted the usual way: R2 is one turn, and so is a slice turn. A smart cube reports M as
+  // two face turns (R and L'), so turns of the two faces on one axis are added up together:
+  // when they cancel out (R with L', R2 with L2) they were a slice turn.
+  const AXIS_OF = { R: 'x', L: 'x', U: 'y', D: 'y', F: 'z', B: 'z' };
+  const grpTurns = g => { if (!g) return 0; const [a, b] = Object.values(g.q).map(q => ((q % 4) + 4) % 4).concat([0, 0]); return a && (a + b) % 4 === 0 ? 1 : (a ? 1 : 0) + (b ? 1 : 0); };
+  function trCount(m) {
+    const ax = AXIS_OF[m[0]], q = m.endsWith('2') ? 2 : m.endsWith("'") ? -1 : 1;
+    if (!TR.grp || TR.grp.ax !== ax) { TR.done += grpTurns(TR.grp); TR.grp = { ax, q: {} }; }
+    TR.grp.q[m[0]] = (TR.grp.q[m[0]] || 0) + q;
+    TR.moves = TR.done + grpTurns(TR.grp);
+  }
   // smart-cube moves while a trainer is open (website and app only; see smartMove)
   function trSmartMove(m) {
     if (TR.phase === 'scramble') {
@@ -1987,11 +1998,12 @@ body.racing { overflow: hidden; }
       if (TR.track.done) trNext(); else renderTrainer();
       return true;
     }
-    if (TR.phase === 'plan') { TR.moves = 1; trNext(); return true; }
+    if (TR.phase === 'plan') { TR.done = 0; TR.grp = null; trCount(m); trNext(); return true; }
     if (TR.phase === 'solve') {
-      TR.moves++;
+      trCount(m);
       const solved = TR_DONE[learnSet](SM.cur);
-      if (solved) trNext(); else { const el = $('trTime'); if (el) el.textContent = trTimeText(); }
+      if (solved) trNext();
+      else { const el = $('trTime'), n = $('trTurns'); if (el) el.textContent = trTimeText(); if (n) n.textContent = `${TR.moves} turn${TR.moves === 1 ? '' : 's'} so far`; }
       return true;
     }
     return true;

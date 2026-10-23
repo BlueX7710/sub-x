@@ -1977,7 +1977,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const trNew = () => ({ cross: newCross, f2lt: newF2L, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
   // what "done" means for each trainer, on a smart cube's state (white on top)
   const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), cmllt: st => SmartCore.solvedUpToAuf(st),
-    fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.isSolved(st) };
+    fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.solvedAnyWay(st) };
   // the last-layer corners are solved, up to a turn of that layer (on the bottom: the smart cube holds white on top)
   const faceOfN = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
   const cornersDoneBottom = st => ['', 'D', 'D2', "D'"].some(d => Cube.apply(st.map(k => ({ p: k.p.slice(), n: k.n.slice(), col: k.col })), 3, d).every(k => k.p[1] !== -2 || k.p.includes(0) || k.col === faceOfN(k.n)));
@@ -2032,7 +2032,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const smart = trSmartText(goal);
     return `<div class="tr-clock" data-phase="${TR.phase}"><span class="tr-label">${label}</span><b id="trTime">${trTimeText()}</b>
       <button type="button" class="btn" data-tr="next">${btn}</button>
-      <span class="tr-hint">${done || 'On a computer, press space for the next step.'}</span>
+      <span class="tr-hint" id="trTurns">${done || (TR.phase === 'solve' && trSmartOn() ? `${TR.moves} turn${TR.moves === 1 ? '' : 's'} so far` : 'On a computer, press space for the next step.')}</span>
       ${smart ? `<p class="drill-note">${esc(smart)}</p>` : ''}</div>`;
   }
   function trTick() {
@@ -2062,6 +2062,17 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const tpsLine = H => { const M = H.filter(r => r.moves); return M.length ? ` · ${avgOfList(M, r => r.moves).toFixed(1)} turns at ${tpsOf(M.reduce((a, r) => a + r.moves, 0), M.reduce((a, r) => a + r.solve, 0))} TPS` : ''; };
   // after a timed attempt, typed-in moves give its turn count too
   function trTyped(D, n) { const last = TR.phase === 'done' && D.hist[D.hist.length - 1]; if (!last) return ''; if (!last.moves) last.moves = n; return ` At ${fmt(last.solve)} that's ${tpsOf(n, last.solve)} TPS.`; }
+  // Turns are counted the usual way: R2 is one turn, and so is a slice turn. A smart cube reports M as
+  // two face turns (R and L'), so turns of the two faces on one axis are added up together:
+  // when they cancel out (R with L', R2 with L2) they were a slice turn.
+  const AXIS_OF = { R: 'x', L: 'x', U: 'y', D: 'y', F: 'z', B: 'z' };
+  const grpTurns = g => { if (!g) return 0; const [a, b] = Object.values(g.q).map(q => ((q % 4) + 4) % 4).concat([0, 0]); return a && (a + b) % 4 === 0 ? 1 : (a ? 1 : 0) + (b ? 1 : 0); };
+  function trCount(m) {
+    const ax = AXIS_OF[m[0]], q = m.endsWith('2') ? 2 : m.endsWith("'") ? -1 : 1;
+    if (!TR.grp || TR.grp.ax !== ax) { TR.done += grpTurns(TR.grp); TR.grp = { ax, q: {} }; }
+    TR.grp.q[m[0]] = (TR.grp.q[m[0]] || 0) + q;
+    TR.moves = TR.done + grpTurns(TR.grp);
+  }
   // smart-cube moves while a trainer is open (website and app only; see smartMove)
   function trSmartMove(m) {
     if (TR.phase === 'scramble') {
@@ -2070,11 +2081,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (TR.track.done) trNext(); else renderTrainer();
       return true;
     }
-    if (TR.phase === 'plan') { TR.moves = 1; trNext(); return true; }
+    if (TR.phase === 'plan') { TR.done = 0; TR.grp = null; trCount(m); trNext(); return true; }
     if (TR.phase === 'solve') {
-      TR.moves++;
+      trCount(m);
       const solved = TR_DONE[learnSet](SM.cur);
-      if (solved) trNext(); else { const el = $('trTime'); if (el) el.textContent = trTimeText(); }
+      if (solved) trNext();
+      else { const el = $('trTime'), n = $('trTurns'); if (el) el.textContent = trTimeText(); if (n) n.textContent = `${TR.moves} turn${TR.moves === 1 ? '' : 's'} so far`; }
       return true;
     }
     return true;
@@ -3176,13 +3188,38 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     function fromFacelets(f) { const st = Cube.solved(3); for (const k of st) k.col = f[faceletIndex(k)]; return st; }
     function toFacelets(st) { const a = []; for (const k of st) a[faceletIndex(k)] = k.col; return a.join(''); }
 
+    // a face turn as a permutation of the sticker string, so a state turns with one lookup per sticker
+    const permOf = m => Array.from(sig(Cube.apply(Cube.solved(3).map((k, i) => ({ ...k, col: String.fromCharCode(48 + i) })), 3, m)), c => c.charCodeAt(0) - 48);
+    const turn = (s, P) => { let n = ''; for (const j of P) n += s[j]; return n; };
+    const QUARTERS = ['U', 'D', 'R', 'L', 'F', 'B'].flatMap(f => [f, f + "'"]);
+    let quarterPerms = null;
+    // every state within `depth` quarter turns of s, with its distance
+    function around(s, depth) {
+      quarterPerms = quarterPerms || QUARTERS.map(permOf);
+      const dist = new Map([[s, 0]]); let level = [s];
+      for (let d = 1; d <= depth; d++) {
+        const next = [];
+        for (const x of level) for (const P of quarterPerms) { const n = turn(x, P); if (!dist.has(n)) { dist.set(n, d); next.push(n); } }
+        level = next;
+      }
+      return dist;
+    }
+    // The states part-way through one scramble move that takes d quarter turns on the cube: half of a
+    // U2, or one side of an M (the cube reports M as two face turns, R and L', in either order).
+    function partWay(a, b, d) {
+      if (d < 2) return null;
+      const da = around(a, d - 1), db = around(b, d - 1), out = [];
+      for (const [x, i] of da) if (i > 0 && db.get(x) === d - i) out.push(x);
+      return out.length ? out : null;
+    }
+    const quarterCount = tok => Solver.faceTurns(tok).reduce((n, t) => n + (t.endsWith('2') ? 2 : 1), 0);
     // Scramble tracking: compare the cube with the state after each scramble move. `toModel` turns the
     // first moves of the scramble into the turns the cube itself sees (by default, the moves as written).
     function track(scramble, toModel) {
       const toks = Cube.tokens(scramble), model = toModel || (list => list.join(' '));
       const at = list => sig(Cube.apply(Cube.solved(3), 3, model(list)));
       const states = toks.map((_, i) => at(toks.slice(0, i))).concat(at(toks));
-      const mids = [null].concat(toks.map((t, i) => /2/.test(t) ? [t[0], t[0] + "'"].map(q => at(toks.slice(0, i).concat(q))) : null));
+      const mids = [null].concat(toks.map((t, i) => partWay(states[i], states[i + 1], quarterCount(t))));
       return { toks, states, mids, k: 0, off: [], done: false, lost: false };
     }
     // update tracking after the cube moved (m = the move just made, st = cube state now)
@@ -3204,7 +3241,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const FACE_TURNS = ['U', 'D', 'R', 'L', 'F', 'B'].flatMap(f => [f, f + "'", f + '2']);
     let turnPerms = null;
     function fixMoves(T, st) {
-      turnPerms = turnPerms || FACE_TURNS.map(m => Array.from(sig(Cube.apply(Cube.solved(3).map((k, i) => ({ ...k, col: String.fromCharCode(48 + i) })), 3, m)), c => c.charCodeAt(0) - 48));
+      turnPerms = turnPerms || FACE_TURNS.map(permOf);
       const goal = new Map(); T.states.forEach((g, j) => goal.set(g, j));
       for (const g of T.mids[T.k + 1] || []) if (!goal.has(g)) goal.set(g, T.k + 0.5);
       let level = [[sig(st), []]];
@@ -3259,7 +3296,10 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const f2lSolvedTop = st => st.every(k => k.p[1] < 0 || k.col === HOME(k.n));
     const ollSolvedTop = st => f2lSolvedTop(st) && st.filter(k => k.n[1] === -1).every(k => k.col === 'D');   // yellow is on the bottom
     const solvedUpToAuf = st => ['', 'D', "D'", 'D2'].some(a => isSolved(Cube.apply(clone(st), 3, a)));   // yellow is on the bottom
-    return { clone, sig, isSolved, fromFacelets, toFacelets, track, step, fixMoves, splits, f2lSolvedTop, ollSolvedTop, solvedUpToAuf };
+    // every face one colour. After M turns the cube's centers are not where the cube thinks they are
+    // (it reports M as two face turns), so a solved cube can look turned over.
+    const solvedAnyWay = st => { const f = new Map(); return st.every(k => { const id = k.n.join(); if (!f.has(id)) f.set(id, k.col); return f.get(id) === k.col; }); };
+    return { clone, sig, isSolved, fromFacelets, toFacelets, track, step, fixMoves, splits, f2lSolvedTop, ollSolvedTop, solvedUpToAuf, solvedAnyWay };
   })();
 
 
@@ -3512,7 +3552,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     : "Smart cubes need Chrome or Edge on Android, Windows, Mac or ChromeOS (iPhone and iPad browsers don't support Bluetooth).");
 
   // test hook for simulated cubes; only on a local development server
-  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble };
+  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR };
 
   // ---------- splits ----------
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];   // usual share of a CFOP solve
