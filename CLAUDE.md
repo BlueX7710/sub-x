@@ -14,7 +14,13 @@ claude.ai page. It's the owner's own project; `README.md` lists everything it do
 - To ship a change, use `/effortless` (`.claude/skills/effortless/SKILL.md`): `tools/sync.sh` copies
   the change into the other two copies, `tools/smoke.js` tests a copy in a browser, then commit,
   push and republish the claude.ai page.
-- Android APK: `cd android-app && npx cap sync android && cd android && gradlew.bat assembleDebug`.
+- Android APK: `cd android-app && npx cap sync android && cd android && gradlew.bat assembleDebug`. On the
+  owner's PC, Java and the Android SDK are in `%LOCALAPPDATA%\SubXBuild` (set `JAVA_HOME` and `ANDROID_HOME`
+  to them), and `npm ci` in `android-app` first if `node_modules` is missing. Keep the same debug key, so a
+  new APK installs over the old one.
+- App versions: the app adds `SubX/<version>` to its user agent (`appendUserAgent` in
+  `capacitor.config.json`). The site gives scrambles that cancel out to apps older than 1.4 (`OLD_APP` in
+  the page), so raising the minimum means a new release on GitHub first, then pushing the site.
 
 ## Rules the code keeps
 
