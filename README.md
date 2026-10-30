@@ -6,7 +6,11 @@ A speedcubing timer you can use in the browser, install as an app, or run on And
 
 ## What it does
 
-- **Timer**: WCA-style scrambles for 2×2 to 5×5, one-handed, Pyraminx and Skewb (or scramble it yourself and optionally type the scramble), a picture of the scrambled cube, 15-second inspection with +2/DNF, and a hold-to-start timer that works with the space bar or by touch.
+- **Timer**: WCA-style scrambles for 2×2 to 7×7, one-handed, blindfolded, Pyraminx, Skewb, Megaminx, Square-1 and Clock (or scramble it yourself and optionally type the scramble), a picture of the scrambled cube, 15-second inspection with +2/DNF and **voice calls** at 8 and 12 seconds (beeps where the device can't speak), and a hold-to-start timer that works with the space bar or by touch.
+- **Stackmat**: plug a Gen 3 or Gen 4 Stackmat into the microphone jack and press **Connect Stackmat**: each time it stops is saved (website and Android app).
+- **Achievements and streaks**: 25 achievements (first solve to sub-10, all of PLL learned, a week of Daily 5, a comp sim podium) and a day streak in the header.
+- **Welcome tour**: a first visit opens a short welcome card and an optional five-step tour.
+- **Send to another device**: in Backup, makes a link that adds all your times and progress on another phone or computer (or shares the backup file when there's too much for a link).
 - **Daily 5, sharing and racing**: pick **Daily 5** for five scrambles a day that are the same for everyone (finish them for your daily ao5). **Share** sends a link that opens Sub-X on the same scramble, and **Race a friend** puts two timers on one screen for head-to-head solves on one scramble.
 - **Comp sim**: a round of five scrambles run like a competition: 15-second inspection, an optional cutoff and time limit, and your average with the best and worst in brackets, compared with your earlier rounds.
 - **F2L practice scrambles**: in **Scramble**, pick **F2L: right hand**, **left hand** or **both hands**. The cross stays solved and the pairs are mixed so they can be solved with only R and U, L and U, or R, L and U, without turning the cube (held white on the bottom). On a smart cube the timer stops when F2L is done.
@@ -52,4 +56,9 @@ npm install
 npx cap sync android
 cd android
 ./gradlew assembleDebug   # output: app/build/outputs/apk/debug/app-debug.apk
+./gradlew bundleRelease   # Play Store bundle: app/build/outputs/bundle/release/app-release.aab
 ```
+
+`bundleRelease` signs with the upload key named in `%LOCALAPPDATA%\SubXBuild\release\keystore.properties`
+(or the file in `SUBX_KEYSTORE`); the key isn't in the repo. The Play Store listing text, privacy policy and
+release steps are in `android-app/store/listing.md`.

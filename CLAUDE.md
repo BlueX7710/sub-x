@@ -18,7 +18,12 @@ claude.ai page. It's the owner's own project; `README.md` lists everything it do
   owner's PC, Java and the Android SDK are in `%LOCALAPPDATA%\SubXBuild` (set `JAVA_HOME` and `ANDROID_HOME`
   to them), and `npm ci` in `android-app` first if `node_modules` is missing. Keep the same debug key, so a
   new APK installs over the old one.
-- App versions: the app adds `SubX/<version>` to its user agent (`appendUserAgent` in
+- Play Store: `gradlew.bat bundleRelease` signs with the upload key in `%LOCALAPPDATA%\SubXBuild\release\`
+  (`subx-upload.jks` and `keystore.properties`, not in git: never print or commit the password). Listing text,
+  the owner's steps and Data safety answers are in `android-app/store/listing.md`; the privacy policy is
+  `docs/privacy.html`.
+- The Stackmat reader is website and app only (the claude.ai page has no microphone), like the camera and
+  smart cube: `tools/sync.sh` rejects those hunks for the claude.ai copy on purpose.- App versions: the app adds `SubX/<version>` to its user agent (`appendUserAgent` in
   `capacitor.config.json`). The site gives scrambles that cancel out to apps older than 1.4 (`OLD_APP` in
   the page), so raising the minimum means a new release on GitHub first, then pushing the site.
 

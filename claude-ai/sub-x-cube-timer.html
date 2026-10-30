@@ -100,6 +100,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .scramble-label { font-family: var(--font-display); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--muted); margin-bottom: 4px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .scramble-label strong { color: var(--accent); font-weight: 600; }
 .scramble { font-family: var(--font-mono); font-size: clamp(16px, 2.2vw, 21px); line-height: 1.5; word-spacing: .25em; overflow-wrap: anywhere; margin: 0; }
+.scramble { white-space: pre-line; }
 .scramble.long { font-size: clamp(14px, 1.7vw, 17px); }
 .drill-note { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
 .sess-panel { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
@@ -343,6 +344,31 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 9px 12px 9px 16px; display: flex; gap: 12px; align-items: center; font-size: 14px; box-shadow: 0 6px 24px rgb(0 0 0 / .25); max-width: calc(100% - 32px); z-index: 5; }
+.streak { font-family: var(--font-mono); font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; color: var(--warn); white-space: nowrap; }
+.ach-panel summary { cursor: pointer; list-style: none; }
+.ach-panel summary::-webkit-details-marker { display: none; }
+.ach-panel summary h2 { margin: 0; }
+.ach-panel summary h2::after { content: "▸"; }
+.ach-panel[open] summary h2::after { content: "▾"; }
+.ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 10px; }
+.ach { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.35; color: var(--muted); }
+.ach b { display: block; font-family: var(--font-display); font-size: 15px; letter-spacing: .02em; color: var(--ink); }
+.ach.locked { opacity: .55; }
+.ach.got { border-color: color-mix(in srgb, var(--ready) 60%, var(--line)); }
+.ach.got b::before { content: "✓ "; color: var(--ready); }
+.welcome { width: min(520px, 100%); gap: 12px; }
+.welcome h3 { margin: 0; font-family: var(--font-display); font-size: 28px; }
+.welcome .lead { margin: 0; color: var(--muted); }
+.w-feats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.w-feats li { font-size: 14px; line-height: 1.45; padding-left: 12px; border-left: 3px solid var(--accent); }
+.w-feats b { font-family: var(--font-display); text-transform: uppercase; letter-spacing: .05em; margin-right: 6px; }
+.welcome a.pill-btn { text-decoration: none; color: var(--ink); display: inline-flex; align-items: center; }
+.tour { position: absolute; z-index: 12; width: min(320px, calc(100vw - 32px)); background: var(--ink); color: var(--bg); border-radius: 10px; padding: 12px 14px; box-shadow: 0 8px 30px rgb(0 0 0 / .3); font-size: 14px; line-height: 1.45; }
+.tour p { margin: 0; }
+.tour .row-btns { margin-top: 10px; align-items: center; }
+.tour button { background: none; border: 1px solid currentColor; color: inherit; border-radius: 6px; padding: 3px 10px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .06em; font-size: 13px; }
+.tour .tour-n { font-family: var(--font-mono); font-size: 12px; opacity: .75; margin-left: auto; }
+.tour-hi { outline: 3px solid var(--accent) !important; outline-offset: 3px; }
 .toast button { background: none; border: 1px solid currentColor; border-radius: 5px; color: inherit; padding: 2px 10px; font-family: var(--font-display); letter-spacing: .06em; text-transform: uppercase; font-size: 13px; }
 .race-overlay { position: fixed; inset: 0; z-index: 10; background: var(--bg); display: flex; justify-content: center; overflow-y: auto; padding: max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .race-overlay[hidden] { display: none; }
@@ -594,6 +620,7 @@ body.racing { overflow: hidden; }
 <div class="wrap">
   <header class="top">
     <h1 class="brand">Sub-<span>X</span></h1>
+    <span class="streak" id="streak" hidden></span>
     <nav class="tabs" aria-label="Sections">
       <a href="#timer" data-view="timer">Timer</a>
       <a href="#learn" data-view="learn">Learn</a>
@@ -614,9 +641,15 @@ body.racing { overflow: hidden; }
             <option value="333" selected>3×3×3</option>
             <option value="444">4×4×4</option>
             <option value="555">5×5×5</option>
+            <option value="666">6×6×6</option>
+            <option value="777">7×7×7</option>
+            <option value="333bf">3×3×3 Blindfolded</option>
             <option value="oh">3×3×3 One-Handed</option>
             <option value="pyram">Pyraminx</option>
             <option value="skewb">Skewb</option>
+            <option value="minx">Megaminx</option>
+            <option value="sq1">Square-1</option>
+            <option value="clock">Clock</option>
           </select>
         </label>
         <label class="ctl" for="session">Session
@@ -637,6 +670,7 @@ body.racing { overflow: hidden; }
           <input id="goal" type="number" min="1" max="600" step="1" value="20">
         </label>
         <label class="ctl toggle" for="insp"><input id="insp" type="checkbox" checked> 15s inspection</label>
+        <label class="ctl toggle" for="voice" title="Calls out 8 and 12 seconds in inspection, like a judge"><input id="voice" type="checkbox" checked> Voice calls</label>
         <button type="button" class="mini-btn" id="raceBtn">Race a friend</button>
         <button type="button" class="mini-btn" id="compBtn" aria-controls="compPanel">Comp sim…</button>
       </div>
@@ -700,11 +734,17 @@ body.racing { overflow: hidden; }
         <ul class="solves" id="solves"></ul>
         <div class="clear-row" id="clearRow"></div>
       </section>
+      <details class="panel ach-panel" id="achPanel">
+        <summary><h2>Achievements <b id="achCount"></b></h2></summary>
+        <p class="lead" id="achStreak" style="margin:8px 0 0"></p>
+        <div class="ach-grid" id="achGrid"></div>
+      </details>
       <section class="panel">
         <h2>Backup</h2>
         <p class="lead" id="backupInfo"></p>
         <div class="row-btns">
           <button type="button" class="pill-btn" id="exportBtn">Save backup</button>
+          <button type="button" class="pill-btn" id="moveBtn">Send to another device</button>
           <label class="pill-btn" for="importFile" style="cursor:pointer">Restore or import</label>
           <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" hidden>
         </div>
@@ -795,6 +835,24 @@ body.racing { overflow: hidden; }
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div class="p3d-overlay" id="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="wTitle">
+  <div class="p3d welcome">
+    <h3 id="wTitle">Welcome to Sub-<span style="color:var(--accent)">X</span></h3>
+    <p class="lead">A speedcubing timer that teaches you too. Free, no account, and it works offline.</p>
+    <ul class="w-feats">
+      <li><b>Timer</b>Competition-style inspection with voice calls, ao5 and ao12, a trend chart, comp sim rounds and racing a friend.</li>
+      <li><b>Learn</b>Every CFOP and Roux case with a 3D player, and trainers that focus on your slowest cases.</li>
+      <li id="wSmart"><b>Smart cubes</b>Connect a GAN or MoYu smart cube for automatic cross, F2L, OLL and PLL splits and replays.</li>
+      <li><b>Every day</b>Daily 5 scrambles that are the same for everyone, a practice plan, streaks and achievements.</li>
+    </ul>
+    <div class="row-btns">
+      <button type="button" class="btn" id="wTour">Show me around</button>
+      <button type="button" class="btn ghost" id="wGo">Start timing</button>
+      <a class="pill-btn" id="wApp" href="https://github.com/BlueX7710/sub-x/releases/latest" target="_blank" rel="noopener">Get the Android app</a>
+    </div>
+  </div>
+</div>
+<div class="tour" id="tour" hidden role="dialog" aria-live="polite"><p id="tourText"></p><div class="row-btns"><button type="button" id="tourNext">Next</button><button type="button" id="tourSkip">Skip</button><span class="tour-n" id="tourN"></span></div></div>
 
 <script>
 // Sticker-level NxN cube model shared by the timer, the scramble preview and the algorithm diagrams.
@@ -824,13 +882,13 @@ body.racing { overflow: hidden; }
   }
   function tokens(alg) { return alg.replace(/[()]/g, ' ').split(/\s+/).filter(Boolean); }
   function parse(tok, N) {
-    const m = tok.match(/^([URFDLBMESxyzurfdlb])(w?)(2'|'2|'|2)?$/);
-    if (!m) return null;
-    const L = m[1], mod = m[3] || '';
+    const m = tok.match(/^(\d?)([URFDLBMESxyzurfdlb])(w?)(2'|'2|'|2)?$/);
+    if (!m || (m[1] && !m[3])) return null;
+    const L = m[2], mod = m[4] || '';
     let ax, q, pick;
     if (AXIS[L] || (/[urfdlb]/.test(L))) {
       const up = L.toUpperCase(), [a, s] = AXIS[up];
-      const depth = (m[2] || L !== up) ? 2 : 1, thr = (N - 1) - 2 * (depth - 1);
+      const depth = m[1] ? +m[1] : (m[3] || L !== up) ? 2 : 1, thr = (N - 1) - 2 * (depth - 1);
       ax = a; q = -s; pick = p => s * p[a] >= thr;
     } else if (SLICE[L]) {
       ax = SLICE[L][0]; q = SLICE[L][1]; pick = p => p[ax] === 0;
@@ -866,7 +924,7 @@ body.racing { overflow: hidden; }
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; } };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} };
   const db = load() || {};
-  db.event = db.event || '333'; db.goal = db.goal || 20; if (db.inspection === undefined) db.inspection = true;
+  db.event = db.event || '333'; db.goal = db.goal || 20; if (db.inspection === undefined) db.inspection = true; if (db.voice === undefined) db.voice = true;
   db.solves = db.solves || {}; db.learned = db.learned || {};
   db.sessions = db.sessions || {}; db.lastSess = db.lastSess || {}; db.saved = db.saved || [];
 
@@ -878,6 +936,12 @@ body.racing { overflow: hidden; }
     'oh': { name: '3×3×3 One-Handed', n: 3, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 20, wide: false },
     'pyram': { name: 'Pyraminx', gen: genPyraminx },
     'skewb': { name: 'Skewb', gen: genSkewb },
+    '666': { name: '6×6×6', n: 6, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 80, wide: true, wideFaces: 'URFDLB', deep: 3 },
+    '777': { name: '7×7×7', n: 7, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 100, wide: true, wideFaces: 'URFDLB', deep: 3 },
+    '333bf': { name: '3×3×3 Blindfolded', n: 3, gen: genBld },
+    'minx': { name: 'Megaminx', gen: genMinx },
+    'sq1': { name: 'Square-1', gen: genSq1 },
+    'clock': { name: 'Clock', gen: genClock },
   };
   const AXIS = Cube.AXIS;
   for (const k of Object.keys(EVENTS).concat(Object.keys(db.sessions))) db.solves[k] = db.solves[k] || [];
@@ -897,6 +961,44 @@ body.racing { overflow: hidden; }
     return moves.concat(tips).join(' ');
   }
   function genSkewb(rnd) { return randomMoves(['R', 'L', 'U', 'B'], 10, rnd).join(' '); }
+  // Blindfolded: a 3×3 scramble, then a random way to hold the cube (wide turns), so you can't count on white on top.
+  function genBld(rnd) {
+    const a = ['', 'Rw', 'Rw2', "Rw'", 'Fw', "Fw'"][Math.floor(rnd() * 6)], b = ['', 'Uw', 'Uw2', "Uw'"][Math.floor(rnd() * 4)];
+    return [genScramble('333', rnd), a, b].filter(Boolean).join(' ');
+  }
+  // Megaminx (WCA style): 7 lines of R++/R-- and D++/D-- turns, each ending with U or U'.
+  function genMinx(rnd) {
+    const lines = [];
+    for (let l = 0; l < 7; l++) {
+      const m = []; for (let i = 0; i < 10; i++) m.push((i % 2 ? 'D' : 'R') + (rnd() < 0.5 ? '++' : '--'));
+      lines.push(m.concat(rnd() < 0.5 ? 'U' : "U'").join(' '));
+    }
+    return lines.join('\n');
+  }
+  // Square-1: (top, bottom) turns in twelfths, then a slash. Each layer is 12 slots of 30° (clockwise seen from the
+  // top, slots 0-5 on the slash side); a corner fills two slots. A slash only works with piece edges at slots 0 and 6
+  // on both layers, so every twist is checked on a model before it's used.
+  function genSq1(rnd) {
+    const layer = o => [0, 1, 2, 3].flatMap(k => [o + 2 * k, o + 2 * k, o + 2 * k + 1]);
+    const turn = (L, n) => L.map((_, i) => L[((i - n) % 12 + 12) % 12]);
+    const cuts = L => L[0] !== L[11] && L[6] !== L[5];
+    let top = layer(0), bot = layer(100);
+    const out = [];
+    while (out.length < 12) {
+      const x = Math.floor(rnd() * 12) - 5, y = Math.floor(rnd() * 12) - 5;
+      if (!x && !y && out.length) continue;
+      const t = turn(top, x), b = turn(bot, -y);   // the bottom turns clockwise as seen from below
+      if (!cuts(t) || !cuts(b)) continue;
+      top = t.map((v, i) => i < 6 ? b[5 - i] : v); bot = b.map((v, i) => i < 6 ? t[5 - i] : v);
+      out.push(`(${x},${y})`);
+    }
+    return out.join(' / ') + ' /';
+  }
+  // Clock (WCA style): set the dials with each pin group, front then back (y2). 0+ to 6+, or 1- to 5-.
+  function genClock(rnd) {
+    const amt = () => { const v = Math.floor(rnd() * 12) - 5; return Math.abs(v) + (v < 0 ? '-' : '+'); };
+    return ['UR', 'DR', 'DL', 'UL', 'U', 'R', 'D', 'L', 'ALL'].map(x => x + amt()).concat('y2', ['U', 'R', 'D', 'L', 'ALL'].map(x => x + amt())).join(' ');
+  }
 
   function genScramble(ev, rnd = Math.random) {
     if (OLD_APP) return BAD_SCRAMBLE;
@@ -908,7 +1010,8 @@ body.racing { overflow: hidden; }
       if (f === last) continue;
       if (last && prev && AXIS[f][0] === AXIS[last][0] && AXIS[f][0] === AXIS[prev][0]) continue;
       const w = e.wide && (e.wideFaces || 'RUF').includes(f) && rnd() < 0.35 ? 'w' : '';
-      out.push(f + w + ['', "'", '2'][Math.floor(rnd() * 3)]);
+      const deep = w && e.deep && rnd() < 0.4 ? String(e.deep) : '';   // 6×6 and 7×7 also turn three layers: 3Rw
+      out.push(deep + f + w + ['', "'", '2'][Math.floor(rnd() * 3)]);
       prev = last; last = f;
     }
     return out.join(' ');
@@ -1233,6 +1336,7 @@ body.racing { overflow: hidden; }
     const [v, q] = location.hash.slice(1).split('?');
     if (q) {
       const P = new URLSearchParams(q), ev = P.get('e'), scr = (P.get('s') || '').trim().slice(0, 400);
+      if (P.get('move')) { try { history.replaceState(null, '', '#timer'); } catch (e) {} setTimeout(() => receiveMove(P.get('move')), 0); }
       if (scr && EVENTS[ev]) {
         friendScr = { ev, scr };
         try { history.replaceState(null, '', '#timer'); } catch (e) {}
@@ -1358,12 +1462,12 @@ body.racing { overflow: hidden; }
     const own = !drill && !compOn() && db.scrMode === 'own';
     $('scramble').hidden = own; $('ownScr').hidden = !own;
     if (!own) { $('ownNote').hidden = true; $('scramble').textContent = scramble; }
-    $('scramble').classList.toggle('long', !drill && ['444', '555'].includes(EV()));
+    $('scramble').classList.toggle('long', !drill && ['444', '555', '666', '777', 'minx'].includes(EV()));
     if (OLD_APP) { $('drillNote').hidden = false; $('drillNote').textContent = 'This version of the Sub-X app is out of date, so its scrambles no longer work. Install Sub-X 1.4 from github.com/BlueX7710/sub-x/releases.'; }
   }
   // Cube events get a picture of the scrambled cube; Pyraminx and Skewb show the text only.
   function drawNetFor(s) { const N = EVENTS[EV()].n; $('net').hidden = !N; if (N) drawNet(s, N, PAL_WCA); }
-  const MOVE_RE = /^([URFDLB]w?|[urfdlbMESxyz])(2'|'2|'|2)?$/;
+  const MOVE_RE = /^(\d?[URFDLB]w|[URFDLB]w?|[urfdlbMESxyz])(2'|'2|'|2)?$/;
   function ownScrChanged() {
     const txt = $('ownScr').value.trim().replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
     const bad = txt && EVENTS[EV()].n ? Cube.tokens(txt).filter(t => !MOVE_RE.test(t)) : [];
@@ -1403,7 +1507,7 @@ body.racing { overflow: hidden; }
     const mean = ok.length ? ok.reduce((a, b) => a + b, 0) / ok.length : null;
     const under = ok.filter(v => v < goal).length;
     $('summary').innerHTML = `<span>Solves <b>${ok.length}/${L}</b></span><span>Mean <b>${fmt(mean)}</b></span><span>Sub-${db.goal} <b>${L ? Math.round(under / L * 100) : 0}%</b></span>`;
-    renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo(); renderComp();
+    renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo(); renderComp(); achCheck();
   }
 
   // the last 50 or 100 solves, or all of them; new personal bests are marked
@@ -1552,9 +1656,34 @@ body.racing { overflow: hidden; }
     if (drill && drill.times.length) idle += `<br>${esc(drill.name)} drills: ${drill.times.slice(-6).map(fmt).join(' · ')}`;
     hint.innerHTML = { idle, arming: 'Let go to start inspection.', inspecting: `${key} until the lights go green, then let go. ${touch ? 'Tap Cancel to stop.' : '<kbd>Esc</kbd> cancels.'}`, holding: 'Keep holding…', ready: 'Let go to start.', running: '' }[s];
   }
+  // a judge calls out 8 and 12 seconds of inspection: spoken where the browser can, short beeps otherwise
+  let callFor = -1, calls = 0, actx = null;
+  function audioWarm() {
+    if (!db.voice) return;
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) {}
+    try { window.speechSynthesis && speechSynthesis.getVoices(); } catch (e) {}
+  }
+  function inspCall(sec) {
+    if (!db.voice) return;
+    try {
+      const S = window.speechSynthesis;
+      if (S && window.SpeechSynthesisUtterance && S.getVoices().length) { S.cancel(); const u = new SpeechSynthesisUtterance(sec + ' seconds'); u.rate = 1.15; S.speak(u); return; }
+    } catch (e) {}
+    try {
+      audioWarm(); if (!actx) return;
+      for (let i = 0; i < (sec === 8 ? 1 : 2); i++) {
+        const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + i * 0.2;
+        o.frequency.value = 880; g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.16);
+      }
+    } catch (e) {}
+  }
   function tickInspection() {
     if (!['inspecting', 'holding', 'ready'].includes(state)) return;
     const el = performance.now() - inspStart;
+    if (callFor !== inspStart) { callFor = inspStart; calls = 0; }
+    if (el >= 8000 && calls < 1) { calls = 1; if (el < 9000) inspCall(8); }
+    if (el >= 12000 && calls < 2) { calls = 2; if (el < 13000) inspCall(12); }
     if (state === 'inspecting') {
       clock.textContent = el < 15000 ? String(15 - Math.floor(el / 1000)) : el < 17000 ? '+2' : 'DNF';
       stage.classList.toggle('warn', el >= 8000 && el < 15000);
@@ -1580,7 +1709,7 @@ body.racing { overflow: hidden; }
   function release() {
     downAt = null;
     if (ignoreRelease) { ignoreRelease = false; return; }
-    if (state === 'arming') { inspStart = performance.now(); setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
+    if (state === 'arming') { audioWarm(); inspStart = performance.now(); setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
     else if (state === 'holding') { clearTimeout(holdTimer); setState(holdFrom); }
     else if (state === 'ready') start();
   }
@@ -1623,6 +1752,7 @@ body.racing { overflow: hidden; }
   const typing = el => el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA');
   document.addEventListener('keydown', e => {
     if (view !== 'timer' || (typeof RACE !== 'undefined' && RACE.open)) return;
+    if (!$('welcome').hidden || !$('tour').hidden) return;   // first-visit card or tour open: keys work its buttons
     if (typing(e.target) && state !== 'running') return;
     if (e.repeat) { if (e.code === 'Space') e.preventDefault(); return; }
     if (state === 'running') { e.preventDefault(); stop(); return; }
@@ -1631,6 +1761,7 @@ body.racing { overflow: hidden; }
   });
   document.addEventListener('keyup', e => {
     if (view !== 'timer' || (typeof RACE !== 'undefined' && RACE.open)) return;
+    if (!$('welcome').hidden || !$('tour').hidden) return;
     if (ignoreRelease) { ignoreRelease = false; return; }
     if (typing(e.target)) return;
     if (e.code === 'Space') { e.preventDefault(); release(); }
@@ -1808,7 +1939,7 @@ body.racing { overflow: hidden; }
   function backupInfo() {
     const n = Object.values(db.solves).reduce((a, l) => a + l.length, 0);
     const stale = n && (!db.lastBackup || Date.now() - db.lastBackup > 7 * 864e5);
-    $('backupInfo').innerHTML = `Saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings to a file you keep. Recordings are not included. Restore takes a Sub-X backup, or a csTimer export (each csTimer session becomes a session here).<br>Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
+    $('backupInfo').innerHTML = `Saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings to a file you keep. Recordings are not included. Restore takes a Sub-X backup, or a csTimer export (each csTimer session becomes a session here). <b>Send to another device</b> makes a link that adds everything on your new phone or computer.<br>Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
   }
   async function saveTextFile(name, text) {
     if (typeof NATIVE !== 'undefined' && NATIVE) {           // Android app: no browser downloads
@@ -1834,7 +1965,7 @@ body.racing { overflow: hidden; }
   });
   // csTimer exports: { session1: [[[penalty, ms], scramble, comment, unix seconds], ...], properties: { sessionData: "<json>" } }.
   // Penalty 0 is OK, 2000 is +2 and -1 is DNF. Each session goes into a Sub-X session of the same name, by its scramble type.
-  const CS_TYPES = { '333': '333', '222so': '222', '444wca': '444', '555wca': '555', '333oh': 'oh', '333ni': '333', '333fm': '333', pyrso: 'pyram', skbso: 'skewb' };
+  const CS_TYPES = { '333': '333', '222so': '222', '444wca': '444', '555wca': '555', '333oh': 'oh', '333ni': '333bf', '333fm': '333', pyrso: 'pyram', skbso: 'skewb', '666wca': '666', '777wca': '777', mgmp: 'minx', sqrs: 'sq1', clkwca: 'clock' };
   function importCsTimer(j) {
     let meta = {}; try { meta = JSON.parse((j.properties || {}).sessionData || '{}'); } catch (e) {}
     let added = 0, sessions = 0, skipped = 0;
@@ -1872,8 +2003,11 @@ body.racing { overflow: hidden; }
       });
       return;
     }
+    restoreBackup(j);
+  });
+  function restoreBackup(j) {
     if (!j || j.app !== 'sub-x' || !j.data || typeof j.data.solves !== 'object') { toast("That file isn't a Sub-X backup or a csTimer export."); return; }
-    data = j.data;
+    const data = j.data;
     const before = JSON.stringify(db);
     let added = 0, newSessions = 0;
     for (const [k, s] of Object.entries(data.sessions || {})) {
@@ -1898,12 +2032,42 @@ body.racing { overflow: hidden; }
     db.srs = db.srs || {};
     for (const [k, v] of Object.entries(data.srs || {})) if (v && (!db.srs[k] || (v.seen || 0) > (db.srs[k].seen || 0))) db.srs[k] = v;
     for (const [k, v] of Object.entries(data.caseStats || {})) if (v && Array.isArray(v.rec) && (!db.caseStats[k] || (v.last || 0) > (db.caseStats[k].last || 0))) db.caseStats[k] = v;
+    for (const [k, v] of Object.entries(data.ach || {})) if (typeof v === 'number' && !(db.ach || {})[k]) (db.ach = db.ach || {})[k] = v;
     save(); fillSessions(); renderStats(); if (view === 'learn') renderLearn();
     toast(`Restored ${added} solve${added === 1 ? '' : 's'}${newSessions ? ` and ${newSessions} session${newSessions === 1 ? '' : 's'}` : ''}`, () => {
       for (const k of Object.keys(db)) delete db[k];
       Object.assign(db, JSON.parse(before)); save(); fillSessions(); renderStats();
     });
+  }
+
+  // ---------- send to another device: everything packed into a link, or the backup file when it's too big for one ----------
+  const b64u = {
+    enc: u8 => { let t = ''; for (let i = 0; i < u8.length; i += 0x8000) t += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(t).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); },
+    dec: str => Uint8Array.from(atob(str.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+  };
+  const zip = async text => b64u.enc(new Uint8Array(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()));
+  const unzip = async str => new Response(new Blob([b64u.dec(str)]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  $('moveBtn').addEventListener('click', async () => {
+    const d = new Date(), text = JSON.stringify({ app: 'sub-x', version: 1, exported: d.toISOString(), data: db });
+    let link = null;
+    try { if (window.CompressionStream) { const z = await zip(text); if (z.length < 24000) link = `${SHARE_BASE}#timer?move=${z}`; } } catch (e) {}
+    if (link) {
+      try { if (navigator.share && matchMedia('(pointer: coarse)').matches) { await navigator.share({ title: 'My Sub-X times', url: link }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+      try { await navigator.clipboard.writeText(link); toast('Link copied. Open it on your other device and your times are added there.'); return; } catch (e) {}
+    }
+    // too many times for a link: send the backup file, then Restore it on the other device
+    const p2 = n => String(n).padStart(2, '0'), name = `sub-x-backup-${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}.json`;
+    try {
+      const f = new File([text], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ title: 'My Sub-X times', files: [f] }); toast('On the other device, open Sub-X and use Restore or import with this file.'); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    try { const msg = await saveTextFile(name, text); toast(msg + '. On the other device, use Restore or import with this file.'); }
+    catch (e) { toast("Couldn't make the file. Try Save backup instead."); }
   });
+  async function receiveMove(z) {
+    try { restoreBackup(JSON.parse(await unzip(z))); }
+    catch (e) { toast("That link didn't come through whole. Send it again, or use a backup file."); }
+  }
 
   // ---------- sessions ----------
   function fillSessions() {
@@ -1948,6 +2112,7 @@ body.racing { overflow: hidden; }
     switchSession(s.event); $('sessNote').textContent = '';
     toast(`Deleted session "${s.name}"`, () => { db.sessions[key] = s; db.solves[key] = solves; switchSession(key); });
   });
+  $('voice').addEventListener('change', e => { db.voice = e.target.checked; save(); if (db.voice) { audioWarm(); inspCall(8); } e.target.blur(); });
   $('insp').addEventListener('change', e => { db.inspection = e.target.checked; save(); cancel(); setState('idle'); e.target.blur(); });
   $('goal').addEventListener('change', e => { const v = Math.max(1, Math.min(600, Math.round(+e.target.value || 20))); db.goal = v; e.target.value = v; save(); renderStats(); });
 
@@ -3373,6 +3538,7 @@ body.racing { overflow: hidden; }
     return parts.length ? `<p class="setup">Your times: ${parts.join(' · ')}</p>` : '';
   }
   function renderLearn() {
+    achCheck();   // marking cases learned or finishing the plan can earn one
     const set = SETS[learnSet];
     $('learnTitle').textContent = set.title;
     $('learnLead').textContent = set.lead;
@@ -3685,9 +3851,125 @@ body.racing { overflow: hidden; }
   $('ownScr').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
   $('scrMode').addEventListener('change', e => { db.scrMode = e.target.value; save(); cancel(); newScramble(); e.target.blur(); });
   $('scrMode').value = ['own', 'daily'].includes(db.scrMode) || F2L_HANDS[db.scrMode] ? db.scrMode : 'gen';
-  $('event').value = EV(); fillSessions(); $('insp').checked = db.inspection; $('goal').value = db.goal;
+  $('event').value = EV(); fillSessions(); $('insp').checked = db.inspection; $('voice').checked = db.voice; $('goal').value = db.goal;
   setState('idle'); newScramble(); renderStats();
   readHash();
+
+  // ---------- achievements and streaks: worked out from what's already saved ----------
+  const dayKey = t => { const d = new Date(t), p2 = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
+  function dayRun(days) {   // days in a row ending today (or yesterday, so the streak isn't lost before you practise)
+    let n = 0; const d = new Date();
+    if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+    while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  function achStats() {
+    const keys = Object.keys(db.solves), all = keys.flatMap(k => db.solves[k]).filter(x => !x.ex && !x.f2l);
+    const days = new Set(all.map(x => dayKey(x.t))), dailyN = {};
+    for (const x of all) if (x.daily) dailyN[x.daily] = (dailyN[x.daily] || 0) + 1;
+    let best = Infinity, ao5 = Infinity, ao12 = Infinity;
+    for (const k of keys.filter(k => evOfKey(k) === '333')) {
+      const l = db.solves[k].filter(x => !x.f2l);
+      for (const x of l) best = Math.min(best, eff(x));
+      for (let e = 5; e <= l.length; e++) ao5 = Math.min(ao5, avgOf(l, 5, e));
+      for (let e = 12; e <= l.length; e++) ao12 = Math.min(ao12, avgOf(l, 12, e));
+    }
+    const rounds = {}; for (const x of all) if (x.comp) (rounds[x.comp] = rounds[x.comp] || []).push(x);
+    const full = Object.values(rounds).filter(r => r.length >= 5).map(r => avgOf(r, 5, 5));
+    const learnedAll = pre => { const c = ALL_CASES.filter(x => x.id.startsWith(pre)); return c.length > 0 && c.every(x => db.learned[x.id]); };
+    const P = db.plan && db.plan[learnMethod];
+    return { n: all.length, best, ao5, ao12, streak: dayRun(days), dailyRun: dayRun(new Set(Object.keys(dailyN).filter(d => dailyN[d] >= 5))),
+      daily: Object.values(dailyN).some(n => n >= 5), events: new Set(keys.filter(k => db.solves[k].some(x => !x.ex)).map(evOfKey)).size,
+      comp: full.length > 0, compGoal: full.some(a => a < db.goal * 1000), learnedAll,
+      plan: !!(P && P.day === dayStart() && P.items.length >= 3 && P.items.every(it => planDone(it) >= it.n)) };
+  }
+  const ACH = [
+    ['solve1', 'First solve', 'Time your first solve.', S => S.n >= 1],
+    ['solve100', 'Hundred club', 'Time 100 solves.', S => S.n >= 100],
+    ['solve1000', 'Thousand club', 'Time 1,000 solves.', S => S.n >= 1000],
+    ['sub60', 'Sub-60', 'A 3×3 single under a minute.', S => S.best < 60000],
+    ['sub30', 'Sub-30', 'A 3×3 single under 30 seconds.', S => S.best < 30000],
+    ['sub20', 'Sub-20', 'A 3×3 single under 20 seconds.', S => S.best < 20000],
+    ['sub15', 'Sub-15', 'A 3×3 single under 15 seconds.', S => S.best < 15000],
+    ['sub10', 'Sub-10', 'A 3×3 single under 10 seconds.', S => S.best < 10000],
+    ['ao5sub30', 'Steady', 'A 3×3 ao5 under 30 seconds.', S => S.ao5 < 30000],
+    ['ao5sub20', 'Steady sub-20', 'A 3×3 ao5 under 20 seconds.', S => S.ao5 < 20000],
+    ['ao12sub20', 'Sub-20 for real', 'A 3×3 ao12 under 20 seconds.', S => S.ao12 < 20000],
+    ['ao12sub15', 'Sub-15 for real', 'A 3×3 ao12 under 15 seconds.', S => S.ao12 < 15000],
+    ['oll2', 'Two-look OLL', 'Mark all 10 two-look OLL cases learned.', S => S.learnedAll('oll:')],
+    ['pll', 'All of PLL', 'Mark all 21 PLL cases learned.', S => S.learnedAll('pll:')],
+    ['f2l', 'F2L master', 'Mark all 41 F2L cases learned.', S => S.learnedAll('f2l:')],
+    ['ollf', 'Full OLL', 'Mark all 57 OLL cases learned.', S => S.learnedAll('ollf:')],
+    ['coll', 'COLL', 'Mark all 40 COLL cases learned.', S => S.learnedAll('coll:')],
+    ['streak7', 'Week streak', 'Solve on 7 days in a row.', S => S.streak >= 7],
+    ['streak30', 'Month streak', 'Solve on 30 days in a row.', S => S.streak >= 30],
+    ['daily', 'Daily 5', 'Finish all five Daily scrambles in one day.', S => S.daily],
+    ['daily7', 'Daily week', 'Finish the Daily 5 on 7 days in a row.', S => S.dailyRun >= 7],
+    ['plan', 'Plan done', "Finish everything in a day's practice plan.", S => S.plan],
+    ['comp', 'Competitor', 'Finish a comp sim round.', S => S.comp],
+    ['compgoal', 'Podium', 'Finish a comp sim round under your goal.', S => S.compGoal],
+    ['events5', 'All-rounder', 'Time solves in 5 different events.', S => S.events >= 5],
+  ];
+  var achReady = true;   // (a var: still undefined while the page is starting up, so early calls wait)
+  function achCheck() {
+    if (!achReady) return;
+    const S = achStats(), first = !db.ach, fresh = [];
+    db.ach = db.ach || {};
+    for (const [id, name, , ok] of ACH) if (!db.ach[id] && ok(S)) { db.ach[id] = Date.now(); fresh.push(name); }
+    if (fresh.length || first) save();
+    if (fresh.length && !first) toast(`Achievement: ${fresh[0]}${fresh.length > 1 ? ` (and ${fresh.length - 1} more)` : ''}`);
+    $('achCount').textContent = `${ACH.filter(a => db.ach[a[0]]).length} of ${ACH.length}`;
+    $('streak').hidden = S.streak < 2; $('streak').textContent = `${S.streak}-day streak`;
+    $('streak').title = 'Days in a row with at least one timed solve';
+    $('achStreak').textContent = S.streak ? `You've solved on ${S.streak} day${S.streak === 1 ? '' : 's'} in a row. Do a solve each day to keep it going.` : 'Do a solve each day to build a streak.';
+    $('achGrid').innerHTML = ACH.map(([id, name, how]) => `<div class="ach ${db.ach[id] ? 'got' : 'locked'}"><b>${esc(name)}</b>${esc(how)}${db.ach[id] ? `<br>${new Date(db.ach[id]).toLocaleDateString()}` : ''}</div>`).join('');
+  }
+  achCheck();
+
+  // ---------- first visit: a welcome card, then an optional short tour ----------
+  const TOUR = [
+    ['#stage', 'This is the timer. Hold space, or touch and hold, until it turns green, then let go to start. Any key or a tap stops it. With inspection on, the first press starts the 15-second countdown.'],
+    ['#scrCard', 'Scramble with these moves, holding white on top and green in front. The picture shows how your cube should look.'],
+    ['.tabs a[data-view="learn"]', 'Learn has every CFOP and Roux case with a 3D player, trainers, and Today: a short practice plan made from your own times.'],
+    ['#compBtn', 'Comp sim runs a round of five like at a competition. Race a friend puts two timers on one screen.'],
+    ['#skin', 'Pick a look you like. Your times stay on this device, so save a backup now and then (Backup is at the bottom).'],
+  ];
+  let tourI = -1;
+  function tourShow() {
+    document.querySelectorAll('.tour-hi').forEach(el => el.classList.remove('tour-hi'));
+    const step = TOUR[tourI], box = $('tour');
+    const el = step && document.querySelector(step[0]);
+    if (!el || el.offsetParent === null) { if (step) { tourI++; tourShow(); return; } box.hidden = true; return; }
+    if (location.hash !== '#timer' && location.hash !== '') location.hash = 'timer';
+    el.classList.add('tour-hi');
+    el.scrollIntoView({ block: 'center', behavior: 'instant' });
+    $('tourText').textContent = step[1]; $('tourN').textContent = `${tourI + 1} of ${TOUR.length}`;
+    $('tourNext').textContent = tourI === TOUR.length - 1 ? 'Done' : 'Next';
+    box.hidden = false;
+    const r = el.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight, W = document.documentElement.clientWidth;
+    let top = r.bottom + 10; if (top + h > innerHeight - 8 && r.top - h - 10 > 8) top = r.top - h - 10;
+    if (r.height > innerHeight * 0.6) top = Math.max(r.top, 8) + 16;   // a tall target (the timer): sit inside its top edge
+    top = Math.min(Math.max(8, top), innerHeight - h - 8);
+    box.style.top = (top + scrollY) + 'px';
+    box.style.left = (Math.min(Math.max(16, r.left), W - w - 16) + scrollX) + 'px';
+    $('tourNext').focus();
+  }
+  function tourEnd() { tourI = -1; $('tour').hidden = true; document.querySelectorAll('.tour-hi').forEach(el => el.classList.remove('tour-hi')); }
+  $('tourNext').addEventListener('click', () => { if (++tourI >= TOUR.length) tourEnd(); else tourShow(); });
+  $('tourSkip').addEventListener('click', tourEnd);
+  addEventListener('resize', () => { if (tourI >= 0) tourShow(); });
+  function welcomeClose(tour) { db.welcomed = Date.now(); save(); $('welcome').hidden = true; if (tour) { tourI = 0; tourShow(); } }
+  $('wTour').addEventListener('click', () => welcomeClose(true));
+  $('wGo').addEventListener('click', () => welcomeClose(false));
+  $('welcome').addEventListener('click', e => { if (e.target.id === 'welcome') welcomeClose(false); });
+  {
+    const native = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    $('wApp').hidden = native || !!window.claude || !/Android|Windows|Macintosh|Linux/.test(navigator.userAgent) || /iPhone|iPad/.test(navigator.userAgent);
+    if (!$('smartConnect')) $('wSmart').hidden = true;
+    const anySolves = Object.values(db.solves).some(l => l.length);
+    if (!db.welcomed && !anySolves && !friendScr) $('welcome').hidden = false;
+    else if (!db.welcomed) { db.welcomed = Date.now(); save(); }
+  }
 })();
 </script>
     // one stacked bar per solve, oldest on the left, so you can see which step is getting faster

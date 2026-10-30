@@ -1,5 +1,12 @@
 apply plugin: 'com.android.application'
 
+// Play Store builds are signed with the upload key, which lives outside the repo:
+// %LOCALAPPDATA%\SubXBuild\release\keystore.properties (or the file named by SUBX_KEYSTORE). Without it,
+// release builds are left unsigned; debug builds (the GitHub APK) keep using the debug key.
+def ksFile = new File(System.getenv('SUBX_KEYSTORE') ?: ((System.getenv('LOCALAPPDATA') ?: '') + '/SubXBuild/release/keystore.properties'))
+def ks = new Properties()
+if (ksFile.exists()) ksFile.withInputStream { ks.load(it) }
+
 android {
     namespace = "app.subx.cubetimer"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +14,8 @@ android {
         applicationId "app.subx.cubetimer"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "1.4"
+        versionCode 6
+        versionName "1.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +23,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (ks['storeFile']) {
+            release {
+                storeFile file(ks['storeFile'])
+                storePassword ks['storePassword']
+                keyAlias ks['keyAlias']
+                keyPassword ks['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (ks['storeFile']) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
