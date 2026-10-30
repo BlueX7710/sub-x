@@ -946,7 +946,7 @@ body.racing { overflow: hidden; }
   }
 
   // Top-down last-layer diagram: U face plus the top row of each side
-  const caseDiagram = c => c.mode === 'f2l' ? f2l3D(c.alg) : llDiagram(c.alg, c.mode);
+  const caseDiagram = c => c.mode === 'f2l' ? f2l3D(c.alg, c.view) : llDiagram(c.alg, c.mode);
   // ---------- 3D cube: case pictures and the step-by-step player ----------
   // Each cubie is drawn as a dark box plus its stickers. Faces are back-face culled; while a
   // layer turns, the cube splits into convex blocks along the turn axis, drawn far to near.
@@ -1011,10 +1011,12 @@ body.racing { overflow: hidden; }
     return st;
   }
   const F2L_VIEW = { yaw: -0.62, pitch: 0.5 }, LL_VIEW = { yaw: -0.62, pitch: 0.8 };
-  function f2l3D(alg) { return f2l3DSetup(Cube.invert(alg)); }
-  function f2l3DSetup(setup) {
+  // back-slot F2L cases are shown from behind, looking at the slot (a quarter and a half turn round)
+  const BR_VIEW = { yaw: -0.62 - Math.PI / 2, pitch: 0.5 }, BL_VIEW = { yaw: -0.62 + Math.PI, pitch: 0.5 };
+  function f2l3D(alg, view) { return f2l3DSetup(Cube.invert(alg), view); }
+  function f2l3DSetup(setup, view = F2L_VIEW) {
     const st = markGrey(Cube.apply(Cube.solved(3), 3, setup));
-    return Cube3D.svg(Cube3D.frame(st, { ...F2L_VIEW, body: 'var(--plastic)', colorOf: k => k.grey ? 'var(--ll-off)' : PAL_LL[k.col] }), 'F2L case in 3D: yellow on top, green in front');
+    return Cube3D.svg(Cube3D.frame(st, { ...view, body: 'var(--plastic)', colorOf: k => k.grey ? 'var(--ll-off)' : PAL_LL[k.col] }), 'F2L case in 3D: yellow on top, green in front');
   }
 
   const P3 = { open: false, c: null, st: null, moves: [], idx: 0, anim: null, playing: false, yaw: 0, pitch: 0, speed: 1, allColors: false, raf: 0, drag: null };
@@ -1024,7 +1026,7 @@ body.racing { overflow: hidden; }
   }
   function openPlayer(c) {
     P3.c = c; P3.moves = Cube.tokens(c.alg);
-    Object.assign(P3, c.mode === 'f2l' || c.mode === 'sb' ? F2L_VIEW : LL_VIEW);
+    Object.assign(P3, c.view || (c.mode === 'f2l' || c.mode === 'sb' ? F2L_VIEW : LL_VIEW));
     $('p3dTitle').textContent = c.name + (c.mode === 'pll' ? ' perm' : '');
     $('p3dAllWrap').hidden = c.mode !== 'f2l' && c.mode !== 'sb';
     $('p3d').hidden = false; P3.open = true;
@@ -1947,6 +1949,13 @@ body.racing { overflow: hidden; }
       { id: 'f2l:41', name: 'F2L 41', alg: "R U F R U R' U' F' R'" },
     ] },
   ];
+  // Back-slot F2L, solved without turning the cube. Back-right is the mirror image of front-right (F and B
+  // swapped, every turn reversed: R U R' becomes R' U' R); back-left is front-right turned round (R and L,
+  // F and B swapped). All 82 were checked in the cube model: each keeps the cross and the other three slots,
+  // solves its case (up to a U turn), and no two cases in a slot are the same.
+  const slotAlg = (alg, faces, flip) => Cube.tokens(alg).map(t => { const f = faces[t[0]] || t[0], m = t.slice(1); return f + (m === '2' ? '2' : flip ? (m === "'" ? '' : "'") : m); }).join(' ');
+  const F2L_BACK = [['br', 'Back-right', { F: 'B', B: 'F' }, true, BR_VIEW], ['bl', 'Back-left', { R: 'L', L: 'R', F: 'B', B: 'F' }, false, BL_VIEW]]
+    .flatMap(([k, slot, faces, flip, view]) => F2L.map(g => ({ group: slot + ' · ' + g.group, items: g.items.map(c => ({ id: 'f2lb:' + k + c.id.slice(4), name: k.toUpperCase() + ' ' + c.id.slice(4), alg: slotAlg(c.alg, faces, flip), view })) })));
   // Full OLL. Every algorithm was checked in the cube model: it keeps the first two layers,
   // and the 57 cases are all different (so together they cover every OLL).
   const OLL_FULL = [
@@ -2128,7 +2137,8 @@ body.racing { overflow: hidden; }
     { group: 'Look 2 · Swap the corners', items: PLL.flatMap(g => g.items).filter(c => c.id === 'pll:t' || c.id === 'pll:y'), mode: 'pll' },
   ];
   const SETS = {
-    f2l: { title: 'F2L', lead: 'Pair a white corner with its matching edge, then insert the pair into its slot. These cases solve the front-right slot with yellow on top. For the other slots, turn the cube so the slot is front-right. Grey stickers are last-layer pieces that do not matter yet.', groups: F2L, mode: 'f2l' },
+    f2lb: { title: 'F2L back slots', lead: 'The same 41 cases in the back-right (BR) and back-left (BL) slots, solved without turning the cube. Back-right is the mirror image of front-right: R U R\' becomes R\' U\' R. Back-left is front-right turned round: R becomes L and F becomes B. Each picture looks at the slot from behind. Grey stickers are last-layer pieces that do not matter yet.', groups: F2L_BACK, mode: 'f2l' },
+    f2l: { title: 'F2L', lead: 'Pair a white corner with its matching edge, then insert the pair into its slot. These cases solve the front-right slot with yellow on top. For the other slots, turn the cube so the slot is front-right, or learn the back slots in F2L back. Grey stickers are last-layer pieces that do not matter yet.', groups: F2L, mode: 'f2l' },
     notation: { title: 'Notation', lead: 'How to read an algorithm. Each letter turns one face a quarter turn clockwise, as if you were looking straight at that face.' },
     oll: { title: '2-Look OLL', lead: 'Get the whole top face yellow in two steps: first the cross, then the corners. Ten algorithms, and the first three share one trigger.', groups: OLL, mode: 'oll' },
     ollf: { title: 'Full OLL', lead: 'All 57 OLL cases, grouped by the shape the yellow stickers make on top. Each one makes the whole top face yellow in a single algorithm. Learn 2-look OLL first: its 7 corner cases are OLL 21 to 27 here.', groups: OLL_FULL, mode: 'oll' },
@@ -2160,11 +2170,11 @@ body.racing { overflow: hidden; }
     ['x  y  z', 'Rotate the whole cube: x like R, y like U, z like F. No pieces move relative to each other.'],
     ["(R U R' U')", 'The "sexy move". Brackets group a trigger you learn as one motion. Six in a row returns the cube to where it started.'],
   ];
-  const ALL_CASES = [...F2L, ...OLL, ...OLL_FULL, ...PLL, ...COLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.id.startsWith('ollf:') ? 'oll' : c.id.split(':')[0] })));
+  const ALL_CASES = [...F2L, ...F2L_BACK, ...OLL, ...OLL_FULL, ...PLL, ...COLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.id.startsWith('ollf:') ? 'oll' : c.id.startsWith('f2lb:') ? 'f2l' : c.id.split(':')[0] })));
   const caseById = id => ALL_CASES.find(c => c.id === id);
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
-    cfop: { name: 'CFOP', steps: [['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation']] },
+    cfop: { name: 'CFOP', steps: [['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'F2L back'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation']] },
     roux: { name: 'Roux', steps: [['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['saved', 'My solves'], ['notation', 'Notation']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
@@ -2172,7 +2182,7 @@ body.racing { overflow: hidden; }
   const learnMode = () => db.learnMode === 'train' ? 'train' : 'teach';
   const stepOf = page => Object.keys(ROUX_PAGES).find(s => ROUX_PAGES[s].teach === page || ROUX_PAGES[s].train === page) || page;
   const pageOf = step => ROUX_PAGES[step] ? ROUX_PAGES[step][learnMode()] : step;
-  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
+  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
   const defMethod = () => db.defMethod === 'roux' ? 'roux' : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
   const lastStep = {};
@@ -2397,10 +2407,16 @@ body.racing { overflow: hidden; }
   // ---------- F2L trainer ----------
   // A random F2L case for the front-right slot, set up on a solved cube (yellow on top, green in
   // front) with a random top-layer turn, so you practise recognising it as well as solving it.
-  const f2lt = { c: null, scr: '', pool: 'all', shown: false, pic: true, hist: [] };
+  // The trainers start on 'Focus on my slowest': three cases in four come from your 5 slowest (by saved
+  // recognition + solve time), the fourth from all of them, so untimed cases still get timed. A case drops off
+  // the list once its average gets faster. Until 3 cases have times it is the same as all cases.
+  let focusN = 0;
+  function focusPick(all) { const w = slowest(all, 5).map(x => x.c); return w.length >= 3 && (++focusN % 4) ? w : all; }
+  const focusNote = (all, c) => slowest(all, 5).some(x => x.c === c) ? '<p class="drill-note">One of your 5 slowest cases. It leaves the list when its average gets faster.</p>' : '';
+  const f2lt = { c: null, scr: '', pool: 'focus', shown: false, pic: true, hist: [] };
   function newF2L(id) {
     const all = F2L.flatMap(g => g.items);
-    let pool = f2lt.pool === 'weak' ? slowest(all, 5).map(x => x.c) : all.filter(c => f2lt.pool === 'all' || (f2lt.pool === 'learned') === !!db.learned[c.id]);
+    let pool = f2lt.pool === 'focus' ? focusPick(all) : f2lt.pool === 'weak' ? slowest(all, 5).map(x => x.c) : all.filter(c => f2lt.pool === 'all' || (f2lt.pool === 'learned') === !!db.learned[c.id]);
     if (pool.length < (f2lt.pool === 'weak' ? 3 : 1)) pool = all;
     let c = id && all.find(x => x.id === id);
     if (!c) do { c = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && f2lt.c && c.id === f2lt.c.id);
@@ -2411,7 +2427,7 @@ body.racing { overflow: hidden; }
   function renderF2LT() {
     if (!f2lt.c) newF2L();
     const c = f2lt.c, H = f2lt.hist, L = !!db.learned[c.id];
-    const pools = [['all', 'All 41 cases'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']];
+    const pools = [['focus', 'Focus on my slowest'], ['all', 'All 41 cases'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']];
     $('learnBody').innerHTML = `<div class="cross-grid">
       <section class="panel">
         <div class="label"><span>Setup · yellow on top, green in front</span><button type="button" class="mini-btn" data-f2lt="new">New case</button></div>
@@ -2420,6 +2436,7 @@ body.racing { overflow: hidden; }
         ${f2lt.pic ? `<div class="f2lt-pic">${f2l3DSetup(f2lt.scr)}</div>` : ''}
         <div class="chips" style="margin-top:12px">${pools.map(([k, l]) => `<button type="button" class="chip" data-f2lt="pool:${k}" aria-pressed="${f2lt.pool === k}">${l}</button>`).join('')}
           <button type="button" class="chip" data-f2lt="pic" aria-pressed="${!f2lt.pic}">Hide picture</button></div>
+        ${focusNote(F2L.flatMap(g => g.items), c)}
       </section>
       <section class="panel">
         ${trClockHtml('pair')}
@@ -2448,9 +2465,9 @@ body.racing { overflow: hidden; }
   // ---------- OLL, PLL and COLL trainers ----------
   // A random last-layer case on a solved cube (yellow on top, green in front). The setup is the
   // algorithm backwards, rewritten as plain face turns, with random U turns so the case can face any way.
-  const llt = Object.fromEntries(['oll', 'pll', 'cmll', 'coll'].map(k => [k, { c: null, scr: '', pool: 'all', shown: false, pic: true, hist: [], zb: false, ep: '' }]));
+  const llt = Object.fromEntries(['oll', 'pll', 'cmll', 'coll'].map(k => [k, { c: null, scr: '', pool: 'focus', shown: false, pic: true, hist: [], zb: false, ep: '' }]));
   const TWO_LOOK_PLL = ['pll:t', 'pll:y', 'pll:ua', 'pll:ub', 'pll:h', 'pll:z'];
-  const LL_POOLS = { oll: [['all', 'All 57'], ['2look', '2-look OLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], pll: [['all', 'All 21'], ['2look', '2-look PLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], cmll: [['all', 'All 9'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], coll: [['all', 'All 40'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']] };
+  const LL_POOLS = { oll: [['focus', 'Focus on my slowest'], ['all', 'All 57'], ['2look', '2-look OLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], pll: [['focus', 'Focus on my slowest'], ['all', 'All 21'], ['2look', '2-look PLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], cmll: [['focus', 'Focus on my slowest'], ['all', 'All 9'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], coll: [['focus', 'Focus on my slowest'], ['all', 'All 40'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']] };
   const lltKind = () => learnSet === 'pllt' ? 'pll' : learnSet === 'cmllt' ? 'cmll' : learnSet === 'collt' ? 'coll' : 'oll';
   const caseKind = c => c.id.startsWith('pll:') ? 'pll' : c.id.startsWith('coll:') ? 'coll' : 'oll';   // a CMLL case either orients or swaps corners
   const llGroups = kind => kind === 'cmll' ? CMLL_GROUPS : kind === 'pll' ? PLL : kind === 'coll' ? COLL : OLL_FULL;
@@ -2459,6 +2476,7 @@ body.racing { overflow: hidden; }
     if (kind === 'pll' && pool === '2look') all = all.filter(c => TWO_LOOK_PLL.includes(c.id));
     if (pool === 'learned' || pool === 'new') { const f = all.filter(c => (pool === 'learned') === !!db.learned[c.id]); if (f.length) return f; }
     if (pool === 'weak') { const w = slowest(all, 5); if (w.length >= 3) return w.map(x => x.c); }
+    if (pool === 'focus') return focusPick(all);
     return all;
   }
   const randAuf = () => ['', 'U', "U'", 'U2'][Math.floor(Math.random() * 4)];
@@ -2494,6 +2512,7 @@ body.racing { overflow: hidden; }
         ${T.pic ? `<div class="f2lt-pic">${llDiagramSetup(T.scr, zbOn ? 'pll' : ck)}</div>` : ''}
         <div class="chips" style="margin-top:12px">${LL_POOLS[kind].map(([k, l]) => `<button type="button" class="chip" data-llt="pool:${k}" aria-pressed="${T.pool === k}">${l}</button>`).join('')}
           <button type="button" class="chip" data-llt="pic" aria-pressed="${!T.pic}">Hide picture</button>${kind === 'coll' ? `<button type="button" class="chip" data-llt="zb" aria-pressed="${T.zb}">Random edges (ZBLL cases)</button>` : ''}</div>
+        ${focusNote(llGroups(kind).flatMap(g => g.items), c)}
       </section>
       <section class="panel">
         ${trClockHtml(zbOn ? 'last layer' : goal)}
