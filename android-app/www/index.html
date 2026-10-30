@@ -269,6 +269,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .p3d-moves span { font-family: var(--font-mono); font-size: 15px; padding: 3px 7px; border-radius: 6px; border: 1px solid var(--line); }
 .p3d-moves span.done { color: var(--muted); border-color: transparent; }
 .p3d-moves span.cur { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.p3d-moves span.pause { border-left: 3px solid var(--hold); }
+.p3d-moves span.pause::before { content: attr(data-p) " "; color: var(--hold); font-size: 11px; }
 .p3d-ctl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .p3d-ctl select { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
 
@@ -280,6 +282,20 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .learn-btn[aria-pressed="true"] { background: var(--ready); border-color: var(--ready); color: var(--accent-ink); }
 .case .setup { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 .case .setup span { font-family: var(--font-mono); color: var(--ink); word-spacing: .15em; overflow-wrap: anywhere; }
+.plan { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.plan-item { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.plan-item:last-child { border-bottom: 0; }
+.plan-item b { font-family: var(--font-display); font-size: 17px; letter-spacing: .02em; }
+.plan-item p { margin: 2px 0 6px; font-size: 13px; color: var(--muted); }
+.plan-tick { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--sunk); font-family: var(--font-mono); font-size: 13px; }
+.plan-item.done .plan-tick { background: var(--ready); color: var(--accent-ink); }
+.plan-item.done b { color: var(--muted); }
+.plan-bar { height: 5px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.plan-bar i { display: block; height: 100%; background: var(--ready); }
+.plan-count { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+.plan-win { border-left-color: var(--ready); background: color-mix(in srgb, var(--ready) 10%, transparent); }
+.plan-win b { color: var(--ready); }
+@media (max-width: 520px) { .plan-item { grid-template-columns: 28px minmax(0, 1fr) auto; } .plan-item .btn { grid-column: 2 / -1; justify-self: start; } }
 .saved-card { display: flex; flex-direction: column; gap: 6px; }
 .saved-card h3 { margin: 0; font-family: var(--font-mono); font-size: 26px; font-weight: 500; display: flex; gap: 4px 10px; align-items: baseline; flex-wrap: wrap; }
 .saved-card h3 small { font-family: var(--font-body); font-size: 12px; color: var(--muted); }
@@ -1114,21 +1130,30 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     return st;
   }
   const F2L_VIEW = { yaw: -0.62, pitch: 0.5 }, LL_VIEW = { yaw: -0.62, pitch: 0.8 };
-  // back-slot F2L cases are shown from behind, looking at the slot (a quarter and a half turn round)
-  const BR_VIEW = { yaw: -0.62 - Math.PI / 2, pitch: 0.5 }, BL_VIEW = { yaw: -0.62 + Math.PI, pitch: 0.5 };
+  // the other slots' F2L cases are shown looking at that slot (a quarter or half turn round)
+  const FL_VIEW = { yaw: -0.62 + Math.PI / 2, pitch: 0.5 }, BR_VIEW = { yaw: -0.62 - Math.PI / 2, pitch: 0.5 }, BL_VIEW = { yaw: -0.62 + Math.PI, pitch: 0.5 };
   function f2l3D(alg, view) { return f2l3DSetup(Cube.invert(alg), view); }
   function f2l3DSetup(setup, view = F2L_VIEW) {
     const st = markGrey(Cube.apply(Cube.solved(3), 3, setup));
     return Cube3D.svg(Cube3D.frame(st, { ...view, body: 'var(--plastic)', colorOf: k => k.grey ? 'var(--ll-off)' : PAL_LL[k.col] }), 'F2L case in 3D: yellow on top, green in front');
   }
 
-  const P3 = { open: false, c: null, st: null, moves: [], idx: 0, anim: null, playing: false, yaw: 0, pitch: 0, speed: 1, allColors: false, raf: 0, drag: null };
+  const P3 = { open: false, c: null, st: null, moves: [], idx: 0, anim: null, playing: false, yaw: 0, pitch: 0, speed: 1, allColors: false, raf: 0, drag: null, times: null, real: false, t0: 0 };
+  // A smart-cube solve can be replayed at the speed it was done: each move starts when it did in the solve,
+  // and pauses of half a second or more are marked in red in the move list.
+  const PAUSE_MS = 500;
+  const gapBefore = i => P3.times && i > 0 ? P3.times[i] - P3.times[i - 1] : 0;
   function p3dReset() {
     P3.st = markGrey(Cube.apply(Cube.solved(3), 3, P3.c.setup || Cube.invert(P3.c.alg)));
     P3.idx = 0; P3.anim = null; P3.playing = false; p3dUI();
   }
   function openPlayer(c) {
     P3.c = c; P3.moves = Cube.tokens(c.alg);
+    P3.times = c.times && c.times.length === P3.moves.length ? c.times : null;
+    const sp = $('p3dSpeed'), realOpt = sp.querySelector('option[value="real"]');
+    if (P3.times && !realOpt) sp.insertAdjacentHTML('beforeend', '<option value="real">As you solved it</option>');
+    if (!P3.times && realOpt) realOpt.remove();
+    P3.real = !!P3.times; sp.value = P3.real ? 'real' : String(P3.speed);
     Object.assign(P3, c.view || (c.mode === 'f2l' || c.mode === 'sb' ? F2L_VIEW : LL_VIEW));
     $('p3dTitle').textContent = c.name + (c.mode === 'pll' ? ' perm' : '');
     $('p3dAllWrap').hidden = c.mode !== 'f2l' && c.mode !== 'sb';
@@ -1145,7 +1170,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (i < 0 || i >= P3.moves.length) return;
     const mv = Cube.parse(P3.moves[i], 3);
     if (!mv) { P3.idx += dir; p3dUI(); return; }
-    P3.anim = { i, dir, mv, t0: performance.now(), dur: (mv.times === 2 ? 560 : 380) / P3.speed };
+    const base = (mv.times === 2 ? 560 : 380) / P3.speed, gap = P3.real && P3.times && dir > 0 && i + 1 < P3.moves.length ? P3.times[i + 1] - P3.times[i] : Infinity;
+    P3.anim = { i, dir, mv, t0: performance.now(), dur: P3.real ? Math.min(380, Math.max(60, gap * .9)) : base };
     p3dUI();
   }
   function p3dTick(now) {
@@ -1158,7 +1184,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         Cube.apply(P3.st, 3, A.dir > 0 ? tok : Cube.invert(tok));
         P3.idx += A.dir; P3.anim = null; p3dUI();
         if (P3.playing) {
-          if (P3.idx < P3.moves.length) setTimeout(() => { if (P3.playing) p3dStep(1); }, 160);
+          if (P3.idx < P3.moves.length) setTimeout(() => { if (P3.playing) p3dStep(1); }, P3.real ? Math.max(0, P3.t0 + P3.times[P3.idx] - performance.now()) : 160);
           else { P3.playing = false; p3dUI(); }
         }
       } else turning = { pick: A.mv.pick, ax: A.mv.ax, angle: A.dir * A.mv.q * A.mv.times * (Math.PI / 2) * e };
@@ -1180,22 +1206,27 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     }
   }
   function p3dUI() {
-    $('p3dMoves').innerHTML = P3.moves.map((m, i) => `<span class="${P3.anim && P3.anim.i === i ? 'cur' : i < P3.idx ? 'done' : ''}">${esc(m)}</span>`).join('');
+    $('p3dMoves').innerHTML = P3.moves.map((m, i) => { const g = gapBefore(i), pause = g >= PAUSE_MS;
+      return `<span class="${P3.anim && P3.anim.i === i ? 'cur' : i < P3.idx ? 'done' : ''}${pause ? ' pause' : ''}"${pause ? ` data-p="${(g / 1000).toFixed(1)}s" title="You paused ${(g / 1000).toFixed(1)}s before this move"` : ''}>${esc(m)}</span>`; }).join('');
     const end = P3.idx >= P3.moves.length;
     $('p3dPlay').textContent = P3.playing ? 'Pause' : end ? 'Replay' : 'Play';
-    $('p3dStatus').textContent = P3.idx === 0 && !P3.anim ? (P3.c.setup ? 'This is the scramble with white on the bottom. Press Play or Step to watch.' : 'This is the case. Press Play or Step to see the algorithm.')
+    const cur = P3.anim ? P3.anim.i : P3.idx - 1, pausedHere = P3.real && cur > 0 && gapBefore(cur) >= PAUSE_MS ? ` · you paused ${(gapBefore(cur) / 1000).toFixed(1)}s before this move` : '';
+    $('p3dStatus').textContent = P3.idx === 0 && !P3.anim ? (P3.times ? 'This is the scramble with white on the bottom. Press Play to watch it at the speed you solved it; the red marks are your pauses.' : P3.c.setup ? 'This is the scramble with white on the bottom. Press Play or Step to watch.' : 'This is the case. Press Play or Step to see the algorithm.')
       : end && !P3.anim ? (P3.c.mode === 'f2l' ? 'Done: the pair is in its slot.' : P3.c.mode === 'cross' ? 'Done: the white cross is solved (white on top here).' : P3.c.mode === 'solve' ? 'Done: the cube is solved.' : P3.c.mode === 'roux' ? 'Done: the first block is built.' : P3.c.mode === 'sb' ? 'Done: both blocks are built.' : P3.c.mode === 'lse' ? 'Done: the cube is solved.' : 'Done: the case is solved.')
-      : `Move ${(P3.anim ? P3.anim.i : P3.idx - 1) + 1} of ${P3.moves.length}`;
+      : `Move ${cur + 1} of ${P3.moves.length}` + (P3.real && cur >= 0 ? ` · ${fmt(P3.times[cur])}` : '') + pausedHere;
   }
   $('p3dPlay').addEventListener('click', () => {
     if (P3.playing) { P3.playing = false; p3dUI(); return; }
     if (P3.idx >= P3.moves.length && !P3.anim) p3dReset();
-    P3.playing = true; p3dUI(); p3dStep(1);
+    P3.playing = true; P3.t0 = performance.now() - (P3.times ? P3.times[P3.idx] : 0); p3dUI(); p3dStep(1);
   });
   $('p3dFwd').addEventListener('click', () => { P3.playing = false; p3dStep(1); });
   $('p3dBack').addEventListener('click', () => { P3.playing = false; p3dStep(-1); });
   $('p3dReset').addEventListener('click', () => { if (!P3.anim) p3dReset(); });
-  $('p3dSpeed').addEventListener('change', e => { P3.speed = +e.target.value || 1; });
+  $('p3dSpeed').addEventListener('change', e => {
+    P3.real = e.target.value === 'real'; if (!P3.real) P3.speed = +e.target.value || 1;
+    if (P3.playing && P3.times) P3.t0 = performance.now() - P3.times[P3.idx];
+  });
   $('p3dAll').addEventListener('change', e => { P3.allColors = e.target.checked; });
   $('p3dClose').addEventListener('click', closePlayer);
   $('p3d').addEventListener('click', e => { if (e.target.id === 'p3d') closePlayer(); });
@@ -1720,15 +1751,16 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     }
     else if (b.dataset.save !== undefined) { const s = db.solves[db.event][+b.dataset.save]; if (s) { toggleSaved(s); renderList(solvesFor(db.event), db.goal * 1000); renderLastActions(); } }
     else if (b.dataset.sv) savedAction(b.dataset.sv);
+    else if (b.dataset.plan) planAction(b.dataset.plan);
     else if (b.dataset.sol3d) {
       const [w, i] = b.dataset.sol3d.split(':'), s = solvesFor(db.event)[+i]; if (!s) return;
       const alg = w === 'best' ? (bestFor(s.scr) || { steps: [] }).steps.map(x => x.alg).filter(Boolean).join(' ') : (yourMoves(s) || []).join(' ');
-      if (alg) openPlayer({ id: 'sol', name: w === 'best' ? 'Best way' : 'Your solve', alg, mode: 'solve', setup: s.scr + ' z2' });
+      if (alg) openPlayer({ id: 'sol', name: w === 'best' ? 'Best way' : 'Your solve', alg, mode: 'solve', setup: s.scr + ' z2', times: w === 'best' ? null : s.mt });
     }
     else if (b.dataset.cross) crossAction(b.dataset.cross);
     else if (b.dataset.p3d) { const c = caseById(b.dataset.p3d); if (c) openPlayer(c); }
     else if (b.dataset.drill !== undefined) { const c = caseById(b.dataset.drill); if (c) startDrill(c); }
-    else if (b.dataset.learn !== undefined) { const id = b.dataset.learn; db.learned[id] = !db.learned[id]; save(); renderLearn(); }
+    else if (b.dataset.learn !== undefined) { const id = b.dataset.learn; db.learned[id] = !db.learned[id]; if (db.learned[id]) (db.learnedAt = db.learnedAt || {})[id] = Date.now(); save(); renderLearn(); }
     else if (b.dataset.lset) { learnSet = lastStep[learnMethod] = pageOf(b.dataset.lset); renderLearn(); }
     else if (b.dataset.method) { learnMethod = b.dataset.method; learnSet = pageOf(stepOf(lastStep[learnMethod] || METHODS[learnMethod].steps[0][0])); renderLearn(); }
     else if (b.dataset.lmode) { db.learnMode = b.dataset.lmode; save(); learnSet = lastStep[learnMethod] = pageOf(stepOf(learnSet)); renderLearn(); }
@@ -2058,12 +2090,13 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       { id: 'f2l:41', name: 'F2L 41', alg: "R U F R U R' U' F' R'" },
     ] },
   ];
-  // Back-slot F2L, solved without turning the cube. Back-right is the mirror image of front-right (F and B
-  // swapped, every turn reversed: R U R' becomes R' U' R); back-left is front-right turned round (R and L,
-  // F and B swapped). All 82 were checked in the cube model: each keeps the cross and the other three slots,
+  // F2L for the other three slots, solved without turning the cube. Front-left is the mirror image of front-right
+  // (R and L swapped, every turn reversed: R U R' becomes L' U' L), back-right the mirror the other way (F and B
+  // swapped, turns reversed: R' U' R), and back-left is front-right turned round (R and L, F and B swapped).
+  // All 123 were checked in the cube model: each keeps the cross and the other three slots,
   // solves its case (up to a U turn), and no two cases in a slot are the same.
   const slotAlg = (alg, faces, flip) => Cube.tokens(alg).map(t => { const f = faces[t[0]] || t[0], m = t.slice(1); return f + (m === '2' ? '2' : flip ? (m === "'" ? '' : "'") : m); }).join(' ');
-  const F2L_BACK = [['br', 'Back-right', { F: 'B', B: 'F' }, true, BR_VIEW], ['bl', 'Back-left', { R: 'L', L: 'R', F: 'B', B: 'F' }, false, BL_VIEW]]
+  const F2L_BACK = [['fl', 'Front-left', { R: 'L', L: 'R' }, true, FL_VIEW], ['br', 'Back-right', { F: 'B', B: 'F' }, true, BR_VIEW], ['bl', 'Back-left', { R: 'L', L: 'R', F: 'B', B: 'F' }, false, BL_VIEW]]
     .flatMap(([k, slot, faces, flip, view]) => F2L.map(g => ({ group: slot + ' · ' + g.group, items: g.items.map(c => ({ id: 'f2lb:' + k + c.id.slice(4), name: k.toUpperCase() + ' ' + c.id.slice(4), alg: slotAlg(c.alg, faces, flip), view })) })));
   // Full OLL. Every algorithm was checked in the cube model: it keeps the first two layers,
   // and the 57 cases are all different (so together they cover every OLL).
@@ -2246,8 +2279,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     { group: 'Look 2 · Swap the corners', items: PLL.flatMap(g => g.items).filter(c => c.id === 'pll:t' || c.id === 'pll:y'), mode: 'pll' },
   ];
   const SETS = {
-    f2lb: { title: 'F2L back slots', lead: 'The same 41 cases in the back-right (BR) and back-left (BL) slots, solved without turning the cube. Back-right is the mirror image of front-right: R U R\' becomes R\' U\' R. Back-left is front-right turned round: R becomes L and F becomes B. Each picture looks at the slot from behind. Grey stickers are last-layer pieces that do not matter yet.', groups: F2L_BACK, mode: 'f2l' },
-    f2l: { title: 'F2L', lead: 'Pair a white corner with its matching edge, then insert the pair into its slot. These cases solve the front-right slot with yellow on top. For the other slots, turn the cube so the slot is front-right, or learn the back slots in F2L back. Grey stickers are last-layer pieces that do not matter yet.', groups: F2L, mode: 'f2l' },
+    f2lb: { title: 'F2L in the other slots', lead: 'The same 41 cases in the front-left (FL), back-right (BR) and back-left (BL) slots, solved without turning the cube. Front-left is the mirror image of front-right (R U R\' becomes L\' U\' L), back-right the mirror the other way (R\' U\' R), and back-left is front-right turned round (R becomes L, F becomes B). Each picture looks at its slot. Grey stickers are last-layer pieces that do not matter yet.', groups: F2L_BACK, mode: 'f2l' },
+    f2l: { title: 'F2L', lead: 'Pair a white corner with its matching edge, then insert the pair into its slot. These cases solve the front-right slot with yellow on top. For the other slots, turn the cube so the slot is front-right, or learn the other slots in Other slots. Grey stickers are last-layer pieces that do not matter yet.', groups: F2L, mode: 'f2l' },
     notation: { title: 'Notation', lead: 'How to read an algorithm. Each letter turns one face a quarter turn clockwise, as if you were looking straight at that face.' },
     oll: { title: '2-Look OLL', lead: 'Get the whole top face yellow in two steps: first the cross, then the corners. Ten algorithms, and the first three share one trigger.', groups: OLL, mode: 'oll' },
     ollf: { title: 'Full OLL', lead: 'All 57 OLL cases, grouped by the shape the yellow stickers make on top. Each one makes the whole top face yellow in a single algorithm. Learn 2-look OLL first: its 7 corner cases are OLL 21 to 27 here.', groups: OLL_FULL, mode: 'oll' },
@@ -2266,6 +2299,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     lset: { title: 'LSE', lead: 'Practise the last six edges: set up a case with M and U turns, solve it, and compare with the shortest way.' },
     f2lt: { title: 'F2L trainer', lead: 'Practise one F2L pair at a time: set up a random case, recognise it, insert it, and see how long each part took.' },
     cross: { title: 'Cross', lead: 'Practise planning the cross. Sub-X finds the shortest possible cross for every scramble, so you can compare it with yours.' },
+    today: { title: 'Today', lead: 'A short practice plan made from your own times: your slowest step, your slowest cases, a few new cases to learn and some timed solves. It changes every day. Each part ticks off as you do it.' },
     saved: { title: 'My solves', lead: 'Solves you saved from the Timer, like a new best. Do the same scramble again to try to beat it, or watch how you solved it in 3D, one move at a time. Saved solves stay here when you clear a session, and are in backups.' },
     quiz: { title: 'Recognition drill', lead: 'Name the case, then reveal it. This uses spaced repetition: cases you miss come back within minutes, and cases you know come back after 1, 3, 7, 16 and then 35 days. Your schedule is saved and included in backups.' },
   };
@@ -2283,8 +2317,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const caseById = id => ALL_CASES.find(c => c.id === id);
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
-    cfop: { name: 'CFOP', steps: [['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'F2L back'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation']] },
-    roux: { name: 'Roux', steps: [['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['saved', 'My solves'], ['notation', 'Notation']] },
+    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation']] },
+    roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['saved', 'My solves'], ['notation', 'Notation']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
   const ROUX_PAGES = { fb: { teach: 'fb', train: 'fbt' }, sb: { teach: 'sb', train: 'sbt' }, cmll: { teach: 'cmll', train: 'cmllt' }, lse: { teach: 'lse', train: 'lset' } };
@@ -2567,7 +2601,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (a.startsWith('case:')) newF2L(a.slice(5));
     else if (a === 'pic') f2lt.pic = !f2lt.pic;
     else if (a === 'reveal') f2lt.shown = !f2lt.shown;
-    else if (a === 'learn') { db.learned[f2lt.c.id] = !db.learned[f2lt.c.id]; save(); }
+    else if (a === 'learn') { db.learned[f2lt.c.id] = !db.learned[f2lt.c.id]; if (db.learned[f2lt.c.id]) (db.learnedAt = db.learnedAt || {})[f2lt.c.id] = Date.now(); save(); }
     renderF2LT();
   }
 
@@ -2646,7 +2680,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (a === 'pic') T.pic = !T.pic;
     else if (a === 'zb') { T.zb = !T.zb; newLL(kind, T.c && T.c.id); }
     else if (a === 'reveal') T.shown = !T.shown;
-    else if (a === 'learn') { db.learned[T.c.id] = !db.learned[T.c.id]; save(); }
+    else if (a === 'learn') { db.learned[T.c.id] = !db.learned[T.c.id]; if (db.learned[T.c.id]) (db.learnedAt = db.learnedAt || {})[T.c.id] = Date.now(); save(); }
     renderLLT();
   }
 
@@ -3260,6 +3294,70 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   })();
 
 
+  // ---------- Learn → Today: a daily practice plan from your own times ----------
+  // Made once a day per method and kept until midnight. Progress counts what you did today: timed tries in a
+  // trainer, cases marked learned, and timed solves. CFOP: your slowest step (from smart-cube splits), the
+  // trainer with your slowest case, new cases from the next set you haven't finished, and 12 solves.
+  const dayStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const LEARN_ORDER = [['oll', '2-Look OLL'], ['pll', 'PLL'], ['f2l', 'F2L cases'], ['f2lb', 'F2L other slots'], ['ollf', 'Full OLL'], ['coll', 'COLL']];
+  const PHASE_PAGE = ['cross', 'f2lt', 'ollt', 'pllt'], PAGE_NAME = { cross: 'Cross', f2lt: 'F2L trainer', ollt: 'OLL trainer', pllt: 'PLL trainer', collt: 'COLL trainer', fbt: 'First block', sbt: 'Second block', cmllt: 'CMLL', lset: 'LSE' };
+  function makePlan(method) {
+    const items = [];
+    if (method === 'roux') {
+      items.push({ kind: 'train', page: 'fbt', n: 5, why: 'Plan the first block during inspection: the biggest step in Roux.' });
+      const w = slowest(CMLL_GROUPS.flatMap(g => g.items), 1)[0];
+      items.push({ kind: 'train', page: 'cmllt', n: 6, why: w ? `Your slowest CMLL case is ${w.c.name} (${fmt(w.a.tot)}).` : 'Two-look CMLL, recognition and solving.' });
+      items.push({ kind: 'train', page: 'lset', n: 5, why: 'Last six edges with M and U turns.' });
+    } else {
+      // 1. the step that takes the biggest share of your smart-cube solves, compared with most CFOP solvers
+      const sp = solvesFor('333').concat(solvesFor('oh')).filter(x => x.splits).slice(-12);
+      if (sp.length) {
+        const avg = [0, 1, 2, 3].map(i => sp.reduce((a, x) => a + phaseTimes(x.splits)[i], 0) / sp.length), tot = avg.reduce((a, b) => a + b, 0) || 1;
+        const r = avg.map((v, i) => v / (tot * TYPICAL[i])), i = r.indexOf(Math.max(...r));
+        items.push({ kind: 'train', page: PHASE_PAGE[i], n: 8, why: `${PHASES[i]} is your slowest step: ${fmt(avg[i])} on average in your last ${sp.length} smart-cube solve${sp.length === 1 ? '' : 's'}.` });
+      } else items.push({ kind: 'train', page: 'cross', n: 5, why: 'Plan the whole cross in inspection. (With a smart cube, this picks your slowest step instead.)' });
+      // 2. the trainer with your slowest case
+      const worst = [['f2lt', F2L], ['ollt', OLL_FULL], ['pllt', PLL], ['collt', COLL]].map(([page, groups]) => ({ page, w: slowest(groups.flatMap(g => g.items), 1)[0] })).filter(x => x.w && !items.some(it => it.page === x.page)).sort((a, b) => b.w.a.tot - a.w.a.tot)[0];
+      if (worst) items.push({ kind: 'train', page: worst.page, n: 6, why: `Your slowest case is ${worst.w.c.name} (${fmt(worst.w.a.tot)} to recognise and solve). The trainer focuses on your slowest.` });
+      else if (!items.some(x => x.page === 'f2lt')) items.push({ kind: 'train', page: 'f2lt', n: 6, why: 'F2L pairs, one at a time. Once you have times, it focuses on your slowest.' });
+      // 3. new cases from the first set you haven't finished
+      const set = LEARN_ORDER.find(([k]) => ALL_CASES.some(c => c.id.startsWith(k + ':') && !db.learned[c.id]));
+      if (set) items.push({ kind: 'learn', page: set[0], n: 2, why: `Learn 2 new cases in ${set[1]}: watch them in 3D, drill them, then mark them learned.` });
+    }
+    items.push({ kind: 'solves', page: 'timer', n: 12, why: 'Twelve timed solves for a fresh ao12.' });
+    return { day: dayStart(), items };
+  }
+  function planDone(it) {
+    const t0 = dayStart();
+    if (it.kind === 'train') return ((db.trHist || {})[it.page] || []).filter(r => (r.t || 0) >= t0).length;
+    if (it.kind === 'learn') return Object.entries(db.learnedAt || {}).filter(([id, t]) => t >= t0 && db.learned[id] && id.startsWith(it.page + ':')).length;
+    return Object.keys(EVENTS).concat(Object.keys(db.sessions)).reduce((n, k) => n + (db.solves[k] || []).filter(x => x.t >= t0 && !x.ex).length, 0);
+  }
+  function renderToday() {
+    db.plan = db.plan || {};
+    let P = db.plan[learnMethod];
+    if (!P || P.day !== dayStart()) { P = db.plan[learnMethod] = makePlan(learnMethod); save(); }
+    const rows = P.items.map((it, i) => {
+      const d = Math.min(planDone(it), it.n), ok = d >= it.n;
+      const title = it.kind === 'train' ? `${PAGE_NAME[it.page] || it.page}: ${it.n} timed tries` : it.kind === 'learn' ? `Learn ${it.n} new cases` : `${it.n} timed solves`;
+      return `<li class="plan-item${ok ? ' done' : ''}"><span class="plan-tick" aria-hidden="true">${ok ? '✓' : i + 1}</span>
+        <div><b>${esc(title)}</b><p>${esc(it.why)}</p><div class="plan-bar" role="img" aria-label="${d} of ${it.n} done"><i style="width:${Math.round(d / it.n * 100)}%"></i></div></div>
+        <span class="plan-count">${d}/${it.n}</span>${ok ? '' : `<button type="button" class="btn" data-plan="go:${i}">Start</button>`}</li>`;
+    });
+    const all = P.items.every(it => planDone(it) >= it.n);
+    $('learnBody').innerHTML = `<section class="panel" style="max-width:780px">
+      ${all ? '<p class="callout plan-win"><b>Done for today</b>Nice work. A new plan comes tomorrow.</p>' : ''}
+      <ol class="plan">${rows.join('')}</ol>
+      <div class="row-btns" style="margin-top:10px"><button type="button" class="mini-btn" data-plan="new">Make a new plan</button></div>
+    </section>`;
+  }
+  function planAction(a) {
+    if (a === 'new') { delete db.plan[learnMethod]; save(); renderToday(); return; }
+    const it = db.plan[learnMethod].items[+a.slice(3)]; if (!it) return;
+    if (it.page === 'timer') { location.hash = 'timer'; return; }
+    learnSet = lastStep[learnMethod] = it.page; renderLearn(); window.scrollTo(0, 0);
+  }
+
   // ---------- Learn → My solves ----------
   const is3x3 = s => ['333', 'oh'].includes(s.ev) && Cube.tokens(s.scr).length > 0 && Cube.tokens(s.scr).every(t => /^[URFDLB](2|')?$/.test(t));
   function renderSaved() {
@@ -3292,7 +3390,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       location.hash = 'timer';
     } else if (w === 'mine' || w === 'best') {
       const alg = w === 'best' ? (bestFor(s.scr) || { steps: [] }).steps.map(x => x.alg).filter(Boolean).join(' ') : (yourMoves(s) || []).join(' ');
-      if (alg) openPlayer({ id: 'sol', name: w === 'best' ? 'Best way' : `Your ${fmtSolve(s)} solve`, alg, mode: 'solve', setup: s.scr + ' z2' });
+      if (alg) openPlayer({ id: 'sol', name: w === 'best' ? 'Best way' : `Your ${fmtSolve(s)} solve`, alg, mode: 'solve', setup: s.scr + ' z2', times: w === 'best' ? null : s.mt });
     } else if (w === 'del') {
       const at = db.saved.indexOf(s); db.saved.splice(at, 1); save(); renderSaved();
       toast('Removed from My solves', () => { db.saved.splice(at, 0, s); save(); if (view === 'learn' && learnSet === 'saved') renderSaved(); });
@@ -3325,6 +3423,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       return;
     }
     if (learnSet === 'quiz') { renderQuiz(); return; }
+    if (learnSet === 'today') { renderToday(); return; }
     if (learnSet === 'saved') { renderSaved(); return; }
     if (TRAINERS.includes(learnSet)) { renderTrainer(); return; }
     if (learnSet === 'fb' || learnSet === 'sb' || learnSet === 'lse') { renderExample(learnSet); return; }
