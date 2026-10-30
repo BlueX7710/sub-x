@@ -611,6 +611,9 @@ body.racing { overflow: hidden; }
             <option value="gen">Generated</option>
             <option value="daily">Daily 5</option>
             <option value="own">My own</option>
+            <option value="f2lR">F2L: right hand</option>
+            <option value="f2lL">F2L: left hand</option>
+            <option value="f2lB">F2L: both hands</option>
           </select>
         </label>
         <label class="ctl" for="goal">Goal sub
@@ -868,6 +871,7 @@ body.racing { overflow: hidden; }
   function genSkewb(rnd) { return randomMoves(['R', 'L', 'U', 'B'], 10, rnd).join(' '); }
 
   function genScramble(ev, rnd = Math.random) {
+    if (OLD_APP) return BAD_SCRAMBLE;
     const e = EVENTS[ev], out = [];
     if (e.gen) return e.gen(rnd);
     let last = null, prev = null;
@@ -880,6 +884,30 @@ body.racing { overflow: hidden; }
       prev = last; last = f;
     }
     return out.join(' ');
+  }
+  // Android apps older than 1.4 get bad scrambles (moves that cancel out), so people move to the new
+  // version. From 1.4 on, the app adds "SubX/<version>" to its user agent.
+  const OLD_APP = (() => {
+    const C = window.Capacitor; if (!(C && C.isNativePlatform && C.isNativePlatform())) return false;
+    const m = navigator.userAgent.match(/SubX\/(\d+)\.(\d+)/); return !m || +m[1] * 100 + +m[2] < 104;
+  })();
+  const BAD_SCRAMBLE = "R R' U U' F F' L L' D D' B B'";
+  // F2L practice scrambles: the cross stays solved while the pairs and the last layer get mixed. They are
+  // built from inserts that bring the bottom edges back (U R U' R', U R' U2 R, ...), so every pair can be
+  // solved with just those faces and U, without turning the cube: right hand (R U), left hand (L U) or both.
+  // Done holding white on the bottom and green in front.
+  const F2L_HANDS = { f2lR: { faces: ['R'], name: 'right hand', moves: 'R and U' }, f2lL: { faces: ['L'], name: 'left hand', moves: 'L and U' }, f2lB: { faces: ['R', 'L'], name: 'both hands', moves: 'R, L and U' } };
+  const f2lMode = () => !drill && !!F2L_HANDS[db.scrMode] && ['333', 'oh'].includes(EV());
+  const f2lDoneBottom = st => st.every(k => k.p[1] === 2 || k.col === (k.n[0] ? (k.n[0] > 0 ? 'R' : 'L') : k.n[1] ? (k.n[1] > 0 ? 'U' : 'D') : (k.n[2] > 0 ? 'F' : 'B')));
+  function genF2L(mode) {
+    if (OLD_APP) return BAD_SCRAMBLE;
+    const faces = F2L_HANDS[mode].faces, U = ['U', "U'", 'U2'], pick = a => a[Math.floor(Math.random() * a.length)];
+    for (;;) {
+      const toks = [];
+      for (let i = 0; i < 6; i++) { const f = pick(faces), d = Math.random() < .5 ? '' : "'"; toks.push(pick(U), f + d, pick(U), f + (d ? '' : "'")); }
+      const scr = Solver.simplify(toks).join(' ');
+      if (!f2lDoneBottom(Cube.apply(Cube.solved(3), 3, scr))) return scr;
+    }
   }
   // A generator seeded by a string (FNV-1a hash, then mulberry32), so everyone gets the same daily scrambles.
   function seeded(str) {
@@ -1190,7 +1218,15 @@ body.racing { overflow: hidden; }
       scramble = (Cube.invert(drill.alg) + ' ' + ['', 'U', "U'", 'U2'][Math.floor(Math.random() * 4)]).trim();
       $('scrLabel').innerHTML = `<strong>Drill: ${esc(drill.name)}</strong><span>Setup moves</span><button class="mini-btn" id="exitDrill" type="button">Back to scrambles</button>`;
       $('drillNote').hidden = false;
-      $('drillNote').textContent = 'Hold a solved cube with yellow on top and green in front, do these setup moves, then solve the case. You may need to turn the top layer first so the case lines up. Drill times are not saved to your session.';
+      $('drillNote').textContent = 'Hold a solved cube with yellow on top and green in front, do these setup moves, then solve the case. You may need to turn the top layer first so the case lines up. Drill times stay out of your session: each case keeps its own, shown on its card in Learn.';
+      $('scrCard').classList.add('drill');
+      $('net').hidden = false; drawNet(scramble, 3, PAL_LL);
+    } else if (f2lMode()) {
+      const H = F2L_HANDS[db.scrMode];
+      scramble = genF2L(db.scrMode);
+      $('scrLabel').innerHTML = `<strong>F2L · ${H.name}</strong><button class="mini-btn" id="newScr" type="button">New</button><button class="mini-btn" id="copyScr" type="button">Copy</button>`;
+      $('drillNote').hidden = false;
+      $('drillNote').textContent = `Hold a solved cube with white on the bottom and green in front, and do these moves. The cross stays solved: solve the four pairs with only ${H.moves} turns, without turning the cube. The timer stops at the end of F2L on a smart cube; otherwise stop it when the pairs are in. Tip: make a session for this so the times stay apart from full solves.`;
       $('scrCard').classList.add('drill');
       $('net').hidden = false; drawNet(scramble, 3, PAL_LL);
     } else if (db.scrMode === 'own') {
@@ -1226,6 +1262,7 @@ body.racing { overflow: hidden; }
     $('scramble').hidden = own; $('ownScr').hidden = !own;
     if (!own) { $('ownNote').hidden = true; $('scramble').textContent = scramble; }
     $('scramble').classList.toggle('long', !drill && ['444', '555'].includes(EV()));
+    if (OLD_APP) { $('drillNote').hidden = false; $('drillNote').textContent = 'This version of the Sub-X app is out of date, so its scrambles no longer work. Install Sub-X 1.4 from github.com/BlueX7710/sub-x/releases.'; }
   }
   // Cube events get a picture of the scrambled cube; Pyraminx and Skewb show the text only.
   function drawNetFor(s) { const N = EVENTS[EV()].n; $('net').hidden = !N; if (N) drawNet(s, N, PAL_WCA); }
@@ -1244,7 +1281,8 @@ body.racing { overflow: hidden; }
   }
   function startDrill(c) {
     if (EV() !== '333') { db.event = '333'; $('event').value = '333'; fillSessions(); save(); renderStats(); }
-    drill = { name: c.name, alg: c.alg, times: [] };
+    db.drillTimes = db.drillTimes || {};   // each case's drill times (last 50) are kept, so you see them next time too
+    drill = { name: c.name, alg: c.alg, times: db.drillTimes[c.id] || (db.drillTimes[c.id] = []) };
     justSolved = false; renderLastActions();
     newScramble(); setState('idle'); clock.textContent = '0.00';
     location.hash = 'timer';
@@ -1351,7 +1389,7 @@ body.racing { overflow: hidden; }
   // ---------- solution: the best way, and how you solved it ----------
   let solIdx = -1;
   const bestCache = new Map();
-  const solvable = s => !!EVENTS[EV()] && EVENTS[EV()].n === 3 && !!s.scr && Cube.tokens(s.scr).length > 0 && Cube.tokens(s.scr).every(t => /^[URFDLB](2|')?$/.test(t));
+  const solvable = s => !s.f2l && !!EVENTS[EV()] && EVENTS[EV()].n === 3 && !!s.scr && Cube.tokens(s.scr).length > 0 && Cube.tokens(s.scr).every(t => /^[URFDLB](2|')?$/.test(t));
   const bestFor = scr => { if (!bestCache.has(scr)) bestCache.set(scr, Solver.best(scr)); return bestCache.get(scr); };
   // your moves with white on the bottom: from a smart cube (which reports them white on top) or typed in
   const yourMoves = s => s.mv ? CrossSolver.flip(Cube.tokens(s.mv)) : s.my ? Cube.tokens(s.my) : null;
@@ -1461,14 +1499,15 @@ body.racing { overflow: hidden; }
     cancelAnimationFrame(raf); ignoreRelease = true;
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
     if (drill) {
-      drill.times.push(ms); clock.textContent = fmt(ms);
+      drill.times.push(ms); if (drill.times.length > 50) drill.times.shift(); save(); clock.textContent = fmt(ms);
       setState('idle'); return;
     }
     const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now() };
+    if (dailyOn) solve.daily = dailyOn;
+    if (f2lMode()) solve.f2l = db.scrMode;   // an F2L-only solve: no full-solve Solution for it
+    if (friendScr && friendScr.scr === scramble) { solve.shared = true; friendScr = null; }
     db.solves[db.event].push(solve); save();
     justSolved = true; openIdx = -1;
-    if (dailyOn) solve.daily = dailyOn;
-    if (friendScr && friendScr.scr === scramble) { solve.shared = true; friendScr = null; }
     clock.innerHTML = fmtSolve(solve).replace(/\+$/, '<span class="pen">+2</span>');
     setState('idle'); newScramble(); renderStats();
   }
@@ -1742,6 +1781,14 @@ body.racing { overflow: hidden; }
     }
     for (const [k, v] of Object.entries(data.learned || {})) if (v) db.learned[k] = true;
     for (const s of Array.isArray(data.saved) ? data.saved : []) if (s && typeof s.t === 'number' && typeof s.scr === 'string' && !savedOf(s)) db.saved.push(s);
+    // trainer and drill times: merged by time stamp (trainers) or kept if longer (drills)
+    for (const [k, list] of Object.entries(data.trHist || {})) if (Array.isArray(list)) {
+      const mine = db.trHist[k] = db.trHist[k] || [], seen = new Set(mine.map(r => r.t));
+      for (const r of list) if (r && typeof r.solve === 'number' && !(r.t && seen.has(r.t))) mine.push(r);
+      mine.sort((x, y) => (x.t || 0) - (y.t || 0));
+    }
+    db.drillTimes = db.drillTimes || {};
+    for (const [k, list] of Object.entries(data.drillTimes || {})) if (Array.isArray(list) && list.length > (db.drillTimes[k] || []).length) db.drillTimes[k] = list.filter(v => typeof v === 'number');
     db.srs = db.srs || {};
     for (const [k, v] of Object.entries(data.srs || {})) if (v && (!db.srs[k] || (v.seen || 0) > (db.srs[k].seen || 0))) db.srs[k] = v;
     for (const [k, v] of Object.entries(data.caseStats || {})) if (v && Array.isArray(v.rec) && (!db.caseStats[k] || (v.last || 0) > (db.caseStats[k].last || 0))) db.caseStats[k] = v;
@@ -2190,7 +2237,9 @@ body.racing { overflow: hidden; }
     else if (TR.phase === 'solve') {
       TR.phase = 'done'; TR.t2 = now;
       const D = trData();
-      D.hist.push({ plan: TR.t1 - TR.t0, solve: TR.t2 - TR.t1, moves: TR.moves }); D.shown = true;
+      D.hist.push({ plan: Math.round(TR.t1 - TR.t0), solve: Math.round(TR.t2 - TR.t1), moves: TR.moves, t: Date.now() }); D.shown = true;
+      if (D.hist.length > 200) D.hist.splice(0, D.hist.length - 200);
+      db.trHist[learnSet] = D.hist; save();
       if (D.c) recordCase(D.c.id, TR.t1 - TR.t0, TR.t2 - TR.t1);
     }
     else trNew();
@@ -2246,7 +2295,7 @@ body.racing { overflow: hidden; }
   // turns and TPS, for the attempts where the turns are known (smart cube, or moves typed in to check)
   const tpsLine = H => { const M = H.filter(r => r.moves); return M.length ? ` · ${avgOfList(M, r => r.moves).toFixed(1)} turns at ${tpsOf(M.reduce((a, r) => a + r.moves, 0), M.reduce((a, r) => a + r.solve, 0))} TPS` : ''; };
   // after a timed attempt, typed-in moves give its turn count too
-  function trTyped(D, n) { const last = TR.phase === 'done' && D.hist[D.hist.length - 1]; if (!last) return ''; if (!last.moves) last.moves = n; return ` At ${fmt(last.solve)} that's ${tpsOf(n, last.solve)} TPS.`; }
+  function trTyped(D, n) { const last = TR.phase === 'done' && D.hist[D.hist.length - 1]; if (!last) return ''; if (!last.moves) { last.moves = n; save(); } return ` At ${fmt(last.solve)} that's ${tpsOf(n, last.solve)} TPS.`; }
   // Turns are counted the usual way: R2 is one turn, and so is a slice turn. A smart cube reports M as
   // two face turns (R and L'), so turns of the two faces on one axis are added up together:
   // when they cancel out (R with L', R2 with L2) they were a slice turn.
@@ -2315,7 +2364,7 @@ body.racing { overflow: hidden; }
           <p class="lead">The same cross with white on top: ${esc(cross.sol.join(' ') || 'none')}</p>
           ${n ? '<button type="button" class="pill-btn" data-cross="3d">Watch in 3D</button>' : ''}
         </div>` : ''}
-        <p class="drill-stats">${H.length ? `This session: ${H.length} cross${H.length === 1 ? '' : 'es'} · average planning ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average cross ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'Shortest crosses are found by Sub-X itself, offline.'}</p>
+        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} cross${H.length === 1 ? '' : 'es'} · average planning ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average cross ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'Shortest crosses are found by Sub-X itself, offline.'}</p>
       </section></div>`;
     drawNet(cross.scr, 3, PAL_WCA, 'crossNet');
     const inp = $('crossTry'); inp.value = cross.try;
@@ -2381,7 +2430,7 @@ body.racing { overflow: hidden; }
           <p class="alg">${esc(c.alg)}</p>
           <div class="row-btns"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn learn-btn" data-f2lt="learn" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button></div>
         </div>` : ''}
-        <p class="drill-stats">${H.length ? `This session: ${H.length} pair${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The cube picture shows the case after the setup. Hide it to practise recognising the case on your real cube.'}</p>
+        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} pair${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The cube picture shows the case after the setup. Hide it to practise recognising the case on your real cube.'}</p>
         ${slowHtml(F2L.flatMap(g => g.items), 'f2lt')}
       </section></div>`;
     trTick();
@@ -2456,7 +2505,7 @@ body.racing { overflow: hidden; }
           ${hint ? `<p class="lead">From this setup: ${esc(hint)}.</p>` : ''}
           <div class="row-btns"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn learn-btn" data-llt="learn" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button></div>
         </div>` : ''}
-        <p class="drill-stats">${H.length ? `This session: ${H.length} case${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average ${zbOn ? 'last layer' : goal} ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'Hide the picture to practise recognising the case on your real cube.'}</p>
+        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} case${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average ${zbOn ? 'last layer' : goal} ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'Hide the picture to practise recognising the case on your real cube.'}</p>
         ${slowHtml(llGroups(kind).flatMap(g => g.items), 'llt')}
       </section></div>`;
     trTick();
@@ -2506,7 +2555,7 @@ body.racing { overflow: hidden; }
           <p class="alg">${esc([s.rot, ...s.moves].filter(Boolean).join(' ') || 'Already built')}</p>
           ${n ? '<button type="button" class="pill-btn" data-fbt="3d">Watch in 3D</button>' : ''}
         </div>` : ''}
-        <p class="drill-stats">${H.length ? `This session: ${H.length} block${H.length === 1 ? '' : 's'} · average planning ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average block ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'Shortest blocks are found by Sub-X itself, offline, on all four sides.'}</p>
+        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} block${H.length === 1 ? '' : 's'} · average planning ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average block ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'Shortest blocks are found by Sub-X itself, offline, on all four sides.'}</p>
       </section></div>`;
     drawNet(fbt.scr, 3, PAL_WCA, 'fbNet');
     const inp = $('fbTry'); inp.value = fbt.try;
@@ -2614,6 +2663,9 @@ body.racing { overflow: hidden; }
   }
   // Train: second block and LSE trainers
   const rx = Object.fromEntries(['sb', 'lse'].map(k => [k, { scr: '', sol: null, shown: false, pic: true, check: '', checkClass: '', try: '', hist: [] }]));
+  // every trainer's timed tries (last 200) are kept on this device and in backups, so its stats survive a reload
+  db.trHist = db.trHist || {};
+  for (const [k, D] of Object.entries({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })) if (Array.isArray(db.trHist[k])) D.hist = db.trHist[k];
   const rxKind = () => learnSet === 'sbt' ? 'sb' : 'lse';
   function newRx(kind) { const T = rx[kind]; T.scr = rxSetup(kind); T.sol = null; T.shown = false; T.check = ''; T.try = ''; trStart(T.scr, true); }
   function renderRx() {
@@ -2641,7 +2693,7 @@ body.racing { overflow: hidden; }
           <p class="alg">${esc(s.moves.join(' ') || 'Already done')}</p>
           ${n ? '<button type="button" class="pill-btn" data-rx="3d">Watch in 3D</button>' : ''}
         </div>` : ''}
-        <p class="drill-stats">${H.length ? `This session: ${H.length} case${H.length === 1 ? '' : 's'} · average planning ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average ${X.name} ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The shortest ways are found by Sub-X itself, offline.'}</p>
+        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} case${H.length === 1 ? '' : 's'} · average planning ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average ${X.name} ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The shortest ways are found by Sub-X itself, offline.'}</p>
       </section></div>`;
     const inp = $('rxTry'); inp.value = T.try;
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); rxAction('check'); } });
@@ -3118,6 +3170,13 @@ body.racing { overflow: hidden; }
       toast('Removed from My solves', () => { db.saved.splice(at, 0, s); save(); if (view === 'learn' && learnSet === 'saved') renderSaved(); });
     }
   }
+  // your saved times for a case: from its trainer (recognise + solve) and from drills on the timer
+  function caseTimesHtml(id) {
+    const a = caseAvg(id), d = (db.drillTimes || {})[id] || [], parts = [];
+    if (a) parts.push(`trainer <span>${fmt(a.rec)} + ${fmt(a.sol)}</span> (${a.n}×)`);
+    if (d.length) parts.push(`drills best <span>${fmt(Math.min(...d))}</span>, average <span>${fmt(mean(d.slice(-12)))}</span> (${d.length}×)`);
+    return parts.length ? `<p class="setup">Your times: ${parts.join(' · ')}</p>` : '';
+  }
   function renderLearn() {
     const set = SETS[learnSet];
     $('learnTitle').textContent = set.title;
@@ -3151,7 +3210,7 @@ body.racing { overflow: hidden; }
         const L = !!db.learned[c.id];
         html += `<article class="case${L ? ' learned' : ''}">${caseDiagram({ ...c, mode })}<h3>${esc(c.name)}${mode === 'pll' ? '<small>perm</small>' : ''}</h3><p class="alg">${esc(c.alg)}</p>` +
           (c.tip ? `<p class="tip">${esc(c.tip)}</p>` : '') +
-          `<p class="setup">Setup from solved: <span>${esc(Cube.invert(c.alg))}</span></p>` +
+          `<p class="setup">Setup from solved: <span>${esc(Cube.invert(c.alg))}</span></p>` + caseTimesHtml(c.id) +
           `<div class="acts"><button type="button" class="pill-btn learn-btn" data-learn="${c.id}" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn" data-drill="${c.id}">Drill on timer</button></div></article>`;
       }
       html += '</div>';
@@ -3429,7 +3488,7 @@ body.racing { overflow: hidden; }
   $('ownScr').addEventListener('input', ownScrChanged);
   $('ownScr').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
   $('scrMode').addEventListener('change', e => { db.scrMode = e.target.value; save(); cancel(); newScramble(); e.target.blur(); });
-  $('scrMode').value = ['own', 'daily'].includes(db.scrMode) ? db.scrMode : 'gen';
+  $('scrMode').value = ['own', 'daily'].includes(db.scrMode) || F2L_HANDS[db.scrMode] ? db.scrMode : 'gen';
   $('event').value = EV(); fillSessions(); $('insp').checked = db.inspection; $('goal').value = db.goal;
   setState('idle'); newScramble(); renderStats();
   readHash();
