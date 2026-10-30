@@ -293,9 +293,10 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .plan-bar { height: 5px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
 .plan-bar i { display: block; height: 100%; background: var(--ready); }
 .plan-count { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+.plan-acts { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
 .plan-win { border-left-color: var(--ready); background: color-mix(in srgb, var(--ready) 10%, transparent); }
 .plan-win b { color: var(--ready); }
-@media (max-width: 520px) { .plan-item { grid-template-columns: 28px minmax(0, 1fr) auto; } .plan-item .btn { grid-column: 2 / -1; justify-self: start; } }
+@media (max-width: 520px) { .plan-item { grid-template-columns: 28px minmax(0, 1fr) auto; } .plan-item .plan-acts { grid-column: 2 / -1; justify-self: start; } }
 .saved-card { display: flex; flex-direction: column; gap: 6px; }
 .saved-card h3 { margin: 0; font-family: var(--font-mono); font-size: 26px; font-weight: 500; display: flex; gap: 4px 10px; align-items: baseline; flex-wrap: wrap; }
 .saved-card h3 small { font-family: var(--font-body); font-size: 12px; color: var(--muted); }
@@ -698,6 +699,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         </label>
         <label class="ctl toggle" for="insp"><input id="insp" type="checkbox" checked> 15s inspection</label>
         <button type="button" class="mini-btn" id="raceBtn">Race a friend</button>
+        <button type="button" class="mini-btn" id="compBtn" aria-controls="compPanel">Comp sim…</button>
       </div>
       <div class="sess-panel" id="sessPanel" hidden>
         <input id="sessName" class="field" type="text" maxlength="30" placeholder="Session name, e.g. Comp sim" aria-label="Session name">
@@ -705,6 +707,16 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <button type="button" class="pill-btn" id="sessRename">Rename</button>
         <button type="button" class="pill-btn danger" id="sessDelete">Delete session</button>
         <span class="sess-note" id="sessNote"></span>
+      </div>
+      <div class="sess-panel" id="compPanel" hidden>
+        <label class="ctl" for="compCut">Cutoff (s)
+          <input id="compCut" type="number" min="1" max="600" step="1" placeholder="none">
+        </label>
+        <label class="ctl" for="compLim">Time limit (s)
+          <input id="compLim" type="number" min="1" max="600" step="1" placeholder="none">
+        </label>
+        <button type="button" class="pill-btn" id="compStart">Start a round</button>
+        <span class="sess-note">Five scrambles with 15-second inspection, then your average the way a competition counts it. Cutoff: if neither of your first two solves beats it, the round ends there. Time limit: a solve that reaches it is a DNF. Leave them empty for none.</span>
       </div>
 
       <section class="scramble-card" id="scrCard" aria-label="Scramble">
@@ -1336,6 +1348,47 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
 
   // ---------- scramble / drill ----------
   let scramble = '', drill = null; // drill = {name, alg, times: []}
+  // comp sim: a round of five like at a competition. db.comp = {id, ev, scrs: [5 scrambles], cut, lim} (ms, 0 = none);
+  // the round's solves carry comp: id, so penalties and deletes change the result too.
+  const compOn = () => !drill && !!db.comp && db.comp.ev === db.event;
+  const compSolves = () => db.solves[db.event].filter(s => s.comp === db.comp.id);
+  const compCutMissed = r => !!db.comp.cut && r.length >= 2 && r.slice(0, 2).every(s => eff(s) >= db.comp.cut);
+  const compDone = r => r.length >= 5 || compCutMissed(r);
+  function compTimes(r) {   // a full round puts the best and worst (the two that don't count) in brackets
+    if (r.length < 5) return r.map(fmtSolve).join('  ');
+    const v = r.map(eff), lo = v.indexOf(Math.min(...v));
+    let hi = -1; v.forEach((x, i) => { if (i !== lo && (hi < 0 || x >= v[hi])) hi = i; });
+    return r.map((s, i) => i === lo || i === hi ? `(${fmtSolve(s)})` : fmtSolve(s)).join('  ');
+  }
+  function compStart() {
+    const sec = id => { const v = parseFloat($(id).value); return v > 0 ? Math.round(v * 1000) : 0; };
+    db.compCut = $('compCut').value; db.compLim = $('compLim').value;
+    db.comp = { id: Date.now(), ev: db.event, scrs: Array.from({ length: 5 }, () => genScramble(EV())), cut: sec('compCut'), lim: sec('compLim') };
+    save(); $('compPanel').hidden = true;
+    cancel(); justSolved = false; renderLastActions(); newScramble(); setState('idle'); clock.textContent = '0.00';
+  }
+  function compEnd() { delete db.comp; save(); newScramble(); if (state === 'idle') setState('idle'); }
+  function renderComp() {
+    if (!compOn()) return;
+    const C = db.comp, r = compSolves(), note = $('drillNote');
+    let t;
+    if (!compDone(r)) {
+      t = (r.length ? `This round: ${compTimes(r)}.` : 'Scramble with the moves below, then start inspection.') + ' Inspection is always on.';
+      if (C.cut) t += ` Cutoff ${fmt(C.cut)}: one of your first two solves must beat it.`;
+      if (C.lim) t += ` Time limit ${fmt(C.lim)}.`;
+    } else if (compCutMissed(r)) {
+      t = `Round over: you didn't make the ${fmt(C.cut)} cutoff (${compTimes(r)}). Your next solve is a normal one.`;
+    } else {
+      const avg = avgOf(r, 5, 5), rounds = new Map();
+      for (const s of db.solves[db.event]) if (s.comp && s.comp !== C.id) (rounds.get(s.comp) || rounds.set(s.comp, []).get(s.comp)).push(s);
+      const prev = [...rounds.values()].filter(x => x.length >= 5).map(x => avgOf(x, 5, 5)).filter(v => v !== Infinity);
+      t = `Round over. Average ${fmt(avg)}, best single ${fmt(Math.min(...r.map(eff)))}: ${compTimes(r)}.`;
+      if (avg !== Infinity && prev.length) t += avg < Math.min(...prev) ? ` Your best round in this session (was ${fmt(Math.min(...prev))}).` : ` Your best round here is ${fmt(Math.min(...prev))}.`;
+      if (avg < db.goal * 1000) t += ` Under your sub-${db.goal} goal.`;
+      t += ' Your next solve is a normal one.';
+    }
+    note.hidden = false; note.textContent = t;
+  }
   // the daily scrambles: five per event, the same for everyone on the same date
   let friendScr = null, dailyOn = null;   // friendScr = {ev, scr} from a shared link; dailyOn = the date of the daily being shown
   const today = () => { const d = new Date(), p2 = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
@@ -1357,6 +1410,17 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       $('drillNote').textContent = 'Hold a solved cube with yellow on top and green in front, do these setup moves, then solve the case. You may need to turn the top layer first so the case lines up. Drill times stay out of your session: each case keeps its own, shown on its card in Learn.';
       $('scrCard').classList.add('drill');
       $('net').hidden = false; drawNet(scramble, 3, PAL_LL);
+    } else if (compOn()) {
+      const r = compSolves();
+      if (compDone(r)) {
+        scramble = genScramble(EV());
+        $('scrLabel').innerHTML = '<strong>Comp sim · round over</strong><button class="mini-btn" id="compAgain" type="button">New round</button><button class="mini-btn" id="compEnd" type="button">Back to scrambles</button>';
+      } else {
+        scramble = db.comp.scrs[r.length];
+        $('scrLabel').innerHTML = `<strong>Comp sim · solve ${r.length + 1} of 5</strong><button class="mini-btn" id="compEnd" type="button">End round</button>`;
+      }
+      $('scrCard').classList.add('drill');
+      drawNetFor(scramble); renderComp();
     } else if (f2lMode()) {
       const H = F2L_HANDS[db.scrMode];
       scramble = genF2L(db.scrMode);
@@ -1394,7 +1458,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       $('scrCard').classList.remove('drill');
       drawNetFor(scramble);
     }
-    const own = !drill && db.scrMode === 'own';
+    const own = !drill && !compOn() && db.scrMode === 'own';
     $('scramble').hidden = own; $('ownScr').hidden = !own;
     if (!own) { $('ownNote').hidden = true; $('scramble').textContent = scramble; }
     $('scramble').classList.toggle('long', !drill && ['444', '555'].includes(EV()));
@@ -1443,7 +1507,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const mean = ok.length ? ok.reduce((a, b) => a + b, 0) / ok.length : null;
     const under = ok.filter(v => v < goal).length;
     $('summary').innerHTML = `<span>Solves <b>${ok.length}/${L}</b></span><span>Mean <b>${fmt(mean)}</b></span><span>Sub-${db.goal} <b>${L ? Math.round(under / L * 100) : 0}%</b></span>`;
-    renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo(); renderSplits();
+    renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo(); renderSplits(); renderComp();
   }
 
   // the last 50 or 100 solves, or all of them; new personal bests are marked
@@ -1578,9 +1642,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // ---------- timer state machine ----------
   // idle → (inspection on) arming → inspecting → holding → ready → running → idle
   const stage = $('stage'), clock = $('clock'), hint = $('hint');
-  let state = 'idle', holdFrom = 'idle', holdTimer = null, inspStart = 0, runStart = 0, raf = 0, ignoreRelease = false, justSolved = false, lastPen = null, wakeLock = null;
+  let state = 'idle', holdFrom = 'idle', holdTimer = null, inspStart = 0, runStart = 0, raf = 0, ignoreRelease = false, justSolved = false, lastPen = null, wakeLock = null, limTimer = 0;
   const HOLD_MS = 300;
-  const useInspection = () => db.inspection && !drill;
+  const useInspection = () => (db.inspection || compOn()) && !drill;
 
   function setState(s) {
     state = s; stage.dataset.s = s;
@@ -1631,19 +1695,25 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (holdFrom === 'inspecting') { const el = performance.now() - inspStart; lastPen = el > 17000 ? 'dnf' : el > 15000 ? '+2' : null; }
     stage.classList.remove('warn', 'over'); cancelAnimationFrame(raf);
     runStart = performance.now(); setState('running'); tickRun();
+    // comp sim time limit: the judge stops the solve and it's a DNF
+    clearTimeout(limTimer);
+    if (compOn() && db.comp.lim && !compDone(compSolves())) limTimer = setTimeout(() => { if (state === 'running') { stop(); ignoreRelease = false; toast(`Time limit (${fmt(db.comp.lim)}) reached: DNF`); } }, db.comp.lim);
     try { navigator.wakeLock && navigator.wakeLock.request('screen').then(l => { wakeLock = l; }).catch(() => {}); } catch (e) {}
   }
   function stop() {
     const stopAt = performance.now(), ms = Math.round(stopAt - runStart);
-    cancelAnimationFrame(raf); ignoreRelease = true;
+    cancelAnimationFrame(raf); clearTimeout(limTimer); ignoreRelease = true;
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
     if (drill) {
       drill.times.push(ms); if (drill.times.length > 50) drill.times.shift(); save(); clock.textContent = fmt(ms);
       setState('idle'); return;
     }
     const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now() };
+    const inComp = compOn() && !compDone(compSolves());
+    if (compOn() && !inComp) delete db.comp;   // the first solve after a finished round is a normal one
+    if (inComp) { solve.comp = db.comp.id; if (db.comp.lim && ms >= db.comp.lim) solve.pen = 'dnf'; }
     if (dailyOn) solve.daily = dailyOn;
-    if (f2lMode()) solve.f2l = db.scrMode;   // an F2L-only solve: no full-solve Solution for it
+    if (f2lMode() && !inComp) solve.f2l = db.scrMode;   // an F2L-only solve: no full-solve Solution for it
     if (friendScr && friendScr.scr === scramble) { solve.shared = true; friendScr = null; }
     if (cap) solve.rec = true;
     db.solves[db.event].push(solve); save();
@@ -1714,8 +1784,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const list = db.solves[db.event], [s] = list.splice(i, 1), ev = db.event;
     save(); openIdx = -1;
     if (justSolved && i === list.length) { justSolved = false; clock.textContent = '0.00'; }
-    renderStats();
-    toast(`Deleted solve ${i + 1} (${fmtSolve(s)})`, () => { db.solves[ev].splice(i, 0, s); save(); renderStats(); });
+    renderStats(); if (s.comp && compOn()) newScramble();
+    toast(`Deleted solve ${i + 1} (${fmtSolve(s)})`, () => { db.solves[ev].splice(i, 0, s); save(); renderStats(); if (s.comp && compOn()) newScramble(); });
   }
   function selectScr() { const r = document.createRange(); r.selectNodeContents($('scramble')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Scramble selected. Press Ctrl+C to copy.'); }
 
@@ -1737,6 +1807,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (b.id === 'shareScr') shareScramble();
     else if (b.id === 'dropFriend') { friendScr = null; newScramble(); }
     else if (b.id === 'copyScr') { try { navigator.clipboard.writeText(scramble).then(() => toast('Scramble copied'), selectScr); } catch (err) { selectScr(); } }
+    else if (b.id === 'compEnd') compEnd();
+    else if (b.id === 'compAgain') { $('compCut').value = db.compCut || ''; $('compLim').value = db.compLim || ''; compStart(); }
     else if (b.id === 'exitDrill') { drill = null; newScramble(); setState('idle'); clock.textContent = '0.00'; }
     else if (b.dataset.tr) trNext();
     else if (b.dataset.f2lt) f2ltAction(b.dataset.f2lt);
@@ -1957,6 +2029,11 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   let delArmed = false;
   const disarmDelete = () => { delArmed = false; $('sessDelete').textContent = 'Delete session'; };
   $('session').addEventListener('change', e => { switchSession(e.target.value); e.target.blur(); });
+  $('compBtn').addEventListener('click', () => {
+    const p = $('compPanel'); p.hidden = !p.hidden;
+    $('compCut').value = db.compCut || ''; $('compLim').value = db.compLim || '';
+  });
+  $('compStart').addEventListener('click', e => { e.target.blur(); compStart(); });
   $('sessMore').addEventListener('click', () => {
     const p = $('sessPanel'); p.hidden = !p.hidden;
     $('sessName').value = db.sessions[db.event] ? db.sessions[db.event].name : ''; $('sessNote').textContent = ''; disarmDelete();
@@ -3342,17 +3419,18 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       const title = it.kind === 'train' ? `${PAGE_NAME[it.page] || it.page}: ${it.n} timed tries` : it.kind === 'learn' ? `Learn ${it.n} new cases` : `${it.n} timed solves`;
       return `<li class="plan-item${ok ? ' done' : ''}"><span class="plan-tick" aria-hidden="true">${ok ? '✓' : i + 1}</span>
         <div><b>${esc(title)}</b><p>${esc(it.why)}</p><div class="plan-bar" role="img" aria-label="${d} of ${it.n} done"><i style="width:${Math.round(d / it.n * 100)}%"></i></div></div>
-        <span class="plan-count">${d}/${it.n}</span>${ok ? '' : `<button type="button" class="btn" data-plan="go:${i}">Start</button>`}</li>`;
+        <span class="plan-count">${d}/${it.n}</span><span class="plan-acts">${ok ? '' : `<button type="button" class="btn" data-plan="go:${i}">Start</button>`}<button type="button" class="mini-btn" data-plan="rm:${i}" aria-label="Remove ${esc(title)} from today's plan">Remove</button></span></li>`;
     });
-    const all = P.items.every(it => planDone(it) >= it.n);
+    const all = P.items.length > 0 && P.items.every(it => planDone(it) >= it.n);
     $('learnBody').innerHTML = `<section class="panel" style="max-width:780px">
       ${all ? '<p class="callout plan-win"><b>Done for today</b>Nice work. A new plan comes tomorrow.</p>' : ''}
-      <ol class="plan">${rows.join('')}</ol>
+      ${P.items.length ? `<ol class="plan">${rows.join('')}</ol>` : '<p class="empty">You removed everything from today\'s plan. Make a new plan to get it back.</p>'}
       <div class="row-btns" style="margin-top:10px"><button type="button" class="mini-btn" data-plan="new">Make a new plan</button></div>
     </section>`;
   }
   function planAction(a) {
     if (a === 'new') { delete db.plan[learnMethod]; save(); renderToday(); return; }
+    if (a.startsWith('rm:')) { db.plan[learnMethod].items.splice(+a.slice(3), 1); save(); renderToday(); return; }
     const it = db.plan[learnMethod].items[+a.slice(3)]; if (!it) return;
     if (it.page === 'timer') { location.hash = 'timer'; return; }
     learnSet = lastStep[learnMethod] = it.page; renderLearn(); window.scrollTo(0, 0);
@@ -4059,7 +4137,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     $('scramble').innerHTML = trackSpans(T, T.toks);
     const fix = T.sync ? null : SmartCore.fixMoves(T, SM.cur);
     note.hidden = false; note.classList.toggle('err', !T.sync);
-    note.textContent = T.done ? (db.inspection ? 'Scrambled. Inspection is running: your first turn starts the timer.' : 'Scrambled. Your first turn starts the timer.')
+    note.textContent = T.done ? (useInspection() ? 'Scrambled. Inspection is running: your first turn starts the timer.' : 'Scrambled. Your first turn starts the timer.')
       : T.sync ? `Follow the scramble on your smart cube: ${T.k} of ${T.toks.length} moves done.`
       : fix ? 'Off the scramble. Fix it with: ' + fix.join(' ')
       : "Your cube doesn't match the scramble. Solve it and follow the scramble from the start, or tap “My cube is solved” if it already is.";
@@ -4067,7 +4145,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   function smartReadyGo() {
     if (state !== 'idle') return;
     if (typeof camStart === 'function') camStart();
-    if (db.inspection) { inspStart = performance.now(); holdFrom = 'inspecting'; setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
+    if (useInspection()) { inspStart = performance.now(); holdFrom = 'inspecting'; setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
     else { holdFrom = 'idle'; setState('smartReady'); clock.textContent = '0.00'; }
   }
   function smartMove(m, ts, ev) {
