@@ -101,6 +101,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .mini-btn { background: none; border: 1px solid var(--line); border-radius: 5px; padding: 1px 8px; font-family: var(--font-display); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .mini-btn:hover { color: var(--ink); border-color: var(--muted); }
+@media (pointer: coarse) { .mini-btn { min-height: 32px; padding: 4px 10px; } .chip { min-height: 36px; } }
 .pill-btn { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 14px; font-family: var(--font-display); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; font-size: 13px; }
 .pill-btn:hover:not(:disabled) { border-color: var(--muted); }
 .pill-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -259,6 +260,23 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .learn-head h2 { font-family: var(--font-display); font-size: 30px; font-weight: 700; margin: 0; line-height: 1.05; text-wrap: balance; }
 .learn-head p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; background: var(--sunk); border-radius: 14px; padding: 3px; }
+.chip-label { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; color: var(--muted); padding: 0 6px 0 8px; }
+.bgn { display: flex; flex-direction: column; gap: 14px; max-width: 820px; }
+.bgn-step { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 4px 14px; }
+.bgn-step .plan-tick { width: 30px; height: 30px; }
+.bgn-step.done .plan-tick { background: var(--ready); color: var(--accent-ink); }
+.bgn-step h3 { margin: 2px 0 2px; font-family: var(--font-display); font-size: 21px; }
+.bgn-step p, .bgn-step li { margin: 4px 0; line-height: 1.5; }
+.bgn-step ol { margin: 4px 0; padding-left: 20px; }
+.bgn-goal { color: var(--muted); }
+.bgn-alg { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; background: var(--sunk); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
+.bgn-alg b { font-family: var(--font-display); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.bgn-alg code { font-family: var(--font-mono); font-size: 17px; word-spacing: .2em; }
+.goal-table td small { display: block; color: var(--muted); font-size: 12px; }
+.goal-table .over { color: var(--hold); }
+.goal-table .under { color: var(--ready); }
+.words { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 14px; font-family: var(--font-display); font-weight: 600; letter-spacing: .04em; font-size: 14px; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .chip small { font-family: var(--font-mono); font-weight: 400; font-size: 11px; margin-left: 6px; opacity: .75; }
@@ -856,6 +874,11 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         </table>
         <div class="summary" id="summary"></div>
       </section>
+      <section class="panel" id="goalPanel">
+        <h2>Goal splits <b id="goalName"></b></h2>
+        <table class="phase-table goal-table" id="goalTable"></table>
+        <p class="lead" id="goalTip" style="margin:10px 0 0"></p>
+      </section>
       <section class="panel">
         <h2>Trend <span class="trend-range" id="trendRange"></span></h2>
         <svg class="trend" id="trend" viewBox="0 0 320 120" role="img" aria-label="Solve times over the session"></svg>
@@ -975,7 +998,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     <p class="lead">A speedcubing timer that teaches you too. Free, no account, and it works offline.</p>
     <ul class="w-feats">
       <li><b>Timer</b>Competition-style inspection with voice calls, ao5 and ao12, a trend chart, comp sim rounds and racing a friend.</li>
-      <li><b>Learn</b>Every CFOP and Roux case with a 3D player, and trainers that focus on your slowest cases.</li>
+      <li><b>Learn</b>Start from zero with the beginner method, then every CFOP and Roux case with a 3D player, and trainers that focus on your slowest cases.</li>
       <li id="wSmart"><b>Smart cubes</b>Connect a GAN or MoYu smart cube for automatic cross, F2L, OLL and PLL splits and replays.</li>
       <li><b>Every day</b>Daily 5 scrambles that are the same for everyone, a practice plan, streaks and achievements.</li>
     </ul>
@@ -1625,6 +1648,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   }
 
   // ---------- session panel ----------
+  const STAT_HINT = { Single: 'One solve: the latest, and your best ever', mo3: 'Mean of 3: the plain average of three solves', ao5: 'Average of 5: drop the best and worst, average the middle 3', ao12: 'Average of 12: drop the best and worst, average the other 10', ao50: 'Average of 50: drop the best 3 and worst 3, average the rest', ao100: 'Average of 100: drop the best 5 and worst 5, average the rest' };
   function renderStats() {
     const list = solvesFor(db.event), L = list.length, goal = db.goal * 1000;
     $('evName').textContent = sessLabel(db.event);
@@ -1635,14 +1659,39 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (n > 12 && L < n) continue;
       let best = null;
       for (let e = n; e <= L; e++) { const v = fn(list, e); if (v !== null && (best === null || v < best)) best = v; }
-      html += `<tr><th>${name}</th><td>${fmt(fn(list, L))}</td><td class="best">${fmt(best)}</td></tr>`;
+      html += `<tr><th title="${esc(STAT_HINT[name] || '')}">${name}</th><td>${fmt(fn(list, L))}</td><td${best === null ? '' : ' class="best"'}>${fmt(best)}</td></tr>`;
     }
     $('statsBody').innerHTML = html;
     const ok = list.map(eff).filter(v => v !== Infinity);
     const mean = ok.length ? ok.reduce((a, b) => a + b, 0) / ok.length : null;
     const under = ok.filter(v => v < goal).length;
     $('summary').innerHTML = `<span>Solves <b>${ok.length}/${L}</b></span><span>Mean <b>${fmt(mean)}</b></span><span>Sub-${db.goal} <b>${L ? Math.round(under / L * 100) : 0}%</b></span>`;
-    renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo(); renderSplits(); renderComp(); achCheck();
+    renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo(); renderSplits(); renderComp(); achCheck(); renderGoal();
+  }
+  // ---------- goal splits: what each CFOP step should take for your sub-X goal ----------
+  // A CFOP solve usually splits about 13% cross, 50% F2L, 17% OLL and 20% PLL (inspection not counted), with
+  // roughly 8, 28, 10 and 12 moves. With smart-cube solves, your own average per step is shown beside it.
+  const GOAL_SHARE = [0.13, 0.5, 0.17, 0.2], GOAL_MOVES = [8, 28, 10, 12], GOAL_STEPS = ['Cross', 'F2L', 'OLL', 'PLL'];
+  function goalTip(g) {
+    if (g >= 60) return 'To get here: learn the beginner method (Learn → Beginner) and solve without stopping to think between steps.';
+    if (g >= 40) return 'To get here: the beginner method, done smoothly. Then start 2-look OLL and PLL in Learn → CFOP.';
+    if (g >= 30) return 'To get here: 2-look OLL and PLL, and F2L in pairs (corner and edge together) instead of corners then edges.';
+    if (g >= 20) return 'To get here: plan the whole cross in inspection, F2L with fewer pauses, and full PLL (21 cases).';
+    if (g >= 15) return 'To get here: full OLL (57 cases), the F2L cases, and look-ahead: find your next pair while solving this one.';
+    return 'To get here: efficient F2L with almost no pauses, fast recognition, and COLL or ZBLL for skips.';
+  }
+  function renderGoal() {
+    const panel = $('goalPanel'); if (!panel) return;
+    const on = ['333', 'oh'].includes(EV()); panel.hidden = !on; if (!on) return;
+    const g = db.goal, total = g * 1000;
+    $('goalName').textContent = `sub-${g}`;
+    const mine = (db.solves[db.event] || []).filter(x => x.splits).slice(-12).map(x => { const q = x.splits; return [q.cross, q.pairs[3] - q.cross, q.oll - q.pairs[3], q.total - q.oll].map(v => Math.max(0, v)); });
+    const avg = mine.length ? [0, 1, 2, 3].map(i => mine.reduce((a, t) => a + t[i], 0) / mine.length) : null;
+    $('goalTable').innerHTML = `<thead><tr><th>Step</th><th class="num">Target</th><th class="num">Turns</th>${avg ? '<th class="num">You</th>' : ''}</tr></thead><tbody>` +
+      GOAL_STEPS.map((n, i) => { const t = total * GOAL_SHARE[i];
+        return `<tr><td>${n}${i === 1 ? `<small>${(t / 4000).toFixed(1)} s a pair</small>` : ""}</td><td class="num">${(t / 1000).toFixed(1)} s</td><td class="num">≈${GOAL_MOVES[i]}<small>${(GOAL_MOVES[i] / (t / 1000)).toFixed(1)} TPS</small></td>${avg ? `<td class="num ${avg[i] > t ? 'over' : 'under'}">${(avg[i] / 1000).toFixed(1)} s</td>` : ''}</tr>`; }).join('') + '</tbody>';
+    const worst = avg ? avg.map((v, i) => v - total * GOAL_SHARE[i]).reduce((b, v, i, a) => v > a[b] ? i : b, 0) : -1;
+    $('goalTip').textContent = goalTip(g) + (avg ? (avg[worst] > total * GOAL_SHARE[worst] ? ` Your biggest gap is ${GOAL_STEPS[worst]}: ${((avg[worst] - total * GOAL_SHARE[worst]) / 1000).toFixed(1)} s over.` : ' Every step is on target: keep going.') : ' Change your goal under Goal sub. With a smart cube, your own time for each step shows here too.');
   }
 
   // the last 50 or 100 solves, or all of them; new personal bests are marked
@@ -1870,6 +1919,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       setState('idle'); if (drill.coach) coachDrillDone(); return;
     }
     const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now() };
+    keepData();
     const inComp = compOn() && !compDone(compSolves());
     if (compOn() && !inComp) delete db.comp;   // the first solve after a finished round is a normal one
     if (inComp) { solve.comp = db.comp.id; if (db.comp.lim && ms >= db.comp.lim) solve.pen = 'dnf'; }
@@ -2078,10 +2128,18 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   document.addEventListener('keyup', e => { if (!RACE.open) return; const i = e.code === 'KeyA' ? 0 : e.code === 'KeyL' ? 1 : -1; if (i >= 0) raceUp(i); });
 
   // ---------- backup ----------
+  // Ask the browser to keep Sub-X's storage when space runs low (it may say no), and after 50 solves without
+  // a backup, remind once that the times only live here.
+  let askedKeep = false;
+  function keepData() {
+    if (!askedKeep) { askedKeep = true; try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (e) {} }
+    const n = Object.values(db.solves).reduce((a, l) => a + l.filter(x => !x.ex).length, 0);
+    if (n >= 50 && !db.lastBackup && !db.backupNudged) { db.backupNudged = Date.now(); save(); setTimeout(() => toast('50 solves, all only on this device. Save a backup (Backup, at the bottom) or send them to another device.'), 1500); }
+  }
   function backupInfo() {
     const n = Object.values(db.solves).reduce((a, l) => a + l.length, 0);
     const stale = n && (!db.lastBackup || Date.now() - db.lastBackup > 7 * 864e5);
-    $('backupInfo').innerHTML = `Saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings to a file you keep. Recordings are not included. Restore takes a Sub-X backup, or a csTimer export (each csTimer session becomes a session here). <b>Send to another device</b> makes a link that adds everything on your new phone or computer.<br>Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
+    $('backupInfo').innerHTML = `<b>Your times are only on this device.</b> Clearing the browser's site data or uninstalling the app deletes them, so keep a backup. Saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings to a file you keep. Recordings are not included. Restore takes a Sub-X backup, or a csTimer export (each csTimer session becomes a session here). <b>Send to another device</b> makes a link that adds everything on your new phone or computer.<br>Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
   }
   async function saveTextFile(name, text) {
     if (typeof NATIVE !== 'undefined' && NATIVE) {           // Android app: no browser downloads
@@ -2556,6 +2614,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const SETS = {
     f2lb: { title: 'F2L in the other slots', lead: 'The same 41 cases in the front-left (FL), back-right (BR) and back-left (BL) slots, solved without turning the cube. Front-left is the mirror image of front-right (R U R\' becomes L\' U\' L), back-right the mirror the other way (R\' U\' R), and back-left is front-right turned round (R becomes L, F becomes B). Each picture looks at its slot. Grey stickers are last-layer pieces that do not matter yet.', groups: F2L_BACK, mode: 'f2l' },
     f2l: { title: 'F2L', lead: 'Pair a white corner with its matching edge, then insert the pair into its slot. These cases solve the front-right slot with yellow on top. For the other slots, turn the cube so the slot is front-right, or learn the other slots in Other slots. Grey stickers are last-layer pieces that do not matter yet.', groups: F2L, mode: 'f2l' },
+    bgn: { title: 'Learn to solve', lead: 'Never solved a cube? This is the beginner method: seven steps and six short algorithms. After the first step, hold the cube with white on the bottom and yellow on top.' },
+    words: { title: 'Words cubers use', lead: "What the timer's numbers and the method names mean." },
     notation: { title: 'Notation', lead: 'How to read an algorithm. Each letter turns one face a quarter turn clockwise, as if you were looking straight at that face.' },
     oll: { title: '2-Look OLL', lead: 'Get the whole top face yellow in two steps: first the cross, then the corners. Ten algorithms, and the first three share one trigger.', groups: OLL, mode: 'oll' },
     ollf: { title: 'Full OLL', lead: 'All 57 OLL cases, grouped by the shape the yellow stickers make on top. Each one makes the whole top face yellow in a single algorithm. Learn 2-look OLL first: its 7 corner cases are OLL 21 to 27 here.', groups: OLL_FULL, mode: 'oll' },
@@ -2592,8 +2652,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const caseById = id => ALL_CASES.find(c => c.id === id);
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
-    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation']] },
-    roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['saved', 'My solves'], ['notation', 'Notation']] },
+    beginner: { name: 'Beginner', steps: [['bgn', 'Learn to solve'], ['notation', 'Notation'], ['words', 'Words']] },
+    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
+    roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
   const ROUX_PAGES = { fb: { teach: 'fb', train: 'fbt' }, sb: { teach: 'sb', train: 'sbt' }, cmll: { teach: 'cmll', train: 'cmllt' }, lse: { teach: 'lse', train: 'lset' } };
@@ -2601,7 +2662,10 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const stepOf = page => Object.keys(ROUX_PAGES).find(s => ROUX_PAGES[s].teach === page || ROUX_PAGES[s].train === page) || page;
   const pageOf = step => ROUX_PAGES[step] ? ROUX_PAGES[step][learnMode()] : step;
   const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
-  const defMethod = () => db.defMethod === 'roux' ? 'roux' : 'cfop';
+  // the Learn buttons, grouped by the step they belong to
+  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', coll: 'COLL', collt: 'COLL',
+    fb: 'Steps', sb: 'Steps', cmll: 'Steps', lse: 'Steps', quiz: 'Practice', saved: 'Practice', notation: 'Help', words: 'Help' };
+  const defMethod = () => METHODS[db.defMethod] ? db.defMethod : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
   const lastStep = {};
   function lessonHtml(key) {
@@ -3620,7 +3684,10 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <span class="plan-count">${d}/${it.n}</span><span class="plan-acts">${ok ? '' : `<button type="button" class="btn" data-plan="go:${i}">Start</button>`}<button type="button" class="mini-btn" data-plan="rm:${i}" aria-label="Remove ${esc(title)} from today's plan">Remove</button></span></li>`;
     });
     const all = P.items.length > 0 && P.items.every(it => planDone(it) >= it.n);
+    // someone new (no solves, nothing learned) may not be able to solve a cube yet
+    const fresh = !Object.values(db.solves).some(l => l.some(x => !x.ex)) && !Object.values(db.learned).some(Boolean);
     $('learnBody').innerHTML = `<section class="panel" style="max-width:780px">
+      ${fresh ? '<p class="callout plan-win"><b>New to cubing?</b>If you can\'t solve a cube yet, start with the beginner method: seven steps and six short algorithms. <button type="button" class="pill-btn" data-method="beginner" style="margin-top:6px">Learn to solve</button></p>' : ''}
       ${all ? '<p class="callout plan-win"><b>Done for today</b>Nice work. A new plan comes tomorrow.</p>' : ''}
       ${P.items.length ? `<ol class="plan">${rows.join('')}</ol>` : '<p class="empty">You removed everything from today\'s plan. Make a new plan to get it back.</p>'}
       <div class="row-btns" style="margin-top:10px"><button type="button" class="mini-btn" data-plan="new">Make a new plan</button></div>
@@ -3690,11 +3757,14 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     $('methodBar').innerHTML = `<div class="seg" role="group" aria-label="Method">${Object.entries(METHODS).map(([k, m]) => `<button type="button" data-method="${k}" aria-pressed="${learnMethod === k}">${m.name}</button>`).join('')}</div>` +
       (learnMethod === 'roux' ? `<div class="seg" role="group" aria-label="Mode">${[['teach', 'Teach'], ['train', 'Train']].map(([k, l]) => `<button type="button" data-lmode="${k}" aria-pressed="${learnMode() === k}">${l}</button>`).join('')}</div>` : '') +
       (defMethod() === learnMethod ? `<span class="def">${M.name} is your default: Learn opens here.</span>` : `<button type="button" class="pill-btn" data-defmethod="${learnMethod}">Make ${M.name} my default</button>`);
-    $('learnChips').innerHTML = M.steps.map(([k, label]) => { const n = SETS[k].groups && count(k) ? `${done(k)}/${count(k)}` : ''; return [k, label, n]; })
-      .map(([k, label, n]) => `<button type="button" class="chip" data-lset="${k}" aria-pressed="${stepOf(learnSet) === k}">${label}${n ? `<small>${n}</small>` : ''}</button>`).join('');
+    const chip = ([k, label]) => { const n = SETS[k].groups && count(k) ? `${done(k)}/${count(k)}` : ''; return `<button type="button" class="chip" data-lset="${k}" aria-pressed="${stepOf(learnSet) === k}">${label}${n ? `<small>${n}</small>` : ''}</button>`; };
+    const groups = []; for (const st of M.steps) { const g = CHIP_GROUP[st[0]] || ''; if (!groups.length || groups[groups.length - 1].g !== g) groups.push({ g, items: [] }); groups[groups.length - 1].items.push(st); }
+    $('learnChips').innerHTML = groups.map(G => G.g ? `<div class="chip-group" role="group" aria-label="${G.g}"><span class="chip-label">${G.g}</span>${G.items.map(chip).join('')}</div>` : G.items.map(chip).join('')).join('');
     $('learnLesson').innerHTML = lessonHtml(learnSet);
 
     const body = $('learnBody');
+    if (learnSet === 'bgn') { renderBeginner(); return; }
+    if (learnSet === 'words') { body.innerHTML = `<div class="words">${WORDS.map(([h, p]) => `<div class="note-card"><h3>${esc(h)}</h3><p>${esc(p)}</p></div>`).join('')}</div>`; return; }
     if (learnSet === 'notation') {
       body.innerHTML = `<div class="notation">${NOTATION.map(([h, p]) => `<div class="note-card"><h3>${esc(h)}</h3><p>${esc(p)}</p></div>`).join('')}</div>`;
       return;
@@ -3721,6 +3791,84 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     }
     body.innerHTML = html;
   }
+
+  // ---------- Learn → Beginner: the layer-by-layer method, every algorithm checked in the cube model ----------
+  // Each "repeat until" rule was simulated on hundreds of random cubes: corners take at most 5 R U R' U',
+  // the cross at most 3 goes, the yellow face at most 3 Sunes, corners at most 2 and edges at most 3 goes.
+  const BEGINNER = [
+    { t: 'White cross', goal: 'A white plus on one side, with each edge matching the centre next to it.', how: [
+      'Hold yellow on top. Bring the four white edges up around the yellow centre, white facing up. It looks like a flower: the daisy. Take your time, there\'s no algorithm.',
+      'For each white petal: turn the top until its other colour matches the centre below it, then turn that side twice (a half turn). The white edge drops to the bottom.',
+      'When all four are down, turn the cube over: white on the bottom, yellow on top. Keep it this way from now on.'] },
+    { t: 'White corners', goal: 'The whole white side, with the first layer around it matching the centres.', how: [
+      'Find a corner on top with white on it. Turn the top until the corner sits above the gap it belongs in: its two other colours match the centres either side.',
+      'Turn the whole cube so that gap is at the front-right. Repeat the algorithm until the corner drops in, white on the bottom (up to 5 times).',
+      'A white corner stuck in the bottom in the wrong place or twisted? Hold it at front-right and do the algorithm once to bring it up.'],
+      algs: [['Repeat', "R U R' U'", 'f2l']] },
+    { t: 'Middle edges', goal: 'The first two layers done.', how: [
+      'Find an edge on top with no yellow on it. Turn the top until its front colour matches the front centre.',
+      'If its top colour matches the right centre, do Right. If it matches the left centre, do Left.',
+      'An edge stuck in the middle the wrong way round? Do either algorithm there to bring it up, then put it in properly.'],
+      algs: [['Right', "U R U' R' U' F' U F", 'f2l'], ['Left', "U' L' U L U F U' F'", 'f2l']] },
+    { t: 'Yellow cross', goal: 'A yellow plus on top (the corners don\'t matter yet).', how: [
+      'Look only at the edges on top: you\'ll see a dot, an L, a line, or the cross already.',
+      'Line: hold it left to right. L: hold it pointing back and left. Dot: any way. Do the algorithm and look again (up to 3 times).'],
+      algs: [['Cross', "F R U R' U' F'", 'll']] },
+    { t: 'Yellow face', goal: 'The whole top yellow.', how: [
+      'Count the yellow corners on top. One: turn the top so it\'s at the front-left. None: turn so the front-left corner has yellow facing left. Two: turn so the front-left corner has yellow facing you.',
+      'Do the algorithm, then count again (up to 3 times).'],
+      algs: [['Sune', "R U R' U R U2 R'", 'll']] },
+    { t: 'Yellow corners', goal: 'The four top corners in the right places.', how: [
+      'Look for headlights: two corners on one side with the same colour. Turn the top to put them at the back and do the algorithm.',
+      'No headlights anywhere? Do it once from any side, and you\'ll have some. Then turn the top until the corners match the side centres (at most 2 goes).'],
+      algs: [['Corners', "R' F R' B2 R F' R' B2 R2", 'll']] },
+    { t: 'Yellow edges', goal: 'Solved!', how: [
+      'Find a side that\'s completely finished and turn the whole cube so it\'s at the back. Do the algorithm and look again (up to 3 times).',
+      'No finished side? Do it once from any side first.'],
+      algs: [['Edges', "R U' R U R U R U' R' U' R2", 'll']] },
+  ];
+  function renderBeginner() {
+    const D = db.bgn || {}, n = BEGINNER.filter((_, i) => D[i]).length;
+    $('learnBody').innerHTML = `<div class="progress" aria-label="${n} of ${BEGINNER.length} steps"><i style="width:${Math.round(n / BEGINNER.length * 100)}%"></i></div>
+      <div class="bgn">${BEGINNER.map((st, i) => `<section class="panel bgn-step${D[i] ? ' done' : ''}"><span class="plan-tick" aria-hidden="true">${D[i] ? '✓' : i + 1}</span><div>
+        <h3>${esc(st.t)}</h3><p class="bgn-goal">Goal: ${esc(st.goal)}</p><ol>${st.how.map(h => `<li>${esc(h)}</li>`).join('')}</ol>
+        ${(st.algs || []).map(([name, alg], j) => `<div class="bgn-alg"><b>${esc(name)}</b><code>${esc(alg)}</code><button type="button" class="pill-btn" data-bgn="watch:${i}:${j}">Watch in 3D</button></div>`).join('')}
+        <div class="row-btns" style="margin-top:6px"><button type="button" class="pill-btn learn-btn" data-bgn="done:${i}" aria-pressed="${!!D[i]}">${D[i] ? 'I can do this' : 'Mark as done'}</button></div>
+      </div></section>`).join('')}
+      <p class="callout plan-win"><b>What next</b>Time your solves in the Timer. Once you're under about a minute, CFOP's 2-Look OLL and PLL make the last layer much quicker: they're in CFOP, and you already know some (Sune, the corners and edges algorithms).</p></div>`;
+  }
+  function bgnAction(a) {
+    const [k, i, j] = a.split(':');
+    if (k === 'done') { db.bgn = db.bgn || {}; db.bgn[i] = !db.bgn[i]; save(); renderBeginner(); return; }
+    const st = BEGINNER[+i], g = st && st.algs && st.algs[+j]; if (!g) return;
+    openPlayer({ id: `bgn:${i}:${j}`, name: `${st.t}: ${g[0]}`, alg: g[1], mode: g[2] });
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-bgn]'); if (b) bgnAction(b.dataset.bgn); });
+  const WORDS = [
+    ['Scramble', 'The moves that mix the cube up. Everyone doing the same scramble gets the same starting cube.'],
+    ['Inspection', 'Up to 15 seconds to look at the cube before you start. Starting between 15 and 17 seconds costs +2; after 17 it is a DNF.'],
+    ['+2 and DNF', '+2 adds two seconds (for starting late, or a face one turn off at the end). DNF means did not finish: it counts as the slowest possible time.'],
+    ['Single', 'One solve. Your best single is your fastest solve ever.'],
+    ['mo3', 'Mean of 3: the plain average of your last three solves.'],
+    ['ao5', "Average of 5: of your last five solves, the fastest and slowest are dropped and the middle three averaged. It's how competitions rank most events."],
+    ['ao12, ao50, ao100', 'The same for 12, 50 or 100 solves: the best and worst are dropped (for 50 and 100, the best and worst 3 or 5), and the rest averaged.'],
+    ['PB', 'Personal best: your fastest single or average.'],
+    ['Sub-20', 'Under 20 seconds. "Going sub-20" means your average is under 20.'],
+    ['Session', "A separate list of times, say one for practice and one for comp sim, so they don't mix."],
+    ['Algorithm (alg)', 'A set sequence of moves that does one job, like swapping two corners.'],
+    ['Trigger', "A short alg you do as one motion, like R U R' U' (the sexy move)."],
+    ['CFOP', 'The most popular speed method: Cross, F2L (first two layers in pairs), OLL (make the top one colour) and PLL (put the top pieces in place).'],
+    ['Roux', 'A method built from blocks: two side blocks, CMLL (the top corners), then LSE (the last six edges, mostly with M moves).'],
+    ['2-Look OLL / PLL', 'Doing OLL or PLL in two smaller steps with fewer algorithms (10 and 6) before learning them all (57 and 21).'],
+    ['COLL, ZBLL', 'Bigger last-layer sets that solve more in one go. Learn them after full OLL and PLL.'],
+    ['AUF', 'Adjust U Face: turning the top before or after an alg to line things up.'],
+    ['Recognition', 'Seeing which case you have. Faster recognition is often a bigger win than faster turning.'],
+    ['TPS', 'Turns per second: how fast you turn.'],
+    ['Look-ahead', 'Spotting your next pieces while still solving the current ones, so you pause less.'],
+    ['Smart cube', 'A cube with sensors that tells the app every turn over Bluetooth. Sub-X uses it for exact step times.'],
+    ['Stackmat', 'The competition timer you start and stop with both hands on its pads.'],
+    ['Cutoff and time limit', 'Competition rules: miss the cutoff in your first solves and the round ends early; reach the time limit and the solve is a DNF.'],
+  ];
 
   let quiz = { pool: 'all', cur: null, shown: false, right: 0, total: 0 };
   // Next card: the most overdue reviews first, then new cases (ones you marked learned
