@@ -199,9 +199,9 @@ body.running .side, body.running .scramble-card, body.running .bar, body.running
 body.running .hint, body.running .last-actions { visibility: hidden; }
 
 .side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-/* hardware most people don't have goes at the very bottom, and moves to the top while it's in use */
-.side > .backup-panel { order: 1; }
-.side > .hw { order: 2; }
+/* hardware most people don't have goes near the bottom (Backup is last), and moves to the top while it's in use */
+.side > .backup-panel { order: 2; }
+.side > .hw { order: 1; }
 .side > .hw.live { order: -4; }
 /* your splits, then the goal splits, then the session stats */
 .side > #splitsPanel { order: -3; }
