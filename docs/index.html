@@ -118,6 +118,13 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .timer-view { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
 @media (max-width: 860px) { .timer-view { grid-template-columns: minmax(0, 1fr); } }
 .stage-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* computers: a wider page, and the timer stays in view while you scroll the panels beside it */
+@media (min-width: 1100px) {
+  .wrap { max-width: 1360px; }
+  .timer-view { grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; }
+  .stage-col { position: sticky; top: 12px; }
+  .stage { min-height: clamp(320px, 54vh, 620px); }
+}
 .scramble-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; }
 .scramble-card.drill { border-color: var(--accent); }
 .scramble-label { font-family: var(--font-display); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--muted); margin-bottom: 4px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
@@ -762,6 +769,67 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
 [data-skin="dracula"] .stage[data-s="inspecting"].warn { box-shadow: inset 0 0 0 2px var(--warn); }
 [data-skin="dracula"] .stage[data-s="inspecting"].over { box-shadow: inset 0 0 0 2px var(--hold); }
 [data-skin="dracula"] .trend text { font-size: 11px; }
+
+/* ---- Pink look: soft pink and white, deep pink accents, rounded. Always light. ---- */
+:root[data-skin="pink"] {
+  --bg: #FFF0F6; --surface: #FFFFFF; --sunk: #FCE3EE; --ink: #3A1029; --muted: #8A5470; --line: #F3C6DA;
+  --accent: #D6337F; --accent-ink: #FFFFFF; --hold: #C62828; --ready: #1B8A4B; --warn: #B06A00; --plastic: #2A1420; --ll-off: #E7B6CB;
+  --ph-insp: #B48AA0; --ph-cross: #7B4DDB; --ph-f2l: #0F8F7A; --ph-oll: #C98A00; --ph-pll: #D6337F;
+  --font-display: "Outfit", system-ui, sans-serif; --font-body: "Outfit", system-ui, sans-serif;
+  color-scheme: light;
+}
+[data-skin="pink"] body { background: radial-gradient(1200px 600px at 85% -10%, #FFD6E8 0, transparent 60%), var(--bg); background-attachment: fixed; }
+[data-skin="pink"] .brand span { color: var(--accent); }
+[data-skin="pink"] :is(.panel, .scramble-card, .stage, .case, .lesson, .note-card, .sess-panel, .pcase, .set-card) { border-radius: 18px; box-shadow: 0 2px 10px rgb(214 51 127 / .07); }
+[data-skin="pink"] :is(.pill-btn, .mini-btn, .chip, .btn) { border-radius: 999px; }
+[data-skin="pink"] select, [data-skin="pink"] .field { border-radius: 10px; }
+[data-skin="pink"] .clock { color: #B0225F; }
+[data-skin="pink"] .tabs a[aria-current="page"], [data-skin="pink"] .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+[data-skin="pink"] .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+/* pink to red is a weak change, so holding and ready also light up the timer's frame */
+[data-skin="pink"] .stage[data-s="holding"], [data-skin="pink"] .stage[data-s="inspecting"].over { box-shadow: inset 0 0 0 3px var(--hold); }
+[data-skin="pink"] .stage[data-s="ready"], [data-skin="pink"] .stage[data-s="smartReady"] { box-shadow: inset 0 0 0 3px var(--ready); }
+[data-skin="pink"] .stage[data-s="holding"] .clock { color: var(--hold); }
+[data-skin="pink"] .stage:is([data-s="ready"], [data-s="smartReady"]) .clock { color: var(--ready); }
+[data-skin="pink"] .lesson { border-left-color: var(--accent); }
+
+/* ---- Ocean look: deep navy and teal. Always dark. ---- */
+:root[data-skin="ocean"] {
+  --bg: #071A26; --surface: #0C2433; --sunk: #123043; --ink: #E3F4F8; --muted: #8FB3C2; --line: #1D3D52;
+  --accent: #2EC4D6; --accent-ink: #04141D; --hold: #FF6B6B; --ready: #4BE3A0; --warn: #FFC24B; --plastic: #03101A; --ll-off: #2A4A5E;
+  --ph-insp: #5D7F90; --ph-cross: #6EA8FF; --ph-f2l: #4BE3A0; --ph-oll: #FFC24B; --ph-pll: #FF8FC8;
+  --font-display: "Space Grotesk", system-ui, sans-serif; --font-body: "Inter", system-ui, sans-serif;
+  color-scheme: dark;
+}
+[data-skin="ocean"] body { background: linear-gradient(180deg, #0A2536 0, var(--bg) 420px); background-attachment: fixed; }
+[data-skin="ocean"] .brand span { color: var(--accent); }
+[data-skin="ocean"] :is(.panel, .scramble-card, .stage, .case, .lesson, .note-card, .sess-panel, .pcase, .set-card) { border-radius: 14px; }
+[data-skin="ocean"] .clock { color: #BFF3FA; }
+[data-skin="ocean"] .stage[data-s="holding"] .clock { color: var(--hold); }
+[data-skin="ocean"] .stage:is([data-s="ready"], [data-s="smartReady"]) .clock { color: var(--ready); }
+[data-skin="ocean"] .tabs a[aria-current="page"], [data-skin="ocean"] .seg button[aria-pressed="true"] { background: var(--sunk); color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+[data-skin="ocean"] .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+[data-skin="ocean"] .trend text { font-size: 11px; }
+
+/* ---- Sunset look: dark plum with warm orange. Always dark. ---- */
+:root[data-skin="sunset"] {
+  --bg: #1C1020; --surface: #26162B; --sunk: #321D38; --ink: #FBEDE6; --muted: #C2A3B4; --line: #45283F;
+  --accent: #FF8A4C; --accent-ink: #1C1020; --hold: #FF4F6D; --ready: #5EE08F; --warn: #FFD166; --plastic: #120A14; --ll-off: #523249;
+  --ph-insp: #8A6A80; --ph-cross: #8FA2FF; --ph-f2l: #5EE08F; --ph-oll: #FFD166; --ph-pll: #FF7AB8;
+  --font-display: "Outfit", system-ui, sans-serif; --font-body: "Outfit", system-ui, sans-serif;
+  color-scheme: dark;
+}
+[data-skin="sunset"] body { background: radial-gradient(1000px 520px at 10% -10%, #4A1E3A 0, transparent 65%), radial-gradient(900px 480px at 100% 0, #4A2414 0, transparent 60%), var(--bg); background-attachment: fixed; }
+[data-skin="sunset"] .brand span { color: var(--accent); }
+[data-skin="sunset"] :is(.panel, .scramble-card, .stage, .case, .lesson, .note-card, .sess-panel, .pcase, .set-card) { border-radius: 16px; }
+[data-skin="sunset"] :is(.pill-btn, .mini-btn, .chip) { border-radius: 999px; }
+[data-skin="sunset"] .clock { color: #FFB27D; }
+[data-skin="sunset"] .stage[data-s="holding"] .clock { color: var(--hold); }
+[data-skin="sunset"] .stage:is([data-s="ready"], [data-s="smartReady"]) .clock { color: var(--ready); }
+[data-skin="sunset"] .tabs a[aria-current="page"], [data-skin="sunset"] .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+[data-skin="sunset"] .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+[data-skin="sunset"] .lesson { border-left-color: var(--accent); }
+[data-skin="sunset"] .trend text { font-size: 11px; }
 </style>
 </head>
 <body>
@@ -776,7 +844,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       <a href="#review" data-view="review">Recordings</a>
     </nav>
     <label class="ctl skin-pick" for="skin">Look
-      <select id="skin"><option value="">Classic</option><option value="minimal">Minimal</option><option value="midnight">Midnight</option><option value="terminal">Terminal</option><option value="speed">Speed</option><option value="dracula">Dracula</option></select>
+      <select id="skin"><option value="">Classic</option><option value="minimal">Minimal</option><option value="midnight">Midnight</option><option value="terminal">Terminal</option><option value="speed">Speed</option><option value="dracula">Dracula</option><option value="pink">Pink</option><option value="ocean">Ocean</option><option value="sunset">Sunset</option></select>
     </label>
     <button type="button" class="pill-btn" id="installBtn" hidden>Install app</button>
     <p class="install-hint" id="iosHint" hidden>To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.</p>
@@ -2665,6 +2733,565 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       { id: 'coll:as6', name: 'Antisune 6', alg: "R' U' R U' L U' R' U L' U2 R" },
     ] },
   ];
+  // ZBLL: the whole last layer in one algorithm, when the top edges are already oriented. 472 cases, in groups
+  // by their COLL corner case. The algorithms were found by a computer search over R, U, F, D and L turns and every
+  // one was checked in the cube model: it keeps the first two layers, it solves its case up to a U turn before and
+  // after, the top is not already yellow (that would be a PLL), and all 472 cases are different.
+  const ZBLL = [
+    { group: 'H1', set: 'H', coll: 'coll:h1', items: [
+      { id: 'zbll:h1-1', name: 'H1-1', alg: "R U2 R' U' R U R' U' R U' R'" },
+      { id: 'zbll:h1-2', name: 'H1-2', alg: "R U2 R2 U2 R' U2 R U2 R' U2 R2 U2 R" },
+      { id: 'zbll:h1-3', name: 'H1-3', alg: "R U R' U R U2 R' U' R' U2 R U R' U R" },
+      { id: 'zbll:h1-4', name: 'H1-4', alg: "R' U' R U' R' U R U' R' U2 R" },
+      { id: 'zbll:h1-5', name: 'H1-5', alg: "R' U2 R U R' U' R U R' U R" },
+      { id: 'zbll:h1-6', name: 'H1-6', alg: "R' U2 R2 U2 R U2 R' U2 R U2 R2 U2 R'" },
+      { id: 'zbll:h1-7', name: 'H1-7', alg: "R U R2 U' R2 U' R U2 R U2 R U' R2 U' R2 U R" },
+      { id: 'zbll:h1-8', name: 'H1-8', alg: "R U R' U R U' R' U R U2 R'" },
+    ] },
+    { group: 'H2', set: 'H', coll: 'coll:h2', items: [
+      { id: 'zbll:h2-1', name: 'H2-1', alg: "R' F2 R2 U2 R' F2 R U2 R2 F2 R" },
+      { id: 'zbll:h2-2', name: 'H2-2', alg: "F U' R2 U R U2 R' U R2 U2 R' U' R F'" },
+      { id: 'zbll:h2-3', name: 'H2-3', alg: "R U' R2 U' F2 U' R2 U R2 U F2 R2 U R'" },
+      { id: 'zbll:h2-4', name: 'H2-4', alg: "F R' U R U2 R2 U' R U2 R' U' R2 U F'" },
+      { id: 'zbll:h2-5', name: 'H2-5', alg: "R U' R2 F2 U' R2 U' R2 U F2 U R2 U R'" },
+      { id: 'zbll:h2-6', name: 'H2-6', alg: "L U' R' U L' R2 U' L' U R2 U' L R" },
+      { id: 'zbll:h2-7', name: 'H2-7', alg: "R U2 R' U' R2 F2 U2 R' U' R U' F2 R' U' R'" },
+      { id: 'zbll:h2-8', name: 'H2-8', alg: "R2 U' F' R2 F U R2 U2 R2 U' F' R2 F U R2" },
+    ] },
+    { group: 'H3', set: 'H', coll: 'coll:h3', items: [
+      { id: 'zbll:h3-1', name: 'H3-1', alg: "R U R' U R U L' U R' U' L" },
+      { id: 'zbll:h3-2', name: 'H3-2', alg: "R' U' R U' R' U' L U' R U L'" },
+      { id: 'zbll:h3-3', name: 'H3-3', alg: "R2 U' R2 U F R2 U R2 U' F' R2 U R2" },
+      { id: 'zbll:h3-4', name: 'H3-4', alg: "R' U R U' F R2 U F' R F R U' F' R2" },
+      { id: 'zbll:h3-5', name: 'H3-5', alg: "R U F' R2 U2 R U R' U R U R F U' R'" },
+      { id: 'zbll:h3-6', name: 'H3-6', alg: "R U' L' U R2 U' L R U2 R' U' R" },
+      { id: 'zbll:h3-7', name: 'H3-7', alg: "R' U2 R2 U R D' R U R' D R' U2 R'" },
+      { id: 'zbll:h3-8', name: 'H3-8', alg: "R2 U' R' F R F' U R2 U' R2 F R F' R" },
+      { id: 'zbll:h3-9', name: 'H3-9', alg: "R U F U2 R2 U' R' U R' U' R' U' F' U' R'" },
+      { id: 'zbll:h3-10', name: 'H3-10', alg: "R U2 R2 U' R' D R' U' R D' R U2 R" },
+      { id: 'zbll:h3-11', name: 'H3-11', alg: "R' U L U' R2 U R' L' U2 R U R'" },
+      { id: 'zbll:h3-12', name: 'H3-12', alg: "L U' R U L' U2 R' U R U R' U' R U R'" },
+    ] },
+    { group: 'H4', set: 'H', coll: 'coll:h4', items: [
+      { id: 'zbll:h4-1', name: 'H4-1', alg: "F R U' R' U R U2 R' U' R U R' U' F'" },
+      { id: 'zbll:h4-2', name: 'H4-2', alg: "R F R2 U' R2 U' R2 U2 R2 U' F' R'" },
+      { id: 'zbll:h4-3', name: 'H4-3', alg: "R U2 R2 F U' R2 U' R2 U F' U R" },
+      { id: 'zbll:h4-4', name: 'H4-4', alg: "F U2 F' U' R' F U' F' R U' R' U2 R" },
+      { id: 'zbll:h4-5', name: 'H4-5', alg: "R U D' R U2 R U2 R U2 R2 D U R'" },
+      { id: 'zbll:h4-6', name: 'H4-6', alg: "F' R' F2 U F2 U F2 U2 F2 U R F" },
+      { id: 'zbll:h4-7', name: 'H4-7', alg: "F' U2 F2 R' U F2 U F2 U' R U' F'" },
+      { id: 'zbll:h4-8', name: 'H4-8', alg: "R' U' D R' U2 R' U2 R' U2 R2 D' U' R" },
+      { id: 'zbll:h4-9', name: 'H4-9', alg: "R' U2 R U F R' U R F' U F U2 F'" },
+      { id: 'zbll:h4-10', name: 'H4-10', alg: "F R U R' U' R' F' U2 R U R' U R2 U2 R'" },
+      { id: 'zbll:h4-11', name: 'H4-11', alg: "R U2 R' U L' U2 R U2 R' U2 L R U' R'" },
+      { id: 'zbll:h4-12', name: 'H4-12', alg: "R' U2 R U' L U2 R' U2 R U2 L' R' U R" },
+    ] },
+    { group: 'Pi1', set: 'Pi', coll: 'coll:pi1', items: [
+      { id: 'zbll:pi1-1', name: 'Pi1-1', alg: "R U2 R2 U' R2 U' R2 U2 R" },
+      { id: 'zbll:pi1-2', name: 'Pi1-2', alg: "R' U2 R2 U R2 U R2 U2 R'" },
+      { id: 'zbll:pi1-3', name: 'Pi1-3', alg: "R' U2 R2 U R' U R U2 R' U' R' U R" },
+      { id: 'zbll:pi1-4', name: 'Pi1-4', alg: "R U R' U' R2 U R' U R U2 R2 U' R U R'" },
+      { id: 'zbll:pi1-5', name: 'Pi1-5', alg: "R' U' R2 U R2 U R2 U2 R2 U R U' R' U2 R" },
+      { id: 'zbll:pi1-6', name: 'Pi1-6', alg: "R F' D2 F R' U' R F' D2 F R'" },
+      { id: 'zbll:pi1-7', name: 'Pi1-7', alg: "R U2 R2 U' R U' R' U2 R U R U' R'" },
+      { id: 'zbll:pi1-8', name: 'Pi1-8', alg: "R' U2 R U R' U R2 U R' U R U2 R'" },
+      { id: 'zbll:pi1-9', name: 'Pi1-9', alg: "R' U R U' R2 U2 R U R' U R2 U' R' U R" },
+      { id: 'zbll:pi1-10', name: 'Pi1-10', alg: "R U' R' U R2 U2 R' U' R U' R2 U R U' R'" },
+      { id: 'zbll:pi1-11', name: 'Pi1-11', alg: "R' U' R U' R' U2 R2 U2 R' U' R U' R'" },
+      { id: 'zbll:pi1-12', name: 'Pi1-12', alg: "R' U' R U R2 U' R U' R' U2 R2 U R' U' R" },
+    ] },
+    { group: 'Pi2', set: 'Pi', coll: 'coll:pi2', items: [
+      { id: 'zbll:pi2-1', name: 'Pi2-1', alg: "R U' D' R2 U2 R' U2 R' U2 R' D U' R'" },
+      { id: 'zbll:pi2-2', name: 'Pi2-2', alg: "R' U' F U' R2 U R2 U F' R2 U2 R'" },
+      { id: 'zbll:pi2-3', name: 'Pi2-3', alg: "R' U D R2 U2 R U2 R U2 R D' U R" },
+      { id: 'zbll:pi2-4', name: 'Pi2-4', alg: "R' U' R L U2 R' U2 R U2 L' U R' U2 R" },
+      { id: 'zbll:pi2-5', name: 'Pi2-5', alg: "R U2 R2 U' R U' R' U2 F R U R U' R' F'" },
+      { id: 'zbll:pi2-6', name: 'Pi2-6', alg: "F' R' U' F2 U2 F2 U' F2 U' F2 R F" },
+      { id: 'zbll:pi2-7', name: 'Pi2-7', alg: "R' U2 R U R' F U F' R U F U2 F'" },
+      { id: 'zbll:pi2-8', name: 'Pi2-8', alg: "F U R U' R' U R U2 R' U' R U R' F'" },
+      { id: 'zbll:pi2-9', name: 'Pi2-9', alg: "R U R' L' U2 R U2 R' U2 L U' R U2 R'" },
+      { id: 'zbll:pi2-10', name: 'Pi2-10', alg: "F U2 F' U' F R' U' R F' U' R' U2 R" },
+      { id: 'zbll:pi2-11', name: 'Pi2-11', alg: "F U R' U F2 U' F2 U' R F2 U2 F" },
+      { id: 'zbll:pi2-12', name: 'Pi2-12', alg: "R F U R2 U2 R2 U R2 U R2 F' R'" },
+    ] },
+    { group: 'Pi3', set: 'Pi', coll: 'coll:pi3', items: [
+      { id: 'zbll:pi3-1', name: 'Pi3-1', alg: "L U' R' U L' U R U R' U R" },
+      { id: 'zbll:pi3-2', name: 'Pi3-2', alg: "R U' R' U2 L R U' R2 U L' U' R" },
+      { id: 'zbll:pi3-3', name: 'Pi3-3', alg: "R' F R' F' R2 U R2 U' F R' F' R U R2" },
+      { id: 'zbll:pi3-4', name: 'Pi3-4', alg: "R U F U R U R U' R U R2 U2 F' U' R'" },
+      { id: 'zbll:pi3-5', name: 'Pi3-5', alg: "R U' R' U R U' R' U' R U2 L U' R' U L'" },
+      { id: 'zbll:pi3-6', name: 'Pi3-6', alg: "L' U R U' L U' R' U' R U' R'" },
+      { id: 'zbll:pi3-7', name: 'Pi3-7', alg: "R' U2 R' D R' U R D' R U R2 U2 R'" },
+      { id: 'zbll:pi3-8', name: 'Pi3-8', alg: "R2 F U R' F' R' F U' R2 F' U R' U' R" },
+      { id: 'zbll:pi3-9', name: 'Pi3-9', alg: "R U F' R' U' R' U' R U' R' U2 R2 F U' R'" },
+      { id: 'zbll:pi3-10', name: 'Pi3-10', alg: "R2 U' R2 F U R2 U' R2 F' U' R2 U R2" },
+      { id: 'zbll:pi3-11', name: 'Pi3-11', alg: "R' U R U2 R' L' U R2 U' L U R'" },
+      { id: 'zbll:pi3-12', name: 'Pi3-12', alg: "R U2 R D' R U' R' D R' U' R2 U2 R" },
+    ] },
+    { group: 'Pi4', set: 'Pi', coll: 'coll:pi4', items: [
+      { id: 'zbll:pi4-1', name: 'Pi4-1', alg: "R U R' U F2 R U2 R' U2 R' F2 R" },
+      { id: 'zbll:pi4-2', name: 'Pi4-2', alg: "L U' R' U L' U' R2 U R' U R U2 R'" },
+      { id: 'zbll:pi4-3', name: 'Pi4-3', alg: "R U2 R' U' F' R U2 R' U2 R' F R2 U' R'" },
+      { id: 'zbll:pi4-4', name: 'Pi4-4', alg: "R U2 R' U' R U R' U2 L' U R U' L R'" },
+      { id: 'zbll:pi4-5', name: 'Pi4-5', alg: "R' F U R' F' R2 U F U2 R2 U R' U' R2 F'" },
+      { id: 'zbll:pi4-6', name: 'Pi4-6', alg: "R2 F2 R' U R' U' R2 F2 R2 U2 R U2 R'" },
+      { id: 'zbll:pi4-7', name: 'Pi4-7', alg: "R2 F2 R2 U' R U R' U R2 F2 R' U2 R'" },
+      { id: 'zbll:pi4-8', name: 'Pi4-8', alg: "F R2 F' R2 U R2 U R2 U' F' U' F U R2" },
+      { id: 'zbll:pi4-9', name: 'Pi4-9', alg: "R U2 R' U' R U2 R' U2 L R U' R' U L'" },
+      { id: 'zbll:pi4-10', name: 'Pi4-10', alg: "R U R' U' R2 F2 R2 U2 R U2 R F2 R2" },
+      { id: 'zbll:pi4-11', name: 'Pi4-11', alg: "R' U2 R U R' U R2 U' L' U R' U' L" },
+      { id: 'zbll:pi4-12', name: 'Pi4-12', alg: "F U R' U' R F' U' R' U R U' R' U2 R" },
+    ] },
+    { group: 'Pi5', set: 'Pi', coll: 'coll:pi5', items: [
+      { id: 'zbll:pi5-1', name: 'Pi5-1', alg: "F' R U F2 R' U R U' F2 U' R' F" },
+      { id: 'zbll:pi5-2', name: 'Pi5-2', alg: "R F' U' R2 F U' F' U R2 U F R'" },
+      { id: 'zbll:pi5-3', name: 'Pi5-3', alg: "R' L U L' U L U R U L' U R' U R" },
+      { id: 'zbll:pi5-4', name: 'Pi5-4', alg: "R' U2 R2 U R2 U R L' U R U' L U2 R'" },
+      { id: 'zbll:pi5-5', name: 'Pi5-5', alg: "R' U' R U' L U' R' U L' U R U' R' U2 R" },
+      { id: 'zbll:pi5-6', name: 'Pi5-6', alg: "F' R U F2 U R' U' R F2 U' R' F" },
+      { id: 'zbll:pi5-7', name: 'Pi5-7', alg: "R F U' R2 U2 R U R' U R2 U F' R'" },
+      { id: 'zbll:pi5-8', name: 'Pi5-8', alg: "F R U' R' U2 R' U2 R2 U R2 U R U' F'" },
+      { id: 'zbll:pi5-9', name: 'Pi5-9', alg: "L U L' U R' U L U R U R' U L' R" },
+      { id: 'zbll:pi5-10', name: 'Pi5-10', alg: "R F U' R2 U' R U' R' U2 R2 U F' R'" },
+      { id: 'zbll:pi5-11', name: 'Pi5-11', alg: "R F' U' R2 U' F U F' R2 U F R'" },
+      { id: 'zbll:pi5-12', name: 'Pi5-12', alg: "R U2 R2 U' R2 U' L R' U' R' U L' U2 R" },
+    ] },
+    { group: 'Pi6', set: 'Pi', coll: 'coll:pi6', items: [
+      { id: 'zbll:pi6-1', name: 'Pi6-1', alg: "R U R2 F' R U2 R U2 R' F U R U2 R'" },
+      { id: 'zbll:pi6-2', name: 'Pi6-2', alg: "R' F2 R U2 R U2 R' F2 U' R U' R'" },
+      { id: 'zbll:pi6-3', name: 'Pi6-3', alg: "L' U R U' L U R2 U' R U' R' U2 R" },
+      { id: 'zbll:pi6-4', name: 'Pi6-4', alg: "R U2 R' U' R U' R2 U L U' R U L'" },
+      { id: 'zbll:pi6-5', name: 'Pi6-5', alg: "R U2 R' U2 R2 F2 R2 U R U' R F2 R2" },
+      { id: 'zbll:pi6-6', name: 'Pi6-6', alg: "R U2 R F2 R2 U' R U' R' U R2 F2 R2" },
+      { id: 'zbll:pi6-7', name: 'Pi6-7', alg: "R2 F2 R' U2 R' U2 R2 F2 R2 U R U' R'" },
+      { id: 'zbll:pi6-8', name: 'Pi6-8', alg: "R L' U R' U' L U2 R U' R' U R U2 R'" },
+      { id: 'zbll:pi6-9', name: 'Pi6-9', alg: "R' U2 R U R' U' R U F R' U R U' F'" },
+      { id: 'zbll:pi6-10', name: 'Pi6-10', alg: "L U' R U R' L' U2 R U2 R' U R U2 R'" },
+      { id: 'zbll:pi6-11', name: 'Pi6-11', alg: "R2 U' F' U F U R2 U' R2 U' R2 F R2 F'" },
+      { id: 'zbll:pi6-12', name: 'Pi6-12', alg: "F R2 U R U' R2 U2 F' U' R2 F R U' F' R" },
+    ] },
+    { group: 'U1', set: 'U', coll: 'coll:u1', items: [
+      { id: 'zbll:u1-1', name: 'U1-1', alg: "R2 D' R U2 R' D R U2 R" },
+      { id: 'zbll:u1-2', name: 'U1-2', alg: "R U' L U' R' U L' U2 R U' R'" },
+      { id: 'zbll:u1-3', name: 'U1-3', alg: "R' U' R2 D R' U' R D' R2 U2 R" },
+      { id: 'zbll:u1-4', name: 'U1-4', alg: "R U R' U R U2 R2 U L U' R U L'" },
+      { id: 'zbll:u1-5', name: 'U1-5', alg: "R U' R' F R2 U F' R F U' R F' R" },
+      { id: 'zbll:u1-6', name: 'U1-6', alg: "R F2 R' U R2 U2 R2 U R2 U R' F2 R'" },
+      { id: 'zbll:u1-7', name: 'U1-7', alg: "R' U2 F U F' R F U2 R' U' R U F'" },
+      { id: 'zbll:u1-8', name: 'U1-8', alg: "R U R' U2 F2 R U2 R' U2 R' F2 R2 U R'" },
+      { id: 'zbll:u1-9', name: 'U1-9', alg: "R U R2 U R U2 R2 D U2 R' U2 R D' U R" },
+      { id: 'zbll:u1-10', name: 'U1-10', alg: "R' U2 R2 D R' U2 R D' R2 U R U2 R' U2 R" },
+      { id: 'zbll:u1-11', name: 'U1-11', alg: "R U2 F U F' R' U F U2 F' R U2 R'" },
+      { id: 'zbll:u1-12', name: 'U1-12', alg: "R' U2 D R' U2 R U2 D' R2 U R U' R2 U R" },
+    ] },
+    { group: 'U2', set: 'U', coll: 'coll:u2', items: [
+      { id: 'zbll:u2-1', name: 'U2-1', alg: "R2 D R' U2 R D' R' U2 R'" },
+      { id: 'zbll:u2-2', name: 'U2-2', alg: "F U2 R' U' R F' R' U2 F U F' U' R" },
+      { id: 'zbll:u2-3', name: 'U2-3', alg: "R' U' L U' R U L' U R' U' R U' R' U R" },
+      { id: 'zbll:u2-4', name: 'U2-4', alg: "R' U' R2 U' R' U2 R2 D' U2 R U2 R' D U' R'" },
+      { id: 'zbll:u2-5', name: 'U2-5', alg: "R2 U R2 U R' U2 D R' U R D' U R' U' R2" },
+      { id: 'zbll:u2-6', name: 'U2-6', alg: "R U R2 D' R U R' D R2 U2 R'" },
+      { id: 'zbll:u2-7', name: 'U2-7', alg: "R' U L' U R U' L U2 R' U R" },
+      { id: 'zbll:u2-8', name: 'U2-8', alg: "R' U' R U' R' U2 R2 U' L' U R' U' L" },
+      { id: 'zbll:u2-9', name: 'U2-9', alg: "R U' L' U R' U R U2 R' U' R U' L R'" },
+      { id: 'zbll:u2-10', name: 'U2-10', alg: "R U2 R2 D' R U2 R' D R2 U' R' U2 R U2 R'" },
+      { id: 'zbll:u2-11', name: 'U2-11', alg: "F' U2 R' U' R F U' R' U2 R F' U2 F" },
+      { id: 'zbll:u2-12', name: 'U2-12', alg: "R U2 R2 U' R F' U' R' U2 R U F R U' R'" },
+    ] },
+    { group: 'U3', set: 'U', coll: 'coll:u3', items: [
+      { id: 'zbll:u3-1', name: 'U3-1', alg: "F U2 F' R F R' U2 R F' R'" },
+      { id: 'zbll:u3-2', name: 'U3-2', alg: "R2 F2 R U2 R U R2 F2 R2 U R' F2 R" },
+      { id: 'zbll:u3-3', name: 'U3-3', alg: "R U R' U' L' U2 R U R' U2 L R U' R'" },
+      { id: 'zbll:u3-4', name: 'U3-4', alg: "R' U' R F U' R' U' R U F' U R' U R" },
+      { id: 'zbll:u3-5', name: 'U3-5', alg: "R U R2 U R2 U2 D' R U R' D U' R' U R'" },
+      { id: 'zbll:u3-6', name: 'U3-6', alg: "R F U' R' U' R U2 R' U' R F' R'" },
+      { id: 'zbll:u3-7', name: 'U3-7', alg: "R2 F2 U R U R2 U' R' U' F2 R' U2 R'" },
+      { id: 'zbll:u3-8', name: 'U3-8', alg: "R U R' U R U' R U' L' U R' U' L R'" },
+      { id: 'zbll:u3-9', name: 'U3-9', alg: "R' U' R U' R' U R' U L U' R U L' R" },
+      { id: 'zbll:u3-10', name: 'U3-10', alg: "R' U2 R F' R' F U2 F' R F" },
+      { id: 'zbll:u3-11', name: 'U3-11', alg: "F R U' R' U R U R' U R U' R' F'" },
+      { id: 'zbll:u3-12', name: 'U3-12', alg: "R U2 F R U R U' R U R2 U' F' U2 R'" },
+    ] },
+    { group: 'U4', set: 'U', coll: 'coll:u4', items: [
+      { id: 'zbll:u4-1', name: 'U4-1', alg: "R' U2 R F U' R' U' R U F'" },
+      { id: 'zbll:u4-2', name: 'U4-2', alg: "F U' R' U R U F' R' U2 R" },
+      { id: 'zbll:u4-3', name: 'U4-3', alg: "R U R' U R L' U R' U' L R U2 R'" },
+      { id: 'zbll:u4-4', name: 'U4-4', alg: "F R' U R' U' D R' U R D' R2 U' R' F'" },
+      { id: 'zbll:u4-5', name: 'U4-5', alg: "F R2 U R2 U R U' R U' R' U2 R' U2 F'" },
+      { id: 'zbll:u4-6', name: 'U4-6', alg: "F U2 F' R' U F U F' U' R" },
+      { id: 'zbll:u4-7', name: 'U4-7', alg: "R' L U' R U' R' U' R U2 L' R' U R" },
+      { id: 'zbll:u4-8', name: 'U4-8', alg: "R' U' R U' R' L U' R U L' R' U2 R" },
+      { id: 'zbll:u4-9', name: 'U4-9', alg: "F R U R U R2 U R2 U2 R2 U2 R U R' U2 F'" },
+      { id: 'zbll:u4-10', name: 'U4-10', alg: "F R U R2 D R' U' R D' U R U' R F'" },
+      { id: 'zbll:u4-11', name: 'U4-11', alg: "R' U F U' F' U' R F U2 F'" },
+      { id: 'zbll:u4-12', name: 'U4-12', alg: "R' U' R L U2 R' U R U R' U L' R" },
+    ] },
+    { group: 'U5', set: 'U', coll: 'coll:u5', items: [
+      { id: 'zbll:u5-1', name: 'U5-1', alg: "R' U' R U' R' U2 R2 U R' U R U2 R'" },
+      { id: 'zbll:u5-2', name: 'U5-2', alg: "R U' R U R U' R' U' R U2 R' U2 R' U R'" },
+      { id: 'zbll:u5-3', name: 'U5-3', alg: "R U2 R' U' R U' R' U' R U R' U R U2 R'" },
+      { id: 'zbll:u5-4', name: 'U5-4', alg: "R' U R' U' R' U R U R' U2 R U2 R U' R" },
+      { id: 'zbll:u5-5', name: 'U5-5', alg: "R' U2 R U R' U R U R' U' R U' R' U2 R" },
+      { id: 'zbll:u5-6', name: 'U5-6', alg: "R U R' U R' U2 R2 U R2 U R2 U' R'" },
+      { id: 'zbll:u5-7', name: 'U5-7', alg: "R' U' R U' R U2 R2 U' R2 U' R2 U R" },
+      { id: 'zbll:u5-8', name: 'U5-8', alg: "R U R' U R U2 R' U R U2 R' U' R U' R'" },
+      { id: 'zbll:u5-9', name: 'U5-9', alg: "R U R' U' R U' R' U2 R U' R' U2 R U R'" },
+      { id: 'zbll:u5-10', name: 'U5-10', alg: "R U R' U R U2 R2 U' R U' R' U2 R" },
+      { id: 'zbll:u5-11', name: 'U5-11', alg: "R U2 R' U R' U2 R U2 R U R' U' R' U R" },
+      { id: 'zbll:u5-12', name: 'U5-12', alg: "R2 U R2 U2 R' U' R U' R U' R U' R2 U2 R'" },
+    ] },
+    { group: 'U6', set: 'U', coll: 'coll:u6', items: [
+      { id: 'zbll:u6-1', name: 'U6-1', alg: "R' U2 R2 L U2 L' U' L U2 R2 U L' R" },
+      { id: 'zbll:u6-2', name: 'U6-2', alg: "F U R2 D' R U' R' D R2 F' R' U R" },
+      { id: 'zbll:u6-3', name: 'U6-3', alg: "R L' U R2 U2 L U' L' U2 L R2 U2 R'" },
+      { id: 'zbll:u6-4', name: 'U6-4', alg: "R L U2 L' U2 R' U L U' R U' R' U L'" },
+      { id: 'zbll:u6-5', name: 'U6-5', alg: "R' U' L U' R U2 L' U L R' U' R U2 L'" },
+      { id: 'zbll:u6-6', name: 'U6-6', alg: "R U2 R2 L' U2 L U L' U2 R2 U' L R'" },
+      { id: 'zbll:u6-7', name: 'U6-7', alg: "R' U' R F R2 D' R U R' D R2 U' F'" },
+      { id: 'zbll:u6-8', name: 'U6-8', alg: "R U' R F' R' U R U F U' F' U' F R2" },
+      { id: 'zbll:u6-9', name: 'U6-9', alg: "R' U R U2 R F2 R2 U' R U R' U R2 F2 R'" },
+      { id: 'zbll:u6-10', name: 'U6-10', alg: "R2 F2 R F2 R U' R' U L' U L U' R" },
+      { id: 'zbll:u6-11', name: 'U6-11', alg: "R' L U' R2 U2 L' U L U2 L' R2 U2 R" },
+      { id: 'zbll:u6-12', name: 'U6-12', alg: "F2 R U' R' U' R U F U F' R' F U' F" },
+    ] },
+    { group: 'T1', set: 'T', coll: 'coll:t1', items: [
+      { id: 'zbll:t1-1', name: 'T1-1', alg: "R' U' R F R' U R U' F'" },
+      { id: 'zbll:t1-2', name: 'T1-2', alg: "F U R U2 R' U R U R' F'" },
+      { id: 'zbll:t1-3', name: 'T1-3', alg: "R' U L F2 U F2 U' F2 L' R" },
+      { id: 'zbll:t1-4', name: 'T1-4', alg: "R U R' U' R' F' R U2 R U2 R' F" },
+      { id: 'zbll:t1-5', name: 'T1-5', alg: "F U R' U' R F' R' U' R U R' U R" },
+      { id: 'zbll:t1-6', name: 'T1-6', alg: "D' R U R' D U' R' U R' U' R' U R2" },
+      { id: 'zbll:t1-7', name: 'T1-7', alg: "R2 U R2 U R2 U' R D R' U' R D' R" },
+      { id: 'zbll:t1-8', name: 'T1-8', alg: "R' U2 R' U' D R' U' R D' R U R U R2" },
+      { id: 'zbll:t1-9', name: 'T1-9', alg: "R' U2 R' U' R' U' R' F' R' U R U' F U2 R2" },
+      { id: 'zbll:t1-10', name: 'T1-10', alg: "F U' F' R2 F' R2 U R2 U' F2 U F' R2" },
+      { id: 'zbll:t1-11', name: 'T1-11', alg: "R' U' R U R' U L' R U R' U' L R" },
+      { id: 'zbll:t1-12', name: 'T1-12', alg: "R' U2 R F U' R' U R U F' R' U R" },
+    ] },
+    { group: 'T2', set: 'T', coll: 'coll:t2', items: [
+      { id: 'zbll:t2-1', name: 'T2-1', alg: "R U R D R' U' R D' R2" },
+      { id: 'zbll:t2-2', name: 'T2-2', alg: "D R' U' R D' U R U' R U R U' R2" },
+      { id: 'zbll:t2-3', name: 'T2-3', alg: "R2 U' R2 U' R2 U R' D' R U R' D R'" },
+      { id: 'zbll:t2-4', name: 'T2-4', alg: "R F' U2 F R U F R' F' R' U R U2 R2" },
+      { id: 'zbll:t2-5', name: 'T2-5', alg: "R U2 R U D' R U R' D R' U' R' U' R2" },
+      { id: 'zbll:t2-6', name: 'T2-6', alg: "L U' R' F2 U' F2 U F2 L' R" },
+      { id: 'zbll:t2-7', name: 'T2-7', alg: "R' U F U2 F' U' R F U' F'" },
+      { id: 'zbll:t2-8', name: 'T2-8', alg: "R U2 R' U2 R' F R U R U' R' F'" },
+      { id: 'zbll:t2-9', name: 'T2-9', alg: "R L' U R' U' L U R U R' U' R U' R'" },
+      { id: 'zbll:t2-10', name: 'T2-10', alg: "R' U R F2 R F2 U' F2 U R2 U' R F2" },
+      { id: 'zbll:t2-11', name: 'T2-11', alg: "R F U R' U' R U' R' U' R U F' R'" },
+      { id: 'zbll:t2-12', name: 'T2-12', alg: "R' U2 D R' U R' U' R' U R2 D' U R" },
+    ] },
+    { group: 'T3', set: 'T', coll: 'coll:t3', items: [
+      { id: 'zbll:t3-1', name: 'T3-1', alg: "F' R' F U2 F' R F R' U2 R" },
+      { id: 'zbll:t3-2', name: 'T3-2', alg: "R' F2 R U' R2 F2 R2 U' R' U2 R' F2 R2" },
+      { id: 'zbll:t3-3', name: 'T3-3', alg: "R U R' L' U2 R U' R' U2 L U R U' R'" },
+      { id: 'zbll:t3-4', name: 'T3-4', alg: "R' U' R U' F U' R' U R U F' R' U R" },
+      { id: 'zbll:t3-5', name: 'T3-5', alg: "R U' R U D' R U' R' D U2 R2 U' R2 U' R'" },
+      { id: 'zbll:t3-6', name: 'T3-6', alg: "R F R' U R U2 R' U R U F' R'" },
+      { id: 'zbll:t3-7', name: 'T3-7', alg: "R U2 R F2 U R U R2 U' R' U' F2 R2" },
+      { id: 'zbll:t3-8', name: 'T3-8', alg: "R L' U R U' L U R' U R' U' R U' R'" },
+      { id: 'zbll:t3-9', name: 'T3-9', alg: "R' L U' R' U L' U' R U' R U R' U R" },
+      { id: 'zbll:t3-10', name: 'T3-10', alg: "R F R' U2 R F' R' F U2 F'" },
+      { id: 'zbll:t3-11', name: 'T3-11', alg: "F R U R' U' R U' R' U' R U R' F'" },
+      { id: 'zbll:t3-12', name: 'T3-12', alg: "R U2 F U R2 U' R' U R' U' R' F' U2 R'" },
+    ] },
+    { group: 'T4', set: 'T', coll: 'coll:t4', items: [
+      { id: 'zbll:t4-1', name: 'T4-1', alg: "R' U R U2 L' R' U R U' L" },
+      { id: 'zbll:t4-2', name: 'T4-2', alg: "R U' R' U2 L R U' R' U L'" },
+      { id: 'zbll:t4-3', name: 'T4-3', alg: "R U' D R2 U' R' U R2 D' R U' R' U2 R'" },
+      { id: 'zbll:t4-4', name: 'T4-4', alg: "R' U' R U' R' U R F U' R' U2 R U F'" },
+      { id: 'zbll:t4-5', name: 'T4-5', alg: "R U R U2 R U R U R2 F' R' U2 R U2 F" },
+      { id: 'zbll:t4-6', name: 'T4-6', alg: "R U2 R' U' R2 U' L' U R' U' L R'" },
+      { id: 'zbll:t4-7', name: 'T4-7', alg: "F U' R' U2 R U F' R' U' R U R' U R" },
+      { id: 'zbll:t4-8', name: 'T4-8', alg: "F' U2 R' U2 R F R2 U' R' U' R' U2 R' U' R'" },
+      { id: 'zbll:t4-9', name: 'T4-9', alg: "L U' R U R' L' U2 R2 U R U R U' R' U' R2" },
+      { id: 'zbll:t4-10', name: 'T4-10', alg: "L' U2 R U2 R' U2 L U R U R' U' R U' R'" },
+      { id: 'zbll:t4-11', name: 'T4-11', alg: "R' U2 R U R2 U L U' R U L' R" },
+      { id: 'zbll:t4-12', name: 'T4-12', alg: "R U R' U R U' R' U' L' U2 R U2 R' U2 L" },
+    ] },
+    { group: 'T5', set: 'T', coll: 'coll:t5', items: [
+      { id: 'zbll:t5-1', name: 'T5-1', alg: "R2 U' R U F' U2 R' U2 R F U' R" },
+      { id: 'zbll:t5-2', name: 'T5-2', alg: "L' U R U' L2 U' R' U L' U' R U2 R'" },
+      { id: 'zbll:t5-3', name: 'T5-3', alg: "R2 U' R2 U' R' D R' U R D' R' U R2" },
+      { id: 'zbll:t5-4', name: 'T5-4', alg: "R U R' U R U' R' L' U2 R U R' U2 L" },
+      { id: 'zbll:t5-5', name: 'T5-5', alg: "R2 U R U2 R' U R D' R U2 R' D U' R" },
+      { id: 'zbll:t5-6', name: 'T5-6', alg: "R' U F' R' U2 R U2 F U' R' U R2" },
+      { id: 'zbll:t5-7', name: 'T5-7', alg: "R' U' R U' R' U L R U2 R' U' R U2 L'" },
+      { id: 'zbll:t5-8', name: 'T5-8', alg: "R' F R U R' U2 R2 U R2 U R F' R U2 R'" },
+      { id: 'zbll:t5-9', name: 'T5-9', alg: "R' U2 R' U2 R2 U R F R U R U' R' F' R2" },
+      { id: 'zbll:t5-10', name: 'T5-10', alg: "R U2 R' F R' U' R2 U' R2 U2 R U' R' F' R" },
+      { id: 'zbll:t5-11', name: 'T5-11', alg: "R2 U' R D R' U' R D' R U R2 U R2" },
+      { id: 'zbll:t5-12', name: 'T5-12', alg: "R2 U' R' U2 R U' R' D R' U2 R D' U R'" },
+    ] },
+    { group: 'T6', set: 'T', coll: 'coll:t6', items: [
+      { id: 'zbll:t6-1', name: 'T6-1', alg: "R U2 R' U' R U' R2 U2 R U R' U R" },
+      { id: 'zbll:t6-2', name: 'T6-2', alg: "R U' R U2 R U2 R' U R U R' U' R' U R'" },
+      { id: 'zbll:t6-3', name: 'T6-3', alg: "R U2 R' U' R U' R' U R U R' U R U2 R'" },
+      { id: 'zbll:t6-4', name: 'T6-4', alg: "R' U R' U2 R' U2 R U' R' U' R U R U' R" },
+      { id: 'zbll:t6-5', name: 'T6-5', alg: "R' U2 R U R' U R U' R' U' R U' R' U2 R" },
+      { id: 'zbll:t6-6', name: 'T6-6', alg: "R U R2 U' R2 U' R2 U2 R U' R U' R'" },
+      { id: 'zbll:t6-7', name: 'T6-7', alg: "R' U' R2 U R2 U R2 U2 R' U R' U R" },
+      { id: 'zbll:t6-8', name: 'T6-8', alg: "R U R' U R U2 R' U' R U2 R' U' R U' R'" },
+      { id: 'zbll:t6-9', name: 'T6-9', alg: "R U' R' U2 R U R' U2 R U R' U R U' R'" },
+      { id: 'zbll:t6-10', name: 'T6-10', alg: "R' U2 R U R' U R2 U2 R' U' R U' R'" },
+      { id: 'zbll:t6-11', name: 'T6-11', alg: "R U2 R2 U R' U R' U R' U R U2 R2 U' R2" },
+      { id: 'zbll:t6-12', name: 'T6-12', alg: "R' U' R U R U' R' U2 R' U2 R U' R U2 R'" },
+    ] },
+    { group: 'L1', set: 'L', coll: 'coll:l1', items: [
+      { id: 'zbll:l1-1', name: 'L1-1', alg: "R2 D R' U R D' R' U' R'" },
+      { id: 'zbll:l1-2', name: 'L1-2', alg: "F U F' R' U F U2 F' U' R" },
+      { id: 'zbll:l1-3', name: 'L1-3', alg: "R' L F2 U' F2 U F2 R U L'" },
+      { id: 'zbll:l1-4', name: 'L1-4', alg: "F R U R' U' R' F' R U2 R U2 R'" },
+      { id: 'zbll:l1-5', name: 'L1-5', alg: "R U R' U R U' R' U' L' U R U' L R'" },
+      { id: 'zbll:l1-6', name: 'L1-6', alg: "R D' R U' R' D R U' R2 U R2 U R2" },
+      { id: 'zbll:l1-7', name: 'L1-7', alg: "R2 U R' U' R' U R' U' D R' U R D'" },
+      { id: 'zbll:l1-8', name: 'L1-8', alg: "R2 U R U R D' R U' R' D U' R' U2 R'" },
+      { id: 'zbll:l1-9', name: 'L1-9', alg: "R2 U2 R' U' R F R F' U' R' F' U2 F R'" },
+      { id: 'zbll:l1-10', name: 'L1-10', alg: "F2 R' U R2 U' F2 U F2 R' F2 R' U' R" },
+      { id: 'zbll:l1-11', name: 'L1-11', alg: "R F U' R' U R U R' U R U' F' R'" },
+      { id: 'zbll:l1-12', name: 'L1-12', alg: "R' U' D R2 U' R U R U' R D' U2 R" },
+    ] },
+    { group: 'L2', set: 'L', coll: 'coll:l2', items: [
+      { id: 'zbll:l2-1', name: 'L2-1', alg: "F U R' U' R F' R' U R" },
+      { id: 'zbll:l2-2', name: 'L2-2', alg: "R' D R' U R D' R' U R2 U' R2 U' R2" },
+      { id: 'zbll:l2-3', name: 'L2-3', alg: "R2 U' R U R U' R U D' R U' R' D" },
+      { id: 'zbll:l2-4', name: 'L2-4', alg: "R2 U' R' U' R' D R' U R D' U R U2 R" },
+      { id: 'zbll:l2-5', name: 'L2-5', alg: "R2 U2 F' U R' U' R F R U R U R U2 R" },
+      { id: 'zbll:l2-6', name: 'L2-6', alg: "F R U' R' U' R U2 R' U' F'" },
+      { id: 'zbll:l2-7', name: 'L2-7', alg: "R' L F2 U F2 U' F2 L' U' R" },
+      { id: 'zbll:l2-8', name: 'L2-8', alg: "F' R U2 R' U2 R' F R U R U' R'" },
+      { id: 'zbll:l2-9', name: 'L2-9', alg: "R' U' R U' R' U R F R' U R U' F'" },
+      { id: 'zbll:l2-10', name: 'L2-10', alg: "R2 F U' F2 U R2 U' R2 F R2 F U F'" },
+      { id: 'zbll:l2-11', name: 'L2-11', alg: "R' L' U R U' R' L U' R U' R' U R" },
+      { id: 'zbll:l2-12', name: 'L2-12', alg: "R' U' R F U' R' U' R U F' R' U2 R" },
+    ] },
+    { group: 'L3', set: 'L', coll: 'coll:l3', items: [
+      { id: 'zbll:l3-1', name: 'L3-1', alg: "R U2 R D R' U2 R D' R2" },
+      { id: 'zbll:l3-2', name: 'L3-2', alg: "R U2 R2 D' R U' R' D R2 U' R'" },
+      { id: 'zbll:l3-3', name: 'L3-3', alg: "R' U' R U2 L' U R' U' L U' R" },
+      { id: 'zbll:l3-4', name: 'L3-4', alg: "L' U R U' L U R2 U2 R U R' U R" },
+      { id: 'zbll:l3-5', name: 'L3-5', alg: "R L' U R' U R U2 R' U' R U' L U R'" },
+      { id: 'zbll:l3-6', name: 'L3-6', alg: "R' U F U' F' U2 R F R' U R U2 F'" },
+      { id: 'zbll:l3-7', name: 'L3-7', alg: "R U D' R U2 R' U2 D R2 U2 R U R2 U R" },
+      { id: 'zbll:l3-8', name: 'L3-8', alg: "R' U' R U R' U R U' L U' R' U L' U R" },
+      { id: 'zbll:l3-9', name: 'L3-9', alg: "R2 U R U' D R' U' R D' U2 R U' R2 U' R2" },
+      { id: 'zbll:l3-10', name: 'L3-10', alg: "R U2 R' U2 R U R2 D' R U2 R' D R2 U2 R'" },
+      { id: 'zbll:l3-11', name: 'L3-11', alg: "F' U2 F R' U2 R U F' R' U R U2 F" },
+      { id: 'zbll:l3-12', name: 'L3-12', alg: "R U R' F' U' R' U2 R U F R' U R2 U2 R'" },
+    ] },
+    { group: 'L4', set: 'L', coll: 'coll:l4', items: [
+      { id: 'zbll:l4-1', name: 'L4-1', alg: "R' U2 R' D' R U2 R' D R2" },
+      { id: 'zbll:l4-2', name: 'L4-2', alg: "F U' R' U R U2 F' R' F U' F' U2 R" },
+      { id: 'zbll:l4-3', name: 'L4-3', alg: "R F2 R U' R2 U' R2 U2 R2 U' R F2 R'" },
+      { id: 'zbll:l4-4', name: 'L4-4', alg: "R U' R2 F2 R U2 R U2 R' F2 U2 R U' R'" },
+      { id: 'zbll:l4-5', name: 'L4-5', alg: "R' U' D R' U2 R U2 D' R2 U2 R' U' R2 U' R'" },
+      { id: 'zbll:l4-6', name: 'L4-6', alg: "R U R' U2 L U' R U L' U R'" },
+      { id: 'zbll:l4-7', name: 'L4-7', alg: "R' U2 R2 D R' U R D' R2 U R" },
+      { id: 'zbll:l4-8', name: 'L4-8', alg: "L U' R' U L' U' R2 U2 R' U' R U' R'" },
+      { id: 'zbll:l4-9', name: 'L4-9', alg: "R' F R' U F' R' F U' R2 F' R U R'" },
+      { id: 'zbll:l4-10', name: 'L4-10', alg: "R' U2 R U2 R' U' R2 D R' U2 R D' R2 U2 R" },
+      { id: 'zbll:l4-11', name: 'L4-11', alg: "R U2 R' F U2 F' U' R F U' F' U2 R'" },
+      { id: 'zbll:l4-12', name: 'L4-12', alg: "R' U' D' R2 U R' U' R2 D U2 R' U2 R U2 R" },
+    ] },
+    { group: 'L5', set: 'L', coll: 'coll:l5', items: [
+      { id: 'zbll:l5-1', name: 'L5-1', alg: "L U2 R' U R U2 L' R' U R" },
+      { id: 'zbll:l5-2', name: 'L5-2', alg: "R' F2 L' R2 U' L U R2 F2 R" },
+      { id: 'zbll:l5-3', name: 'L5-3', alg: "R U2 D R2 U' R' U R2 D' R U' R' U' R'" },
+      { id: 'zbll:l5-4', name: 'L5-4', alg: "R U2 R2 U' R U R2 D' U' R U R' D U2 R'" },
+      { id: 'zbll:l5-5', name: 'L5-5', alg: "R' U2 R U R2 U R U F' R' U2 R U2 F R" },
+      { id: 'zbll:l5-6', name: 'L5-6', alg: "R' F2 R2 U' L' U R2 L F2 R" },
+      { id: 'zbll:l5-7', name: 'L5-7', alg: "F R U R2 F R F' R U' R' F'" },
+      { id: 'zbll:l5-8', name: 'L5-8', alg: "R' F' U2 R' U2 R F U' R' U' R2 U' R' U2 R" },
+      { id: 'zbll:l5-9', name: 'L5-9', alg: "R' U2 R2 U R' U' R2 D U R' U' R D' U2 R" },
+      { id: 'zbll:l5-10', name: 'L5-10', alg: "F U2 F' R' U F U F' U R U R' U R" },
+      { id: 'zbll:l5-11', name: 'L5-11', alg: "R' U2 L U' R U L' R' U2 R" },
+      { id: 'zbll:l5-12', name: 'L5-12', alg: "R' U' R U' R' U' F U' F' U' R F U2 F'" },
+    ] },
+    { group: 'L6', set: 'L', coll: 'coll:l6', items: [
+      { id: 'zbll:l6-1', name: 'L6-1', alg: "R U R' U R U' R' U R U' R' U R U2 R'" },
+      { id: 'zbll:l6-2', name: 'L6-2', alg: "R' U' R U' R' U2 R U' R U R' U R U2 R'" },
+      { id: 'zbll:l6-3', name: 'L6-3', alg: "R' U2 R U R' U R U' R U2 R' U' R U' R'" },
+      { id: 'zbll:l6-4', name: 'L6-4', alg: "R2 U R' U R' U' R U' R' U' R U R U' R2" },
+      { id: 'zbll:l6-5', name: 'L6-5', alg: "R2 U' R U R U' R' U' R U' R' U R' U R2" },
+      { id: 'zbll:l6-6', name: 'L6-6', alg: "R U R' U R U2 R' U R' U' R U' R' U2 R" },
+      { id: 'zbll:l6-7', name: 'L6-7', alg: "R U2 R' U' R U' R' U R' U2 R U R' U R" },
+      { id: 'zbll:l6-8', name: 'L6-8', alg: "R2 U R' U' R' U R U R' U R U' R U' R2" },
+      { id: 'zbll:l6-9', name: 'L6-9', alg: "R2 U' R U' R U R' U R U R' U' R' U R2" },
+      { id: 'zbll:l6-10', name: 'L6-10', alg: "R F' D2 F R' U2 R F' D2 F R'" },
+      { id: 'zbll:l6-11', name: 'L6-11', alg: "R U R' U R U2 R' U2 R U2 R' U' R U' R'" },
+      { id: 'zbll:l6-12', name: 'L6-12', alg: "R U2 R' U' R U' R' U2 R U R' U R U2 R'" },
+    ] },
+    { group: 'S1', set: 'Sune', coll: 'coll:s1', items: [
+      { id: 'zbll:s1-1', name: 'S1-1', alg: "R U R' U R U2 R'" },
+      { id: 'zbll:s1-2', name: 'S1-2', alg: "R2 U R' U' R' U' R U2 R' U' R2 U' R2" },
+      { id: 'zbll:s1-3', name: 'S1-3', alg: "R2 U' R' U' R2 U R U R2 U R' U R" },
+      { id: 'zbll:s1-4', name: 'S1-4', alg: "R2 U' R2 U' R U2 R U' R' U' R U R2" },
+      { id: 'zbll:s1-5', name: 'S1-5', alg: "R' U R2 U R' U R U2 R U2 R U R' U R2" },
+      { id: 'zbll:s1-6', name: 'S1-6', alg: "R' U2 R U R' U R" },
+      { id: 'zbll:s1-7', name: 'S1-7', alg: "R' U2 R2 U R2 U R U' R U' R'" },
+      { id: 'zbll:s1-8', name: 'S1-8', alg: "R' U2 R2 U2 R2 U' R2 U' R2 U R" },
+      { id: 'zbll:s1-9', name: 'S1-9', alg: "R' U2 R2 U R U R U' R' U' R2 U R" },
+      { id: 'zbll:s1-10', name: 'S1-10', alg: "R U R2 U' R2 U' R2 U2 R2 U2 R'" },
+      { id: 'zbll:s1-11', name: 'S1-11', alg: "R2 F2 R' U R' U R U2 R F2 R2" },
+      { id: 'zbll:s1-12', name: 'S1-12', alg: "R2 U R U' R' U' R U2 R U' R2 U' R2" },
+    ] },
+    { group: 'S2', set: 'Sune', coll: 'coll:s2', items: [
+      { id: 'zbll:s2-1', name: 'S2-1', alg: "L U' R' U L' U' R" },
+      { id: 'zbll:s2-2', name: 'S2-2', alg: "F U2 R' U' R F' R' U R F U2 F'" },
+      { id: 'zbll:s2-3', name: 'S2-3', alg: "R' U2 F' R U R' U' R' F R U2 R" },
+      { id: 'zbll:s2-4', name: 'S2-4', alg: "R' U2 R U R' U' R' D' R U2 R' D R2" },
+      { id: 'zbll:s2-5', name: 'S2-5', alg: "R2 D R' U2 R D' R' U' R' U R U2 R'" },
+      { id: 'zbll:s2-6', name: 'S2-6', alg: "R' U' D R' U R U2 D' R2 U R' U' R'" },
+      { id: 'zbll:s2-7', name: 'S2-7', alg: "R' U' R' U' R F U' R' U2 R U F' R" },
+      { id: 'zbll:s2-8', name: 'S2-8', alg: "L U' R' U R' L' U' R' U' R' U R U R2" },
+      { id: 'zbll:s2-9', name: 'S2-9', alg: "R2 U R U R' U' R' U' L' R' U R' U' L" },
+      { id: 'zbll:s2-10', name: 'S2-10', alg: "R' U2 R2 U R D' R U R' D R2 U' R U' R'" },
+      { id: 'zbll:s2-11', name: 'S2-11', alg: "R' U F U2 L F' L' U' R U' R' F' R" },
+      { id: 'zbll:s2-12', name: 'S2-12', alg: "D' R2 U R U' R2 U' R U R' D R' U R" },
+    ] },
+    { group: 'S3', set: 'Sune', coll: 'coll:s3', items: [
+      { id: 'zbll:s3-1', name: 'S3-1', alg: "R L' U R' U' L U2 R U2 R'" },
+      { id: 'zbll:s3-2', name: 'S3-2', alg: "R' U2 R U R2 D' R U' R' D R U2 R" },
+      { id: 'zbll:s3-3', name: 'S3-3', alg: "R' L U L' U2 R U' L U2 L' U R' U R" },
+      { id: 'zbll:s3-4', name: 'S3-4', alg: "R' U' F U' R2 U R2 U F' R U' R U' R'" },
+      { id: 'zbll:s3-5', name: 'S3-5', alg: "R U R' U R' U' R' D' R U R' D R' U2 R'" },
+      { id: 'zbll:s3-6', name: 'S3-6', alg: "L U' R' U L' U2 R F R' U R U' F'" },
+      { id: 'zbll:s3-7', name: 'S3-7', alg: "R' U' R' D' R U' R' D R2 U R' U R" },
+      { id: 'zbll:s3-8', name: 'S3-8', alg: "R2 F R U R U' R' F' R U' R' U R" },
+      { id: 'zbll:s3-9', name: 'S3-9', alg: "R' U' L U' R2 U R L' U' R2 U2 R' U' R2" },
+      { id: 'zbll:s3-10', name: 'S3-10', alg: "R2 D' R U2 R' D R2 U R' U R" },
+      { id: 'zbll:s3-11', name: 'S3-11', alg: "R2 U F' R' U2 R U2 F U' R' U R'" },
+      { id: 'zbll:s3-12', name: 'S3-12', alg: "R' F' U F U F' U2 F U' R U R' U R" },
+    ] },
+    { group: 'S4', set: 'Sune', coll: 'coll:s4', items: [
+      { id: 'zbll:s4-1', name: 'S4-1', alg: "R' U2 R U F R' U R U' F'" },
+      { id: 'zbll:s4-2', name: 'S4-2', alg: "R U R' U R2 D R' U' R D' R' U' R'" },
+      { id: 'zbll:s4-3', name: 'S4-3', alg: "R2 U' R' U2 R2 U' L' R U R2 U' L U' R'" },
+      { id: 'zbll:s4-4', name: 'S4-4', alg: "R' U2 R' D R' U R D' R U R U' R U' R'" },
+      { id: 'zbll:s4-5', name: 'S4-5', alg: "R' U2 R' D R' U R D' R' U' R' U R' U R" },
+      { id: 'zbll:s4-6', name: 'S4-6', alg: "F R' U' R2 U' R2 U2 R2 U' R' F'" },
+      { id: 'zbll:s4-7', name: 'S4-7', alg: "R U2 R D R' U' R D' R2 U R U2 R'" },
+      { id: 'zbll:s4-8', name: 'S4-8', alg: "R2 D' R U' R' D R2 F R' U R U' F'" },
+      { id: 'zbll:s4-9', name: 'S4-9', alg: "L U L' U R' U2 R U' L U2 R' U L' R" },
+      { id: 'zbll:s4-10', name: 'S4-10', alg: "F U F' U F U' R U2 R' U R U R' F'" },
+      { id: 'zbll:s4-11', name: 'S4-11', alg: "R U R' U R2 D R' U2 R D' R2" },
+      { id: 'zbll:s4-12', name: 'S4-12', alg: "R L' U2 R2 U' R2 U' R2 U' L U' R" },
+    ] },
+    { group: 'S5', set: 'Sune', coll: 'coll:s5', items: [
+      { id: 'zbll:s5-1', name: 'S5-1', alg: "F R' U2 R F' R' F U2 F' R" },
+      { id: 'zbll:s5-2', name: 'S5-2', alg: "R F2 R2 U R U2 R' U R U R F2 R'" },
+      { id: 'zbll:s5-3', name: 'S5-3', alg: "R F2 U R U R U' R U R2 U2 F2 R'" },
+      { id: 'zbll:s5-4', name: 'S5-4', alg: "R U R' U R U' R D R' U' R D' R2" },
+      { id: 'zbll:s5-5', name: 'S5-5', alg: "R2 D' R U' R' D R U' R U R' U R" },
+      { id: 'zbll:s5-6', name: 'S5-6', alg: "F' U2 F2 R2 U F2 U F2 U' R2 U' F'" },
+      { id: 'zbll:s5-7', name: 'S5-7', alg: "R' U' F2 U' R2 U R2 U F2 R2 U2 R'" },
+      { id: 'zbll:s5-8', name: 'S5-8', alg: "D' R U2 R' D R2 U' R U' R2 U R' U R2" },
+      { id: 'zbll:s5-9', name: 'S5-9', alg: "D' R2 U R' U R2 U' R U' R2 D R' U2 R" },
+      { id: 'zbll:s5-10', name: 'S5-10', alg: "F R' U R U F' R' U F U F' R" },
+      { id: 'zbll:s5-11', name: 'S5-11', alg: "D R2 U' R2 U' R' U2 R U2 R D' U R U' R'" },
+      { id: 'zbll:s5-12', name: 'S5-12', alg: "F R2 F' U2 R' U2 R2 U2 R U2 R F R F' R" },
+    ] },
+    { group: 'S6', set: 'Sune', coll: 'coll:s6', items: [
+      { id: 'zbll:s6-1', name: 'S6-1', alg: "R' U2 L U' R U L' U R' U R" },
+      { id: 'zbll:s6-2', name: 'S6-2', alg: "R U F' R U R U' R' F R2 U R2 U2 R'" },
+      { id: 'zbll:s6-3', name: 'S6-3', alg: "R U R2 U L' U2 R U' R' U2 L R2 U2 R'" },
+      { id: 'zbll:s6-4', name: 'S6-4', alg: "R U2 R2 U2 R' U R' D R' U' R D' U2 R" },
+      { id: 'zbll:s6-5', name: 'S6-5', alg: "R' U2 R U R' U' R F U' R' U' R U F'" },
+      { id: 'zbll:s6-6', name: 'S6-6', alg: "F R U' R2 U2 R U R' U R2 U R' F'" },
+      { id: 'zbll:s6-7', name: 'S6-7', alg: "R U F' U2 R' U' R U' F R' U R U2 R'" },
+      { id: 'zbll:s6-8', name: 'S6-8', alg: "R U R2 F2 R U2 R U2 R' F2 U R U2 R'" },
+      { id: 'zbll:s6-9', name: 'S6-9', alg: "R U2 D' R U' R' D R' U R' U2 R2 U2 R" },
+      { id: 'zbll:s6-10', name: 'S6-10', alg: "R U' R2 U2 D' R U R' D U R2 U R'" },
+      { id: 'zbll:s6-11', name: 'S6-11', alg: "R U R' U L' U R U' L U2 R'" },
+      { id: 'zbll:s6-12', name: 'S6-12', alg: "F U R' F R F' R U' R' U R U' R' F'" },
+    ] },
+    { group: 'AS1', set: 'Antisune', coll: 'coll:as1', items: [
+      { id: 'zbll:as1-1', name: 'AS1-1', alg: "R U2 R' U' R U' R'" },
+      { id: 'zbll:as1-2', name: 'AS1-2', alg: "R U2 R2 U' R2 U' R' U R' U R" },
+      { id: 'zbll:as1-3', name: 'AS1-3', alg: "R' U' R2 U R2 U R2 U2 R2 U2 R" },
+      { id: 'zbll:as1-4', name: 'AS1-4', alg: "R2 U R U R2 U' R' U' R2 U' R U' R'" },
+      { id: 'zbll:as1-5', name: 'AS1-5', alg: "R2 U R2 U R U2 R' U R U R U' R2" },
+      { id: 'zbll:as1-6', name: 'AS1-6', alg: "R' U' R U' R' U2 R" },
+      { id: 'zbll:as1-7', name: 'AS1-7', alg: "R U2 R2 U' R' U' R' U R U R2 U' R'" },
+      { id: 'zbll:as1-8', name: 'AS1-8', alg: "R2 U' R' U R U R' U2 R' U R2 U R2" },
+      { id: 'zbll:as1-9', name: 'AS1-9', alg: "R2 U' R U' R' U2 R' U2 R' U' R U' R2 U' R" },
+      { id: 'zbll:as1-10', name: 'AS1-10', alg: "R2 U R2 U R' U2 R' U R U R' U' R2" },
+      { id: 'zbll:as1-11', name: 'AS1-11', alg: "R U2 R2 U2 R2 U R2 U R2 U' R'" },
+      { id: 'zbll:as1-12', name: 'AS1-12', alg: "R2 F2 R' U2 R' U' R U' R F2 R2" },
+    ] },
+    { group: 'AS2', set: 'Antisune', coll: 'coll:as2', items: [
+      { id: 'zbll:as2-1', name: 'AS2-1', alg: "L' U R U' L U R'" },
+      { id: 'zbll:as2-2', name: 'AS2-2', alg: "R U R U' R2 D U2 R' U' R D' U R" },
+      { id: 'zbll:as2-3', name: 'AS2-3', alg: "R' F U' R' U2 R U F' R' U R U R" },
+      { id: 'zbll:as2-4', name: 'AS2-4', alg: "L' U R U' R L U R U R U' R' U' R2" },
+      { id: 'zbll:as2-5', name: 'AS2-5', alg: "R2 U' R' U' R U R U L R U' R U L'" },
+      { id: 'zbll:as2-6', name: 'AS2-6', alg: "F U2 F' R' U' R F R' U R U2 F'" },
+      { id: 'zbll:as2-7', name: 'AS2-7', alg: "R' U2 R' F' R U R U' R' F U2 R" },
+      { id: 'zbll:as2-8', name: 'AS2-8', alg: "R U2 R' U' R U R D R' U2 R D' R2" },
+      { id: 'zbll:as2-9', name: 'AS2-9', alg: "R2 D' R U2 R' D R U R U' R' U2 R" },
+      { id: 'zbll:as2-10', name: 'AS2-10', alg: "R U R' U R2 D' R U' R' D R' U' R2 U2 R" },
+      { id: 'zbll:as2-11', name: 'AS2-11', alg: "R' F R U R' U L F L' U2 F' U' R" },
+      { id: 'zbll:as2-12', name: 'AS2-12', alg: "D R2 U' R' U R2 U R' U' R D' R U' R'" },
+    ] },
+    { group: 'AS3', set: 'Antisune', coll: 'coll:as3', items: [
+      { id: 'zbll:as3-1', name: 'AS3-1', alg: "F U R' U' R F' U' R' U2 R" },
+      { id: 'zbll:as3-2', name: 'AS3-2', alg: "F R U R2 U2 R2 U R2 U R F'" },
+      { id: 'zbll:as3-3', name: 'AS3-3', alg: "F U R' U' R F' R2 D' R U R' D R2" },
+      { id: 'zbll:as3-4', name: 'AS3-4', alg: "R U R D R' U R D' R2 U' R U' R'" },
+      { id: 'zbll:as3-5', name: 'AS3-5', alg: "R U L' U R2 U' R' L U R2 U2 R U R2" },
+      { id: 'zbll:as3-6', name: 'AS3-6', alg: "R U2 R' U' R2 D R' U R D' R' U2 R'" },
+      { id: 'zbll:as3-7', name: 'AS3-7', alg: "R' L U' R U2 L' U R' U2 R U' L U' L'" },
+      { id: 'zbll:as3-8', name: 'AS3-8', alg: "R U R' U R' U' R' D R' U' R D' R U2 R" },
+      { id: 'zbll:as3-9', name: 'AS3-9', alg: "R' U' R U' R U R D R' U' R D' R U2 R" },
+      { id: 'zbll:as3-10', name: 'AS3-10', alg: "R2 D R' U2 R D' R2 U' R U' R'" },
+      { id: 'zbll:as3-11', name: 'AS3-11', alg: "R' U L' U R2 U R2 U R2 U2 L R'" },
+      { id: 'zbll:as3-12', name: 'AS3-12', alg: "F R U' R' U' R U2 R' U F' U' F U' F'" },
+    ] },
+    { group: 'AS4', set: 'Antisune', coll: 'coll:as4', items: [
+      { id: 'zbll:as4-1', name: 'AS4-1', alg: "R' F U2 F' R F R' U2 R F'" },
+      { id: 'zbll:as4-2', name: 'AS4-2', alg: "F U R2 U F2 U' F2 U' R2 F2 U2 F" },
+      { id: 'zbll:as4-3', name: 'AS4-3', alg: "R U2 R2 F2 U' R2 U' R2 U F2 U R" },
+      { id: 'zbll:as4-4', name: 'AS4-4', alg: "D R' U2 R D' R2 U R' U R2 U' R U' R2" },
+      { id: 'zbll:as4-5', name: 'AS4-5', alg: "D R2 U' R U' R2 U R' U R2 D' R U2 R'" },
+      { id: 'zbll:as4-6', name: 'AS4-6', alg: "R F2 R' U' R' U' R U2 R' U' R2 F2 R'" },
+      { id: 'zbll:as4-7', name: 'AS4-7', alg: "R F2 U2 R2 U' R' U R' U' R' U' F2 R'" },
+      { id: 'zbll:as4-8', name: 'AS4-8', alg: "R' U' R U' R' U R' D' R U R' D R2" },
+      { id: 'zbll:as4-9', name: 'AS4-9', alg: "R2 D R' U R D' R' U R' U' R U' R'" },
+      { id: 'zbll:as4-10', name: 'AS4-10', alg: "R' F U' F' U' R F U' R' U' R F'" },
+      { id: 'zbll:as4-11', name: 'AS4-11', alg: "D' R2 U R2 U R U2 R' U2 R' D U' R' U R" },
+      { id: 'zbll:as4-12', name: 'AS4-12', alg: "R' F R' F' R' U2 R' U2 R2 U2 R U2 F R2 F'" },
+    ] },
+    { group: 'AS5', set: 'Antisune', coll: 'coll:as5', items: [
+      { id: 'zbll:as5-1', name: 'AS5-1', alg: "R U2 R' U2 L' U R U' L R'" },
+      { id: 'zbll:as5-2', name: 'AS5-2', alg: "F U R' U' R F' R' U2 L U' R U L'" },
+      { id: 'zbll:as5-3', name: 'AS5-3', alg: "R' U' R U R' F R U R' U' R' F' R2" },
+      { id: 'zbll:as5-4', name: 'AS5-4', alg: "R' U2 R' D' R U R' D R2 U' R' U2 R" },
+      { id: 'zbll:as5-5', name: 'AS5-5', alg: "R' U' R U' L U2 L' U R' U2 L U' L' R" },
+      { id: 'zbll:as5-6', name: 'AS5-6', alg: "R' U' R U' R2 D' R U R' D R U R" },
+      { id: 'zbll:as5-7', name: 'AS5-7', alg: "R U R' U R' F U' R2 U' R2 U F' U R" },
+      { id: 'zbll:as5-8', name: 'AS5-8', alg: "R2 U R U2 R2 U L R' U' R2 U L' U R" },
+      { id: 'zbll:as5-9', name: 'AS5-9', alg: "R U2 R D' R U' R' D R U R U' R U' R'" },
+      { id: 'zbll:as5-10', name: 'AS5-10', alg: "R' U' R U' R' U F' U2 F U' F' U' F R" },
+      { id: 'zbll:as5-11', name: 'AS5-11', alg: "R' U' R U' R2 D' R U2 R' D R2" },
+      { id: 'zbll:as5-12', name: 'AS5-12', alg: "R U' R U F' U2 R' U2 R F U' R2" },
+    ] },
+    { group: 'AS6', set: 'Antisune', coll: 'coll:as6', items: [
+      { id: 'zbll:as6-1', name: 'AS6-1', alg: "R' U' R U' L U' R' U L' U2 R" },
+      { id: 'zbll:as6-2', name: 'AS6-2', alg: "F U' R' U R U F' R' U R U' R' U2 R" },
+      { id: 'zbll:as6-3', name: 'AS6-3', alg: "R U2 R' U' F2 R U2 R' U2 R' F2 R2 U' R'" },
+      { id: 'zbll:as6-4', name: 'AS6-4', alg: "R U2 R2 U' R2 F' R U R' U' R' F U' R'" },
+      { id: 'zbll:as6-5', name: 'AS6-5', alg: "R' U2 R2 U2 R U' R D' R U R' D U2 R'" },
+      { id: 'zbll:as6-6', name: 'AS6-6', alg: "F R U' R2 U' R U' R' U2 R2 U R' F'" },
+      { id: 'zbll:as6-7', name: 'AS6-7', alg: "R U2 R' U' R F' U R' U R U2 F U' R'" },
+      { id: 'zbll:as6-8', name: 'AS6-8', alg: "R U2 R2 L' U2 R U R' U2 L U' R2 U' R'" },
+      { id: 'zbll:as6-9', name: 'AS6-9', alg: "R' U2 D R' U R D' R U' R U2 R2 U2 R'" },
+      { id: 'zbll:as6-10', name: 'AS6-10', alg: "F R U R' U' R U R' F R' F' R U' F'" },
+      { id: 'zbll:as6-11', name: 'AS6-11', alg: "R U2 L' U R' U' L U' R U' R'" },
+      { id: 'zbll:as6-12', name: 'AS6-12', alg: "R' U R2 U2 D R' U' R D' U' R2 U' R" },
+    ] },
+  ];
+  const ZBLL_SETS = [...new Set(ZBLL.map(g => g.set))];
   // How to do each step. Every step page in Learn opens with its lesson, then the practice for it.
   const CFOP_STEPS = [
     { title: 'Cross', sub: 'no algorithms', text: 'Solve the four white edges so they form a cross on the bottom, each one matching the center next to it.',
@@ -2679,6 +3306,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       tips: ['Recognise the case from the colours on the sides, not the top.', 'After 2-look PLL, learn the rest of the 21 so every solve finishes with one algorithm.'] },
     { title: 'COLL', sub: 'next step after full PLL', text: 'When the last F2L pair leaves the top edges oriented (a yellow cross on top), COLL solves the corners while it orients them. Then only an edge PLL is left, and one time in twelve nothing at all.',
       tips: ['Learn it one shape at a time. Sune and Antisune come up most, and you already know one case of each.', 'Recognise the case by the shape of the yellow corners first, then by the colours on the sides of the corners.', 'ZBLL goes one step further and solves the whole last layer in one algorithm (472 cases). The COLL trainer can mix up the edges too, so you practise those cases as COLL, then an edge PLL.'] },
+    { title: 'ZBLL', sub: 'the whole last layer in one look', text: 'When the top edges are already oriented, one ZBLL algorithm solves the whole last layer: no OLL, no PLL. There are 472 cases. Each COLL case splits into 12 (8 for two of the H cases), one for each way the edges can sit.',
+      tips: ['Learn the COLL cases first: ZBLL starts by recognising the COLL from the corners, then looks at the edges.', 'Go one corner shape at a time, starting with Sune and Antisune (S and AS), which come up most. Each shape has 72 cases (H has 40).', 'For the edges, look at one side: does the edge between two corners match them, or which colour is it? Then check a second side.', 'Most of these algorithms use only R and U turns, or add F, D or L. Learn the 2-gen ones (R and U only) first.'] },
   ];
   const ROUX_STEPS = [
     { title: 'First block', sub: '1×2×3 on the left', text: 'With white on the bottom, build a 1×2×3 block on the left: the white edge at the bottom left, the two white corners beside it and the two edges above them. Any side can be your left side.',
@@ -2706,6 +3335,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     pll: { title: 'PLL', lead: 'With the top face yellow, these 21 algorithms move the last-layer pieces into place. Start with Ua, Ub, Aa, Ab, T and Jb.', groups: PLL, mode: 'pll' },
     coll: { title: 'COLL', lead: 'When the top edges are already oriented (a yellow cross on top), one COLL algorithm makes the top yellow and solves the corners, so only an edge PLL (Ua, Ub, H or Z) is left, or nothing at all. 40 cases, grouped by the shape of the yellow corners. Grey stickers are edges, whose places do not matter yet.', groups: COLL, mode: 'coll' },
     collt: { title: 'COLL trainer', lead: 'Practise one COLL case at a time: set it up, recognise it from the corners, solve them, and see how long each part took. Turn on random edges to practise all 472 ZBLL cases the two-look way: COLL, then an edge PLL.' },
+    zbll: { title: 'ZBLL', lead: 'When the top edges are already oriented (a yellow cross on top), one ZBLL algorithm solves the whole last layer. 472 cases: pick a corner shape, then each group is one COLL case with the 12 ways its edges can sit.', groups: ZBLL, mode: 'zbll' },
+    zbllt: { title: 'ZBLL trainer', lead: 'Practise one ZBLL case at a time: set it up, recognise it from the corners and edges, solve the whole last layer, and see how long each part took. Pick a corner shape to practise one set at a time.' },
     ollt: { title: 'OLL trainer', lead: 'Practise one OLL case at a time: set it up on a solved cube, recognise it, make the top yellow, and see how long each part took.' },
     pllt: { title: 'PLL trainer', lead: 'Practise one PLL case at a time, from any angle: set it up, recognise it from the side colours, solve the cube, and see how long each part took.' },
     fb: { title: 'First block', lead: 'How to build it, then a worked example: a scramble and the shortest first block for it.' },
@@ -2733,12 +3364,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     ['x  y  z', 'Rotate the whole cube: x like R, y like U, z like F. No pieces move relative to each other.'],
     ["(R U R' U')", 'The "sexy move". Brackets group a trigger you learn as one motion. Six in a row returns the cube to where it started.'],
   ];
-  const ALL_CASES = [...F2L, ...F2L_BACK, ...OLL, ...OLL_FULL, ...PLL, ...COLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.id.startsWith('ollf:') ? 'oll' : c.id.startsWith('f2lb:') ? 'f2l' : c.id.split(':')[0] })));
+  const ALL_CASES = [...F2L, ...F2L_BACK, ...OLL, ...OLL_FULL, ...PLL, ...COLL, ...ZBLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.id.startsWith('ollf:') ? 'oll' : c.id.startsWith('f2lb:') ? 'f2l' : c.id.split(':')[0] })));
   const caseById = id => ALL_CASES.find(c => c.id === id);
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
     beginner: { name: 'Beginner', steps: [['bgn', 'Learn to solve'], ['notation', 'Notation'], ['words', 'Words']] },
-    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['algs', 'Progress'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
+    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['algs', 'Progress'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['zbll', 'ZBLL'], ['zbllt', 'ZBLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
     roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
@@ -2746,9 +3377,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const learnMode = () => db.learnMode === 'train' ? 'train' : 'teach';
   const stepOf = page => Object.keys(ROUX_PAGES).find(s => ROUX_PAGES[s].teach === page || ROUX_PAGES[s].train === page) || page;
   const pageOf = step => ROUX_PAGES[step] ? ROUX_PAGES[step][learnMode()] : step;
-  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
+  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], zbll: CFOP_STEPS[5], zbllt: CFOP_STEPS[5], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
   // the Learn buttons, grouped by the step they belong to
-  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', coll: 'COLL', collt: 'COLL',
+  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', coll: 'COLL', collt: 'COLL', zbll: 'ZBLL', zbllt: 'ZBLL',
     fb: 'Steps', sb: 'Steps', cmll: 'Steps', lse: 'Steps', quiz: 'Practice', saved: 'Practice', notation: 'Help', words: 'Help' };
   const defMethod = () => METHODS[db.defMethod] ? db.defMethod : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
@@ -2772,12 +3403,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // stops it. Space does the next step as well.
   const TR = { phase: 'scramble', t0: 0, t1: 0, t2: 0, moves: 0, track: null, timer: 0 };
   const trSmartOn = () => typeof SM !== 'undefined' && !!SM && !!SM.conn && typeof SmartCore !== 'undefined';
-  const TRAINERS = ['cross', 'f2lt', 'ollt', 'pllt', 'collt', 'fbt', 'sbt', 'cmllt', 'lset'];
+  const TRAINERS = ['cross', 'f2lt', 'ollt', 'pllt', 'collt', 'zbllt', 'fbt', 'sbt', 'cmllt', 'lset'];
   const trainerActive = () => view === 'learn' && TRAINERS.includes(learnSet);
-  const trData = () => ({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
-  const trNew = () => ({ cross: newCross, f2lt: newF2L, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
+  const trData = () => ({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
+  const trNew = () => ({ cross: newCross, f2lt: newF2L, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), zbllt: () => newLL('zbll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
   // what "done" means for each trainer, on a smart cube's state (white on top)
-  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), cmllt: st => SmartCore.solvedUpToAuf(st),
+  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), zbllt: st => SmartCore.isSolved(st), cmllt: st => SmartCore.solvedUpToAuf(st),
     fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.solvedAnyWay(st) };
   // the last-layer corners are solved, up to a turn of that layer (on the bottom: the smart cube holds white on top)
   const faceOfN = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
@@ -2806,7 +3437,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const fix = SmartCore.fixMoves(T, SM.cur); if (!fix) return null;
     return (yellow ? Solver.heldAs(CrossSolver.flip(fix), T.toks.slice(0, T.k).join(' ')) : fix).join(' ');
   }
-  function renderTrainer() { const D = trData(); if (D) trSync(D.scr); ({ cross: renderCross, f2lt: renderF2LT, ollt: renderLLT, pllt: renderLLT, collt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
+  function renderTrainer() { const D = trData(); if (D) trSync(D.scr); ({ cross: renderCross, f2lt: renderF2LT, ollt: renderLLT, pllt: renderLLT, collt: renderLLT, zbllt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
   function trNext() {
     const now = performance.now();
     if (TR.phase === 'scramble') { TR.phase = 'plan'; TR.t0 = now; }
@@ -3032,12 +3663,14 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // ---------- OLL, PLL and COLL trainers ----------
   // A random last-layer case on a solved cube (yellow on top, green in front). The setup is the
   // algorithm backwards, rewritten as plain face turns, with random U turns so the case can face any way.
-  const llt = Object.fromEntries(['oll', 'pll', 'cmll', 'coll'].map(k => [k, { c: null, scr: '', pool: 'focus', shown: false, pic: true, hist: [], zb: false, ep: '' }]));
+  const llt = Object.fromEntries(['oll', 'pll', 'cmll', 'coll', 'zbll'].map(k => [k, { c: null, scr: '', pool: 'focus', shown: false, pic: true, hist: [], zb: false, ep: '', set: '' }]));
+  llt.zbll.set = ZBLL_SETS.includes(db.zbSet) ? db.zbSet : '';
   const TWO_LOOK_PLL = ['pll:t', 'pll:y', 'pll:ua', 'pll:ub', 'pll:h', 'pll:z'];
-  const LL_POOLS = { oll: [['focus', 'Focus on my slowest'], ['all', 'All 57'], ['2look', '2-look OLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], pll: [['focus', 'Focus on my slowest'], ['all', 'All 21'], ['2look', '2-look PLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], cmll: [['focus', 'Focus on my slowest'], ['all', 'All 9'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], coll: [['focus', 'Focus on my slowest'], ['all', 'All 40'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']] };
-  const lltKind = () => learnSet === 'pllt' ? 'pll' : learnSet === 'cmllt' ? 'cmll' : learnSet === 'collt' ? 'coll' : 'oll';
-  const caseKind = c => c.id.startsWith('pll:') ? 'pll' : c.id.startsWith('coll:') ? 'coll' : 'oll';   // a CMLL case either orients or swaps corners
-  const llGroups = kind => kind === 'cmll' ? CMLL_GROUPS : kind === 'pll' ? PLL : kind === 'coll' ? COLL : OLL_FULL;
+  const LL_POOLS = { oll: [['focus', 'Focus on my slowest'], ['all', 'All 57'], ['2look', '2-look OLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], pll: [['focus', 'Focus on my slowest'], ['all', 'All 21'], ['2look', '2-look PLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], cmll: [['focus', 'Focus on my slowest'], ['all', 'All 9'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], coll: [['focus', 'Focus on my slowest'], ['all', 'All 40'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']], zbll: [['focus', 'Focus on my slowest'], ['all', 'All'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']] };
+  const lltKind = () => learnSet === 'pllt' ? 'pll' : learnSet === 'cmllt' ? 'cmll' : learnSet === 'collt' ? 'coll' : learnSet === 'zbllt' ? 'zbll' : 'oll';
+  const caseKind = c => c.id.startsWith('pll:') ? 'pll' : c.id.startsWith('coll:') ? 'coll' : c.id.startsWith('zbll:') ? 'zbll' : 'oll';   // a CMLL case either orients or swaps corners
+  // the ZBLL trainer can stick to one corner shape (llt.zbll.set)
+  const llGroups = kind => kind === 'cmll' ? CMLL_GROUPS : kind === 'pll' ? PLL : kind === 'coll' ? COLL : kind === 'zbll' ? ZBLL.filter(g => !llt.zbll.set || g.set === llt.zbll.set) : OLL_FULL;
   function llPool(kind, pool) {
     let all = (pool === '2look' && kind === 'oll' ? OLL : llGroups(kind)).flatMap(g => g.items);
     if (kind === 'pll' && pool === '2look') all = all.filter(c => TWO_LOOK_PLL.includes(c.id));
@@ -3055,7 +3688,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (!c) do { c = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && T.c && c.id === T.c.id);
     T.c = c; T.shown = false;
     const ep = kind === 'coll' && T.zb ? `${randAuf()} ${EPLLS[Math.floor(Math.random() * EPLLS.length)]}` : '';
-    T.scr = Solver.faceTurns(`${caseKind(c) === 'pll' || ep ? randAuf() : ''} ${ep} ${Cube.invert(c.alg)} ${randAuf()}`).join(' ');
+    T.scr = Solver.faceTurns(`${caseKind(c) === 'pll' || caseKind(c) === 'zbll' || ep ? randAuf() : ''} ${ep} ${Cube.invert(c.alg)} ${randAuf()}`).join(' ');
     trStart(T.scr, true);
   }
   // your slowest cases so far, with buttons to practise each one
@@ -3077,13 +3710,14 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <p class="scramble">${trScr(T.scr)}</p>
         <p class="lead">Do these moves on a solved cube. They keep the first two layers solved and set up one ${goal} case${kind === 'pll' ? ' with the top already yellow' : kind === 'coll' ? (zbOn ? ', with the edges mixed up as well' : '') : ''}.</p>
         ${T.pic ? `<div class="f2lt-pic">${llDiagramSetup(T.scr, zbOn ? 'pll' : ck)}</div>` : ''}
-        <div class="chips" style="margin-top:12px">${LL_POOLS[kind].map(([k, l]) => `<button type="button" class="chip" data-llt="pool:${k}" aria-pressed="${T.pool === k}">${l}</button>`).join('')}
+        ${kind === 'zbll' ? `<div class="chips" role="group" aria-label="Corner shape" style="margin-top:12px">${[['', 'All shapes'], ...ZBLL_SETS.map(s => [s, s])].map(([k, l]) => `<button type="button" class="chip" data-llt="set:${k}" aria-pressed="${T.set === k}">${l}</button>`).join('')}</div>` : ''}
+        <div class="chips" style="margin-top:12px">${LL_POOLS[kind].map(([k, l]) => `<button type="button" class="chip" data-llt="pool:${k}" aria-pressed="${T.pool === k}">${kind === 'zbll' && k === 'all' ? `All ${llGroups(kind).flatMap(g => g.items).length}` : l}</button>`).join('')}
           <button type="button" class="chip" data-llt="pic" aria-pressed="${!T.pic}">Hide picture</button>${kind === 'coll' ? `<button type="button" class="chip" data-llt="zb" aria-pressed="${T.zb}">Random edges (ZBLL cases)</button>` : ''}</div>
         ${focusNote(llGroups(kind).flatMap(g => g.items), c)}
       </section>
       <section class="panel">
         ${trClockHtml(zbOn ? 'last layer' : goal)}
-        <p class="lead">${kind === 'cmll' ? 'Recognise the case from the corners, then solve them.' : kind === 'coll' ? (zbOn ? 'Recognise the COLL from the corners, do it, then finish the edges with Ua, Ub, H or Z.' : 'Recognise the case from the yellow corners and their side colours, then solve the corners.') : kind === 'oll' ? 'Look at the yellow stickers, recognise the case, then make the whole top yellow.' : 'Look at the side colours of the top layer, recognise the case, then solve the cube.'} Planning time is your recognition time.</p>
+        <p class="lead">${kind === 'cmll' ? 'Recognise the case from the corners, then solve them.' : kind === 'zbll' ? 'Recognise the COLL case from the corners, then the edges around them, then solve the whole last layer.' : kind === 'coll' ? (zbOn ? 'Recognise the COLL from the corners, do it, then finish the edges with Ua, Ub, H or Z.' : 'Recognise the case from the yellow corners and their side colours, then solve the corners.') : kind === 'oll' ? 'Look at the yellow stickers, recognise the case, then make the whole top yellow.' : 'Look at the side colours of the top layer, recognise the case, then solve the cube.'} Planning time is your recognition time.</p>
         <div class="row-btns"><button type="button" class="btn ghost" data-llt="reveal">${T.shown ? 'Hide the case' : 'Show the case'}</button></div>
         ${T.shown ? `<div class="cross-sol">
           <p><b>${esc(c.name)}${ck === 'pll' ? ' perm' : ''}</b> · ${esc(group)}</p>
@@ -3100,6 +3734,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const kind = lltKind(), T = llt[kind];
     if (a === 'new') newLL(kind);
     else if (a.startsWith('pool:')) { T.pool = a.slice(5); newLL(kind); }
+    else if (a.startsWith('set:')) { T.set = a.slice(4); db.zbSet = T.set; save(); newLL(kind); }
     else if (a.startsWith('case:')) newLL(kind, a.slice(5));
     else if (a === 'pic') T.pic = !T.pic;
     else if (a === 'zb') { T.zb = !T.zb; newLL(kind, T.c && T.c.id); }
@@ -3251,7 +3886,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const rx = Object.fromEntries(['sb', 'lse'].map(k => [k, { scr: '', sol: null, shown: false, pic: true, check: '', checkClass: '', try: '', hist: [] }]));
   // every trainer's timed tries (last 200) are kept on this device and in backups, so its stats survive a reload
   db.trHist = db.trHist || {};
-  for (const [k, D] of Object.entries({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })) if (Array.isArray(db.trHist[k])) D.hist = db.trHist[k];
+  for (const [k, D] of Object.entries({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })) if (Array.isArray(db.trHist[k])) D.hist = db.trHist[k];
   const rxKind = () => learnSet === 'sbt' ? 'sb' : 'lse';
   function newRx(kind) { const T = rx[kind]; T.scr = rxSetup(kind); T.sol = null; T.shown = false; T.check = ''; T.try = ''; trStart(T.scr, true); }
   function renderRx() {
@@ -3317,7 +3952,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     r.due = now + (r.box ? SRS_DAYS[r.box] * 864e5 : 60e3); r.seen = now;
     db.srs[id] = r; save();
   }
-  const quizPool = () => ALL_CASES.filter(c => quiz.pool === 'all' || c.mode === quiz.pool);
+  const quizPool = () => ALL_CASES.filter(c => quiz.pool === 'all' ? c.mode !== 'zbll' : c.mode === quiz.pool);   // All cases leaves out the 472 ZBLLs
   const fmtWhen = ms => ms < 36e5 ? `in ${Math.max(1, Math.round(ms / 6e4))} min` : ms < 864e5 ? `in ${Math.round(ms / 36e5)} h` : `in ${Math.round(ms / 864e5)} days`;
   function srsLine() {
     const pool = quizPool(), now = Date.now(), srs = db.srs || {};
@@ -3723,8 +4358,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // trainer, cases marked learned, and timed solves. CFOP: your slowest step (from smart-cube splits), the
   // trainer with your slowest case, new cases from the next set you haven't finished, and 12 solves.
   const dayStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
-  const LEARN_ORDER = [['oll', '2-Look OLL'], ['pll', 'PLL'], ['f2l', 'F2L cases'], ['f2lb', 'F2L other slots'], ['ollf', 'Full OLL'], ['coll', 'COLL']];
-  const PHASE_PAGE = ['cross', 'f2lt', 'ollt', 'pllt'], PAGE_NAME = { cross: 'Cross', f2lt: 'F2L trainer', ollt: 'OLL trainer', pllt: 'PLL trainer', collt: 'COLL trainer', fbt: 'First block', sbt: 'Second block', cmllt: 'CMLL', lset: 'LSE' };
+  const LEARN_ORDER = [['oll', '2-Look OLL'], ['pll', 'PLL'], ['f2l', 'F2L cases'], ['f2lb', 'F2L other slots'], ['ollf', 'Full OLL'], ['coll', 'COLL'], ['zbll', 'ZBLL']];
+  const PHASE_PAGE = ['cross', 'f2lt', 'ollt', 'pllt'], PAGE_NAME = { cross: 'Cross', f2lt: 'F2L trainer', ollt: 'OLL trainer', pllt: 'PLL trainer', collt: 'COLL trainer', zbllt: 'ZBLL trainer', fbt: 'First block', sbt: 'Second block', cmllt: 'CMLL', lset: 'LSE' };
   function makePlan(method) {
     const items = [];
     if (method === 'roux') {
@@ -3741,7 +4376,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         items.push({ kind: 'train', page: PHASE_PAGE[i], n: 8, why: `${PHASES[i]} is your slowest step: ${fmt(avg[i])} on average in your last ${sp.length} smart-cube solve${sp.length === 1 ? '' : 's'}.` });
       } else items.push({ kind: 'train', page: 'cross', n: 5, why: 'Plan the whole cross in inspection. (With a smart cube, this picks your slowest step instead.)' });
       // 2. the trainer with your slowest case
-      const worst = [['f2lt', F2L], ['ollt', OLL_FULL], ['pllt', PLL], ['collt', COLL]].map(([page, groups]) => ({ page, w: slowest(groups.flatMap(g => g.items), 1)[0] })).filter(x => x.w && !items.some(it => it.page === x.page)).sort((a, b) => b.w.a.tot - a.w.a.tot)[0];
+      const worst = [['f2lt', F2L], ['ollt', OLL_FULL], ['pllt', PLL], ['collt', COLL], ['zbllt', ZBLL]].map(([page, groups]) => ({ page, w: slowest(groups.flatMap(g => g.items), 1)[0] })).filter(x => x.w && !items.some(it => it.page === x.page)).sort((a, b) => b.w.a.tot - a.w.a.tot)[0];
       if (worst) items.push({ kind: 'train', page: worst.page, n: 6, why: `Your slowest case is ${worst.w.c.name} (${fmt(worst.w.a.tot)} to recognise and solve). The trainer focuses on your slowest.` });
       else if (!items.some(x => x.page === 'f2lt')) items.push({ kind: 'train', page: 'f2lt', n: 6, why: 'F2L pairs, one at a time. Once you have times, it focuses on your slowest.' });
       // 3. new cases from the first set you haven't finished
@@ -3863,9 +4498,17 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (!set.groups) { body.innerHTML = ''; return; }
     const pct = count(learnSet) ? Math.round(done(learnSet) / count(learnSet) * 100) : null;
     let html = pct === null ? '' : `<div class="progress" aria-label="${pct}% learned"><i style="width:${pct}%"></i></div>`;
-    for (const g of set.groups) {
-      const mode = g.mode || set.mode;
-      html += `<div class="group-title">${esc(g.group)}</div><div class="cards">`;
+    let shown = set.groups;
+    // ZBLL shows one corner shape at a time
+    if (learnSet === 'zbll') {
+      const shape = ZBLL_SETS.includes(db.zbPage) ? db.zbPage : 'Sune';
+      shown = ZBLL.filter(g => g.set === shape);
+      const n = s => ZBLL.filter(g => g.set === s).flatMap(g => g.items), had = s => n(s).filter(c => db.learned[c.id]).length;
+      html += `<div class="chips" role="group" aria-label="Corner shape" style="margin-bottom:8px">${ZBLL_SETS.map(s => `<button type="button" class="chip" data-zbpage="${s}" aria-pressed="${s === shape}">${s}<small>${had(s)}/${n(s).length}</small></button>`).join('')}</div>`;
+    }
+    for (const g of shown) {
+      const mode = g.mode || set.mode, coll = g.coll && COLL.flatMap(x => x.items).find(x => x.id === g.coll);
+      html += `<div class="group-title">${esc(g.group)}${coll ? ` · the corners of COLL ${esc(coll.name)}` : ''}</div><div class="cards">`;
       for (const c of g.items) {
         const L = !!db.learned[c.id];
         html += `<article class="case${L ? ' learned' : ''}">${caseDiagram({ ...c, mode })}<h3>${esc(c.name)}${mode === 'pll' ? '<small>perm</small>' : ''}</h3><p class="alg">${esc(c.alg)}</p>` +
@@ -3877,6 +4520,11 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     }
     body.innerHTML = html;
   }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-zbpage]'); if (!b) return;
+    db.zbPage = b.dataset.zbpage; save(); renderLearn();
+  });
 
   // ---------- Learn → Beginner: the layer-by-layer method, every algorithm checked in the cube model ----------
   // Each "repeat until" rule was simulated on hundreds of random cubes: corners take at most 5 R U R' U',
@@ -3971,7 +4619,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   function renderQuiz() {
     if (!quiz.cur) pickQuiz();
     const c = quiz.cur;
-    $('learnBody').innerHTML = `<div class="chips" style="margin-bottom:16px">${[['all', 'All cases'], ['f2l', 'F2L only'], ['oll', 'OLL only'], ['pll', 'PLL only'], ['coll', 'COLL only']].map(([k, l]) => `<button type="button" class="chip" data-quiz="pool:${k}" aria-pressed="${quiz.pool === k}">${l}</button>`).join('')}</div>
+    $('learnBody').innerHTML = `<div class="chips" style="margin-bottom:16px">${[['all', 'All cases'], ['f2l', 'F2L only'], ['oll', 'OLL only'], ['pll', 'PLL only'], ['coll', 'COLL only'], ['zbll', 'ZBLL only']].map(([k, l]) => `<button type="button" class="chip" data-quiz="pool:${k}" aria-pressed="${quiz.pool === k}">${l}</button>`).join('')}</div>
       <div class="panel"><div class="drill-box">${caseDiagram(c)}<div>
         <h3>${quiz.shown ? esc(c.name) + (c.mode === 'pll' ? ' perm' : '') : 'Which case is this?'}</h3>
         <p class="alg">${quiz.shown ? esc(c.alg) : ''}</p>
@@ -4979,7 +5627,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     }
     return D;
   }
-  const CASE_SETS = [['f2l', 'F2L'], ['ollf', 'OLL'], ['oll', '2-look OLL'], ['pll', 'PLL'], ['coll', 'COLL']];
+  const CASE_SETS = [['f2l', 'F2L'], ['ollf', 'OLL'], ['oll', '2-look OLL'], ['pll', 'PLL'], ['coll', 'COLL'], ['zbll', 'ZBLL']];
   const sec2 = ms => (ms / 1000).toFixed(2);
   // a ring: the share of a set you've marked learned
   const ringSvg = (part, all) => {
