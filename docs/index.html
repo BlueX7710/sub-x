@@ -81,6 +81,15 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .tabs a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
 
 .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.bar-rest { display: contents; }
+.bar-toggle { display: none; }
+.bar-toggle[aria-expanded="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+/* phones and narrow windows: the timer comes first, the less-used settings open from one button */
+@media (max-width: 860px) {
+  .bar-toggle { display: inline-block; }
+  .bar-rest { display: none; width: 100%; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .bar-rest.open { display: flex; }
+}
 .ctl { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .ctl select, .ctl input[type=number], .field {
   background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
@@ -105,7 +114,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .panel h2 b { font-family: var(--font-mono); font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink); font-size: 13px; }
 
 /* ---- timer view ---- */
-.timer-view { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
+.timer-view { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
 @media (max-width: 860px) { .timer-view { grid-template-columns: minmax(0, 1fr); } }
 .stage-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .scramble-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; }
@@ -161,7 +170,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 @media (max-width: 520px) { .scramble-card { grid-template-columns: minmax(0, 1fr); } .net { width: 132px; justify-self: center; } }
 
 .stage {
-  flex: 1; min-height: 300px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
+  flex: 1; min-height: clamp(260px, 50vh, 520px); border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 28px 16px;
   user-select: none; -webkit-user-select: none; touch-action: pan-y; -webkit-touch-callout: none;
 }
@@ -189,6 +198,10 @@ body.running .side, body.running .scramble-card, body.running .bar, body.running
 body.running .hint, body.running .last-actions { visibility: hidden; }
 
 .side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* hardware most people don't have goes below your times, and moves to the top while it's in use */
+.side > .hw { order: 1; }
+.side > .backup-panel { order: 2; }
+.side > .hw.live { order: -1; }
 .example-note { font-size: 13px; color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); border-radius: 6px; padding: 6px 10px; margin: 0 0 10px; }
 table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .stats th, .stats td { padding: 6px 0; text-align: right; border-bottom: 1px solid var(--line); }
@@ -721,6 +734,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <select id="session"></select>
         </label>
         <button type="button" class="mini-btn" id="sessMore" aria-controls="sessPanel">Sessions…</button>
+        <button type="button" class="mini-btn bar-toggle" id="barMore" aria-controls="barRest" aria-expanded="false">Settings</button>
+        <div class="bar-rest" id="barRest">
         <label class="ctl" for="scrMode">Scramble
           <select id="scrMode">
             <option value="gen">Generated</option>
@@ -739,8 +754,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <button type="button" class="mini-btn" id="raceBtn">Race a friend</button>
         <button type="button" class="mini-btn" id="compBtn" aria-controls="compPanel">Comp sim…</button>
         <label class="ctl" for="coachMode" title="After a slow step, Sub-X shows what to practise">Coach
-          <select id="coachMode"><option value="force">Must practise</option><option value="suggest">Suggest</option><option value="off">Off</option></select>
+          <select id="coachMode"><option value="suggest">Suggest</option><option value="force">Must practise</option><option value="off">Off</option></select>
         </label>
+        </div>
       </div>
       <div class="sess-panel" id="sessPanel" hidden>
         <input id="sessName" class="field" type="text" maxlength="30" placeholder="Session name, e.g. Comp sim" aria-label="Session name">
@@ -784,7 +800,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     </div>
 
     <aside class="side">
-      <section class="panel cam-panel">
+      <section class="panel cam-panel hw">
         <h2>Camera <b id="camState">off</b></h2>
         <div class="cam-box">
           <video id="camVideo" autoplay muted playsinline></video>
@@ -797,7 +813,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <label class="toggle" for="camRec"><input id="camRec" type="checkbox" checked> Record solves</label>
         </div>
       </section>
-      <section class="panel">
+      <section class="panel hw" id="smartPanel">
         <h2>Smart cube <b id="smartState">not connected</b></h2>
         <p class="lead" id="smartInfo">Connect a GAN or MoYu AI smart cube. The timer starts on your first turn, stops when the cube is solved, and every solve gets exact cross, F2L, OLL and PLL splits.</p>
         <div class="row-btns">
@@ -824,7 +840,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <div class="cross-try"><input id="smartMacInput" class="own-scr" type="text" autocomplete="off" spellcheck="false" placeholder="AB:12:CD:34:EF:56"><button type="button" class="btn ghost" id="smartMacOk">Continue</button></div>
         </div>
       </section>
-      <section class="panel">
+      <section class="panel hw" id="stackPanel">
         <h2>Stackmat <b id="stackState">not connected</b></h2>
         <p class="lead" id="stackInfo">Use a competition Stackmat timer (Gen 3 or Gen 4). Plug its data port into your microphone or headset jack with a 3.5 mm cable (a USB sound adapter works too), then connect. Sub-X saves each time the Stackmat stops. Inspection still runs here: start it on Sub-X, then put your hands on the Stackmat.</p>
         <div class="row-btns">
@@ -864,7 +880,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <p class="lead" id="achStreak" style="margin:8px 0 0"></p>
         <div class="ach-grid" id="achGrid"></div>
       </details>
-      <section class="panel">
+      <section class="panel backup-panel">
         <h2>Backup</h2>
         <p class="lead" id="backupInfo"></p>
         <div class="row-btns">
@@ -3766,7 +3782,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       return;
     }
     camVideo.srcObject = camStream;
-    $('camOff').hidden = true; $('camState').textContent = 'on'; $('camBtn').textContent = 'Turn camera off';
+    $('camOff').hidden = true; $('camState').textContent = 'on'; document.querySelector('.cam-panel').classList.add('live'); $('camBtn').textContent = 'Turn camera off';
     try {
       const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
       const cur = camStream.getVideoTracks()[0].getSettings().deviceId;
@@ -3776,7 +3792,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     } catch (e) {}
   }
   function camOffStream() { if (camStream) camStream.getTracks().forEach(t => t.stop()); camStream = null; camVideo.srcObject = null; }
-  function camMsg(m) { $('camOff').hidden = false; $('camOff').textContent = m; $('camState').textContent = 'off'; $('camBtn').textContent = 'Turn camera on'; }
+  function camMsg(m) { document.querySelector('.cam-panel').classList.remove('live'); $('camOff').hidden = false; $('camOff').textContent = m; $('camState').textContent = 'off'; $('camBtn').textContent = 'Turn camera on'; }
   $('camBtn').addEventListener('click', () => { if (camStream) { camAbort(); camOffStream(); camMsg('Camera is off.'); } else camOn(); });
   $('camSelect').addEventListener('change', e => { camOn(e.target.value); e.target.blur(); });
 
@@ -4206,6 +4222,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const c = SM.conn;
     $('smartState').textContent = c ? (c.deviceName || 'connected') + (SM.battery != null ? ` · ${SM.battery}%` : '') : 'not connected';
     $('smartConnect').hidden = !!c; $('smartReset').hidden = $('smartDisc').hidden = !c;
+    $('smartPanel').classList.toggle('live', !!c);
     live3dShow();
   }
 
@@ -4503,6 +4520,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const live = STK.on && performance.now() - STK.seen < 1500;
     $('stackState').textContent = !STK.on ? 'not connected' : live ? (STK.run ? 'running' : 'connected') : 'listening…';
     $('stackBtn').textContent = STK.on ? 'Disconnect' : 'Connect Stackmat';
+    $('stackPanel').classList.toggle('live', STK.on);
   }
   async function stackConnect() {
     if (STK.on) {
@@ -4529,7 +4547,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // than your usual, it names the case and (in "Must practise") the next solve waits until you've drilled it 3 times.
   // Without a smart cube it can only tell the whole solve was slow, so it asks where you got stuck.
   const COACH_N = 3;
-  db.coach = db.coach || 'force';
+  db.coach = db.coach || 'suggest';
   const coachOn = () => db.coach !== 'off';
   const STEP_I = { Cross: 0, OLL: 2, PLL: 3 };
   function stepTimes(s) {   // seconds-ish per CFOP step for a smart solve (cached on the solve), with the cases
@@ -4624,6 +4642,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   }
   document.addEventListener('click', e => { const b = e.target.closest('[data-coach]'); if (b) { coachAction(b.dataset.coach); b.blur(); } });
   $('coachMode').value = db.coach;
+  $('barMore').addEventListener('click', e => { const open = $('barRest').classList.toggle('open'); e.currentTarget.setAttribute('aria-expanded', open); e.currentTarget.blur(); });
   $('coachMode').addEventListener('change', e => { db.coach = e.target.value; save(); coachShow(); e.target.blur(); });
   coachShow();
 

@@ -68,6 +68,15 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .tabs a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
 
 .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.bar-rest { display: contents; }
+.bar-toggle { display: none; }
+.bar-toggle[aria-expanded="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+/* phones and narrow windows: the timer comes first, the less-used settings open from one button */
+@media (max-width: 860px) {
+  .bar-toggle { display: inline-block; }
+  .bar-rest { display: none; width: 100%; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .bar-rest.open { display: flex; }
+}
 .ctl { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .ctl select, .ctl input[type=number], .field {
   background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
@@ -92,7 +101,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .panel h2 b { font-family: var(--font-mono); font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink); font-size: 13px; }
 
 /* ---- timer view ---- */
-.timer-view { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
+.timer-view { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
 @media (max-width: 860px) { .timer-view { grid-template-columns: minmax(0, 1fr); } }
 .stage-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .scramble-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; }
@@ -148,7 +157,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 @media (max-width: 520px) { .scramble-card { grid-template-columns: minmax(0, 1fr); } .net { width: 132px; justify-self: center; } }
 
 .stage {
-  flex: 1; min-height: 300px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
+  flex: 1; min-height: clamp(260px, 50vh, 520px); border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 28px 16px;
   user-select: none; -webkit-user-select: none; touch-action: pan-y; -webkit-touch-callout: none;
 }
@@ -660,6 +669,8 @@ body.racing { overflow: hidden; }
           <select id="session"></select>
         </label>
         <button type="button" class="mini-btn" id="sessMore" aria-controls="sessPanel">Sessions…</button>
+        <button type="button" class="mini-btn bar-toggle" id="barMore" aria-controls="barRest" aria-expanded="false">Settings</button>
+        <div class="bar-rest" id="barRest">
         <label class="ctl" for="scrMode">Scramble
           <select id="scrMode">
             <option value="gen">Generated</option>
@@ -678,8 +689,9 @@ body.racing { overflow: hidden; }
         <button type="button" class="mini-btn" id="raceBtn">Race a friend</button>
         <button type="button" class="mini-btn" id="compBtn" aria-controls="compPanel">Comp sim…</button>
         <label class="ctl" for="coachMode" title="After a slow step, Sub-X shows what to practise">Coach
-          <select id="coachMode"><option value="force">Must practise</option><option value="suggest">Suggest</option><option value="off">Off</option></select>
+          <select id="coachMode"><option value="suggest">Suggest</option><option value="force">Must practise</option><option value="off">Off</option></select>
         </label>
+        </div>
       </div>
       <div class="sess-panel" id="sessPanel" hidden>
         <input id="sessName" class="field" type="text" maxlength="30" placeholder="Session name, e.g. Comp sim" aria-label="Session name">
@@ -3870,7 +3882,7 @@ body.racing { overflow: hidden; }
   // (this copy has no smart-cube splits section, so the step names live here)
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];
   const COACH_N = 3;
-  db.coach = db.coach || 'force';
+  db.coach = db.coach || 'suggest';
   const coachOn = () => db.coach !== 'off';
   const STEP_I = { Cross: 0, OLL: 2, PLL: 3 };
   function stepTimes(s) {   // seconds-ish per CFOP step for a smart solve (cached on the solve), with the cases
@@ -3965,10 +3977,10 @@ body.racing { overflow: hidden; }
   }
   document.addEventListener('click', e => { const b = e.target.closest('[data-coach]'); if (b) { coachAction(b.dataset.coach); b.blur(); } });
   $('coachMode').value = db.coach;
+  $('barMore').addEventListener('click', e => { const open = $('barRest').classList.toggle('open'); e.currentTarget.setAttribute('aria-expanded', open); e.currentTarget.blur(); });
   $('coachMode').addEventListener('change', e => { db.coach = e.target.value; save(); coachShow(); e.target.blur(); });
   coachShow();
 
-  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, db };
 
   readHash();
 
