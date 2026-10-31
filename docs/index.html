@@ -374,6 +374,10 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .ach.locked { opacity: .55; }
 .ach.got { border-color: color-mix(in srgb, var(--ready) 60%, var(--line)); }
 .ach.got b::before { content: "✓ "; color: var(--ready); }
+.coach { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.coach p { margin: 0; line-height: 1.45; }
+.coach .row-btns { margin-top: 2px; }
+.coach .coach-tip { color: var(--muted); font-size: 14px; }
 .welcome { width: min(520px, 100%); gap: 12px; }
 .welcome h3 { margin: 0; font-family: var(--font-display); font-size: 28px; }
 .welcome .lead { margin: 0; color: var(--muted); }
@@ -734,6 +738,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <label class="ctl toggle" for="voice" title="Calls out 8 and 12 seconds in inspection, like a judge"><input id="voice" type="checkbox" checked> Voice calls</label>
         <button type="button" class="mini-btn" id="raceBtn">Race a friend</button>
         <button type="button" class="mini-btn" id="compBtn" aria-controls="compPanel">Comp sim…</button>
+        <label class="ctl" for="coachMode" title="After a slow step, Sub-X shows what to practise">Coach
+          <select id="coachMode"><option value="force">Must practise</option><option value="suggest">Suggest</option><option value="off">Off</option></select>
+        </label>
       </div>
       <div class="sess-panel" id="sessPanel" hidden>
         <input id="sessName" class="field" type="text" maxlength="30" placeholder="Session name, e.g. Comp sim" aria-label="Session name">
@@ -764,6 +771,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         </div>
         <svg class="net" id="net" role="img" aria-label="Cube state after the scramble"></svg>
       </section>
+      <div class="callout coach" id="coach" hidden role="status" aria-live="polite"></div>
 
       <section class="stage" id="stage" data-s="idle">
         <canvas class="live3d" id="live3d" width="220" height="220" hidden aria-label="Your smart cube in 3D. Drag to look around it."></canvas>
@@ -1808,6 +1816,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (state === 'running') { stop(); return; }
     if (ignoreRelease) return;
     if (state === 'idle') {
+      if (coachBlocked()) return;
       justSolved = false; renderLastActions();
       if (!drill) camStart();
       if (useInspection()) { setState('arming'); clock.textContent = '15'; return; }
@@ -1842,7 +1851,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
     if (drill) {
       drill.times.push(ms); if (drill.times.length > 50) drill.times.shift(); save(); clock.textContent = fmt(ms);
-      setState('idle'); return;
+      setState('idle'); if (drill.coach) coachDrillDone(); return;
     }
     const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now() };
     const inComp = compOn() && !compDone(compSolves());
@@ -1857,6 +1866,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     justSolved = true; openIdx = -1;
     clock.innerHTML = fmtSolve(solve).replace(/\+$/, '<span class="pen">+2</span>');
     setState('idle'); newScramble(); renderStats();
+    setTimeout(() => coachCheck(solve), 0);   // after a smart-cube solve has filled in its moves
   }
   function cancel() {
     clearTimeout(holdTimer); cancelAnimationFrame(raf); camAbort();
@@ -3382,7 +3392,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       }
       if (olled) mark('PLL', from, moves.length);
       const solved = ok(S, ALL);
-      const named = (stage, st, groups, goal, word) => { const s = steps.find(x => x.stage === stage); if (s && st) { const c = findCase(st, groups, goal); if (c) s.note = c.c.name + word; } };
+      const named = (stage, st, groups, goal, word) => { const s = steps.find(x => x.stage === stage); if (s && st) { const c = findCase(st, groups, goal); if (c) { s.note = c.c.name + word; s.id = c.c.id; } } };
       named('OLL', ollStart, OLL_FULL, ollDone, '');
       named('PLL', pllStart, PLL, T => solvedUpToAuf(T) !== undefined, ' perm');
       if (times && times.length === moves.length) {
@@ -4514,8 +4524,111 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) { $('stackBtn').disabled = true; $('stackInfo').textContent += " This browser can't use a microphone input."; }
   $('stackBtn').addEventListener('click', e => { e.target.blur(); stackConnect(); });
 
+  // ---------- coach: after a slow step, practise that exact thing ----------
+  // With a smart cube Sub-X knows each step's time and which OLL and PLL case came up. When a step is much slower
+  // than your usual, it names the case and (in "Must practise") the next solve waits until you've drilled it 3 times.
+  // Without a smart cube it can only tell the whole solve was slow, so it asks where you got stuck.
+  const COACH_N = 3;
+  db.coach = db.coach || 'force';
+  const coachOn = () => db.coach !== 'off';
+  const STEP_I = { Cross: 0, OLL: 2, PLL: 3 };
+  function stepTimes(s) {   // seconds-ish per CFOP step for a smart solve (cached on the solve), with the cases
+    if (s.ct) return s.ct;
+    const mv = yourMoves(s); if (!s.mv || !s.mt || !mv) return null;
+    let a; try { a = Solver.analyse(s.scr, mv, s.mt); } catch (e) { return null; }
+    if (!a || !a.solved) return null;
+    const t = [0, 0, 0, 0], ids = {};
+    for (const st of a.steps) {
+      const i = st.stage.startsWith('Pair') ? 1 : STEP_I[st.stage]; if (i === undefined) continue;
+      t[i] += st.ms || 0;   // counted from the end of the step before, so the pause to recognise it is in
+      if (st.id) ids[i] = st.id;
+    }
+    return (s.ct = { t, ids });
+  }
+  function coachCheck(s) {
+    if (!coachOn() || !s || s.ex || s.f2l || s.comp || drill || !['333', 'oh'].includes(EV()) || s.pen === 'dnf') return;
+    const list = db.solves[db.event], idx = list.indexOf(s); if (idx < 0) return;
+    const me = stepTimes(s);
+    if (me) {
+      const prev = list.slice(0, idx).filter(x => x.mv && x.mt && !x.f2l).slice(-12).map(stepTimes).filter(Boolean);
+      let worst = null;
+      me.t.forEach((v, i) => {
+        const avg = prev.length >= 3 ? prev.reduce((a, x) => a + x.t[i], 0) / prev.length : null;
+        const slow = avg ? v >= Math.max(avg * 1.4, avg + 1000) : v / Math.max(1, s.ms) > TYPICAL[i] * 1.6 && v > 1500;
+        const r = avg ? v / avg : v / Math.max(1, s.ms) / TYPICAL[i];
+        if (slow && (!worst || r > worst.r)) worst = { i, v, avg, r, id: me.ids[i] };
+      });
+      save();
+      if (!worst) return;
+      const c = worst.id && caseById(worst.id);
+      if (c) { db.coachCase = { id: c.id, need: COACH_N, done: 0, step: PHASES[worst.i], ms: worst.v, avg: worst.avg }; save(); }
+      else { db.coachCase = null; coachShow({ step: worst.i, ms: worst.v, avg: worst.avg }); return; }
+      coachShow(); return;
+    }
+    // no smart cube: a solve well over your ao12 gets a question
+    if (idx >= 12) {
+      const ao = avgOf(list, 12, idx);
+      if (ao && ao !== Infinity && eff(s) >= ao * 1.3) coachShow({ ask: true, ms: eff(s), avg: ao });
+    }
+  }
+  let coachMsg = null;   // a question or suggestion that isn't saved (the case drill is saved in db.coachCase)
+  function coachBlocked() {
+    const P = db.coachCase;
+    if (db.coach !== 'force' || drill || !(P || (coachMsg && coachMsg.ask))) return false;
+    const el = $('coach'); el.hidden = false; el.animate && el.animate([{ transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'none' }], 240);
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    toast(P ? `Practise ${(caseById(P.id) || {}).name || 'the case'} first, or press Skip.` : 'Pick where you got stuck first, or press Not stuck.');
+    return true;
+  }
+  function coachShow(msg) {
+    if (msg !== undefined) coachMsg = msg;
+    const el = $('coach'), P = db.coachCase, c = P && caseById(P.id), force = db.coach === 'force';
+    if (!coachOn() || (!c && !coachMsg)) { el.hidden = true; return; }
+    let h;
+    if (c) {
+      const pll = c.id.startsWith('pll:'), name = c.name + (pll ? ' perm' : '');
+      const tip = c.tip || (pll ? 'Recognise it from two sides: look for headlights (two matching corners), blocks and bars.' : 'Recognise it by the yellow pattern on top and on the sides.');
+      h = `<b>Slow ${esc(P.step)}: ${esc(name)}</b><p>It took ${fmt(P.ms)}${P.avg ? ` (your ${esc(P.step)} usually takes ${fmt(P.avg)})` : ''}, counting the time to recognise it. ${force ? `Drill it ${P.need} times before your next solve.` : `Drill it a few times so it's quicker to spot.`}</p>
+        <p class="coach-tip">How to spot it: ${esc(tip)}</p>
+        <div class="row-btns"><button type="button" class="btn" data-coach="drill">${P.done ? `Keep drilling (${P.done} of ${P.need})` : 'Drill it now'}</button><button type="button" class="pill-btn" data-coach="watch">Watch in 3D</button><button type="button" class="pill-btn" data-coach="skip">${force ? 'Skip' : 'Later'}</button></div>`;
+    } else if (coachMsg.ask) {
+      h = `<b>That one was slow</b><p>${fmt(coachMsg.ms)}, against your ao12 of ${fmt(coachMsg.avg)}. Where did you get stuck? Sub-X opens the trainer for it, starting with your slowest cases.</p>
+        <div class="row-btns">${PHASES.map((n, i) => `<button type="button" class="pill-btn" data-coach="go:${i}">${n}</button>`).join('')}<button type="button" class="pill-btn" data-coach="skip">Not stuck</button></div>
+        <p class="coach-tip">With a smart cube, Sub-X sees each step and names the exact case.</p>`;
+    } else {
+      const n = PHASES[coachMsg.step];
+      h = `<b>Slow ${n}</b><p>It took ${fmt(coachMsg.ms)}${coachMsg.avg ? ` (usually ${fmt(coachMsg.avg)})` : ''}. A few rounds in the ${esc(PAGE_NAME[PHASE_PAGE[coachMsg.step]] || n)} help most.</p>
+        <div class="row-btns"><button type="button" class="btn" data-coach="go:${coachMsg.step}">Practise ${n}</button><button type="button" class="pill-btn" data-coach="skip">Later</button></div>`;
+    }
+    el.innerHTML = h; el.hidden = false;
+  }
+  function coachAction(a) {
+    const P = db.coachCase;
+    if (a === 'skip') { db.coachCase = null; coachMsg = null; save(); coachShow(); return; }
+    if (a === 'watch' && P) { const c = caseById(P.id); if (c) openPlayer(c); return; }
+    if (a === 'drill' && P) { const c = caseById(P.id); if (!c) return; startDrill(c); drill.coach = true; newScramble(); coachShow(); return; }
+    if (a.startsWith('go:')) {
+      const i = +a.slice(3); coachMsg = null; db.coachCase = null; save(); coachShow();
+      learnMethod = 'cfop';   // the four steps are CFOP's
+      learnSet = lastStep[learnMethod] = PHASE_PAGE[i]; location.hash = 'learn'; renderLearn(); window.scrollTo(0, 0);
+    }
+  }
+  function coachDrillDone() {
+    const P = db.coachCase; if (!P) return;
+    P.done++; save();
+    if (P.done >= P.need) {
+      const c = caseById(P.id); db.coachCase = null; coachMsg = null; save();
+      drill = null; newScramble(); clock.textContent = '0.00'; setState('idle'); coachShow();
+      toast(`Nice. ${c ? c.name : 'That case'} is drilled: back to scrambles.`);
+    } else coachShow();
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-coach]'); if (b) { coachAction(b.dataset.coach); b.blur(); } });
+  $('coachMode').value = db.coach;
+  $('coachMode').addEventListener('change', e => { db.coach = e.target.value; save(); coachShow(); e.target.blur(); });
+  coachShow();
+
   // test hook for simulated cubes; only on a local development server
-  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket };
+  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, db };
 
   // ---------- splits ----------
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];   // usual share of a CFOP solve
