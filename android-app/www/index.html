@@ -418,6 +418,50 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .coach p { margin: 0; line-height: 1.45; }
 .coach .row-btns { margin-top: 2px; }
 .coach .coach-tip { color: var(--muted); font-size: 14px; }
+.saving { margin: 0; }
+.save-list { list-style: none; margin: 4px 0 8px; padding: 0; font-size: 14px; line-height: 1.45; }
+.save-list li + li { margin-top: 4px; }
+.save-list span { font-family: var(--font-display); font-weight: 600; letter-spacing: .03em; margin-right: 6px; }
+.save-list em { font-style: normal; font-family: var(--font-mono); color: var(--hold); }
+body.running .saving { visibility: hidden; }
+/* Learn → Progress: set cards with rings, charts, then a card per case */
+.set-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.set-card { display: flex; align-items: center; gap: 10px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--ink); }
+.set-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.set-card .ring { width: 40px; height: 40px; flex: none; }
+.set-card b { display: block; font-family: var(--font-display); font-size: 17px; letter-spacing: .03em; }
+.set-card small { color: var(--muted); font-size: 12px; }
+.prog-panel { margin-bottom: 16px; }
+.prog-stats { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+.prog-stats small { display: block; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--muted); }
+.prog-stats b { font-family: var(--font-mono); font-size: 26px; font-weight: 500; }
+.prog-stats b span { font-size: 14px; color: var(--muted); }
+.prog-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px 24px; margin-top: 12px; }
+.prog-chart h3 { margin: 0; font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--muted); }
+.prog-chart h3 small { margin-left: 8px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.prog-chart .legend i { height: 8px; border-radius: 2px; }
+.prog-svg { width: 100%; height: auto; display: block; margin-top: 6px; }
+.prog-svg text { font-family: var(--font-mono); font-size: 10px; fill: var(--muted); }
+.prog-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 4px 0 10px; }
+.prog-bar h2 { margin: 0 auto 0 0; }
+.prog-bar label { font-size: 13px; color: var(--muted); }
+.prog-bar select { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; margin-left: 4px; }
+.pcases { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.pcase { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: start; }
+.pcase > svg { width: 64px; height: 64px; }
+.pcase-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pcase-head h3 { margin: 0; font-family: var(--font-display); font-size: 17px; }
+.badge { font-family: var(--font-display); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; color: var(--ink); white-space: nowrap; }
+.badge.ok { border-color: var(--ready); }
+.badge.ok::before { content: "✓ "; color: var(--ready); }
+.badge.none { color: var(--muted); }
+.pcase-med { margin: 6px 0 0; font-family: var(--font-mono); font-size: 18px; }
+.pcase-med small { display: block; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; color: var(--muted); }
+.pcase-med span { display: block; font-size: 12px; color: var(--muted); }
+.pcase-n { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+.pcase-n .over { display: block; color: var(--warn); }
+.spark { width: 100%; max-width: 160px; height: 30px; display: block; margin-top: 4px; }
+.pcase-acts { display: flex; gap: 6px; margin-top: 8px; }
 .welcome { width: min(520px, 100%); gap: 12px; }
 .welcome h3 { margin: 0; font-family: var(--font-display); font-size: 28px; }
 .welcome .lead { margin: 0; color: var(--muted); }
@@ -815,6 +859,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <svg class="net" id="net" role="img" aria-label="Cube state after the scramble"></svg>
       </section>
       <div class="callout coach" id="coach" hidden role="status" aria-live="polite"></div>
+      <div class="callout saving" id="saving" hidden role="status"></div>
 
       <section class="stage" id="stage" data-s="idle">
         <canvas class="live3d" id="live3d" width="220" height="220" hidden aria-label="Your smart cube in 3D. Drag to look around it."></canvas>
@@ -1955,7 +2000,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     justSolved = true; openIdx = -1;
     clock.innerHTML = fmtSolve(solve).replace(/\+$/, '<span class="pen">+2</span>');
     setState('idle'); newScramble(); renderStats();
-    setTimeout(() => coachCheck(solve), 0);   // after a smart-cube solve has filled in its moves
+    setTimeout(() => { coachCheck(solve); savingsCheck(solve); }, 0);   // after a smart-cube solve has filled in its moves
   }
   function cancel() {
     clearTimeout(holdTimer); cancelAnimationFrame(raf); camAbort();
@@ -2659,6 +2704,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     cross: { title: 'Cross', lead: 'Practise planning the cross. Sub-X finds the shortest possible cross for every scramble, so you can compare it with yours.' },
     today: { title: 'Today', lead: 'A short practice plan made from your own times: your slowest step, your slowest cases, a few new cases to learn and some timed solves. It changes every day. Each part ticks off as you do it.' },
     saved: { title: 'My solves', lead: 'Solves you saved from the Timer, like a new best. Do the same scramble again to try to beat it, or watch how you solved it in 3D, one move at a time. Saved solves stay here when you clear a session, and are in backups.' },
+    algs: { title: 'Progress', lead: 'How far you are with each set of cases, and where your time goes. Times come from the trainers, drills on the timer and smart-cube solves, and fill in by themselves.' },
     quiz: { title: 'Recognition drill', lead: 'Name the case, then reveal it. This uses spaced repetition: cases you miss come back within minutes, and cases you know come back after 1, 3, 7, 16 and then 35 days. Your schedule is saved and included in backups.' },
   };
   const NOTATION = [
@@ -2676,7 +2722,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
     beginner: { name: 'Beginner', steps: [['bgn', 'Learn to solve'], ['notation', 'Notation'], ['words', 'Words']] },
-    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
+    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['algs', 'Progress'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
     roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
@@ -3795,6 +3841,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (learnSet === 'quiz') { renderQuiz(); return; }
     if (learnSet === 'today') { renderToday(); return; }
     if (learnSet === 'saved') { renderSaved(); return; }
+    if (learnSet === 'algs') { renderCases(); return; }
     if (TRAINERS.includes(learnSet)) { renderTrainer(); return; }
     if (learnSet === 'fb' || learnSet === 'sb' || learnSet === 'lse') { renderExample(learnSet); return; }
     if (!set.groups) { body.innerHTML = ''; return; }
@@ -4874,8 +4921,194 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   $('coachMode').addEventListener('change', e => { db.coach = e.target.value; save(); coachShow(); e.target.blur(); });
   coachShow();
 
+  // ---------- my cases: every OLL and PLL your smart-cube solves have had ----------
+  // Each timed solve is split into steps once (kept on the solve as s.cr): the case, the time to recognise it
+  // (the pause before its first turn), the time to do it, and its turns.
+  function caseRuns(s) {
+    if (s.cr) return s.cr;
+    const mv = yourMoves(s); if (s.ex || s.f2l || !s.mv || !s.mt || !mv) return null;
+    let a; try { a = Solver.analyse(s.scr, mv, s.mt); } catch (e) { return null; }
+    if (!a || !a.solved) return null;
+    return (s.cr = a.steps.filter(st => st.id && st.to > st.from).map(st => ({ id: st.id, r: Math.round(st.pause || 0), e: Math.round((st.ms || 0) - (st.pause || 0)), n: st.n })));
+  }
+  const smartSolves = () => Object.keys(db.solves).filter(k => ['333', 'oh'].includes(evOfKey(k))).flatMap(k => db.solves[k]).filter(s => s.mv && s.mt && !s.ex && !s.f2l).sort((a, b) => a.t - b.t);
+  // each case's last 20 times: how often it came up, and its average recognition, execution and turns
+  function caseTable(skip) {
+    const T = new Map();
+    for (const s of smartSolves()) if (s !== skip) for (const r of caseRuns(s) || []) {
+      if (!T.has(r.id)) T.set(r.id, { id: r.id, runs: [] });
+      T.get(r.id).runs.push({ ...r, t: s.t });
+    }
+    for (const x of T.values()) {
+      const L = x.runs.slice(-20), avg = f => L.reduce((a, r) => a + f(r), 0) / L.length;
+      Object.assign(x, { seen: x.runs.length, last: x.runs[x.runs.length - 1].t, r: avg(r => r.r), e: avg(r => r.e), n: avg(r => r.n) });
+    }
+    return T;
+  }
+  const algTurns = c => { try { return Solver.count(Cube.tokens(c.alg)); } catch (e) { return null; } };
+  // a case you do in about its algorithm's turns, 3 times or more, is one you know
+  const knowsIt = (x, c) => { const k = algTurns(c); return x.seen >= 3 && k && x.n <= k + 2; };
+  // Every timed try of a case: from smart-cube solves (recognition and execution, with the date), the
+  // trainers (recognition and execution, their last 12) and drills on the timer (total time only).
+  const median = l => { const s = l.slice().sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  function caseData() {
+    const T = caseTable(), D = new Map();
+    const get = id => { if (!D.has(id)) D.set(id, { id, tries: [], seen: 0, trained: 0, drilled: 0 }); return D.get(id); };
+    for (const x of T.values()) { const d = get(x.id); d.seen = x.seen; d.x = x; for (const r of x.runs) d.tries.push({ r: r.r, e: r.e }); }
+    for (const [id, s] of Object.entries(db.caseStats || {})) { if (!s.rec || !s.rec.length) continue; const d = get(id); d.trained = s.n; s.rec.forEach((r, i) => d.tries.push({ r, e: s.sol[i] })); }
+    for (const [id, l] of Object.entries(db.drillTimes || {})) { if (!l || !l.length) continue; const d = get(id); d.drilled = l.length; l.forEach(v => d.tries.push({ tot: v })); }
+    for (const d of D.values()) {
+      const split = d.tries.filter(t => t.r != null), tot = d.tries.map(t => t.tot != null ? t.tot : t.r + t.e);
+      Object.assign(d, { tot, med: median(tot), rec: split.length ? median(split.map(t => t.r)) : null, exe: split.length ? median(split.map(t => t.e)) : null, n: tot.length });
+    }
+    return D;
+  }
+  const CASE_SETS = [['f2l', 'F2L'], ['ollf', 'OLL'], ['oll', '2-look OLL'], ['pll', 'PLL'], ['coll', 'COLL']];
+  const sec2 = ms => (ms / 1000).toFixed(2);
+  // a ring: the share of a set you've marked learned
+  const ringSvg = (part, all) => {
+    const r = 15, C = 2 * Math.PI * r, f = all ? part / all : 0;
+    return `<svg class="ring" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="${r}" fill="none" stroke="var(--line)" stroke-width="5"/>` + (!f ? '</svg>' :
+      `<circle cx="20" cy="20" r="${r}" fill="none" stroke="var(--ready)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C * f).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`);
+  };
+  // your last 12 tries of one case, oldest on the left
+  function sparkSvg(d, name) {
+    const v = d.tot.slice(-12); if (v.length < 2) return '';
+    const W = 120, H = 30, lo = Math.min(...v), hi = Math.max(...v), span = (hi - lo) || 1;
+    const X = i => 4 + (W - 8) * i / (v.length - 1), Y = t => 4 + (H - 8) * (1 - (t - lo) / span);
+    return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(name)}: your last ${v.length} tries, from ${sec2(v[0])} to ${sec2(v[v.length - 1])} seconds">` +
+      `<path d="${v.map((t, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(t).toFixed(1)).join('')}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` +
+      v.map((t, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(t).toFixed(1)}" r="${i === v.length - 1 ? 3 : 6}" fill="${i === v.length - 1 ? 'var(--accent)' : 'transparent'}"><title>Try ${i + 1}: ${sec2(t)} s</title></circle>`).join('') + '</svg>';
+  }
+  // where the time goes: recognition then execution for each timed case, slowest at the top
+  function splitBarsSvg(rows) {
+    const R = rows.filter(o => o.d && o.d.rec != null).sort((a, b) => (b.d.rec + b.d.exe) - (a.d.rec + a.d.exe)).slice(0, 12);
+    if (!R.length) return '';
+    const W = 340, row = 22, padL = 64, padR = 44, H = R.length * row + 4, top = Math.max(...R.map(o => o.d.rec + o.d.exe)) || 1;
+    const X = ms => (W - padL - padR) * ms / top;
+    const bars = R.map((o, i) => {
+      const y = 2 + i * row, a = X(o.d.rec), b = X(o.d.exe), tip = `${o.c.name}: ${sec2(o.d.rec)} s recognising, ${sec2(o.d.exe)} s executing`;
+      return `<g><title>${esc(tip)}</title><rect x="0" y="${y}" width="${W}" height="${row}" fill="transparent"/>` +
+        `<text x="${padL - 6}" y="${y + 15}" text-anchor="end">${esc(o.c.name)}</text>` +
+        `<rect x="${padL}" y="${y + 4}" width="${Math.max(0, a - 1).toFixed(1)}" height="14" rx="3" fill="var(--ph-cross)"/>` +
+        `<rect x="${(padL + a + 1).toFixed(1)}" y="${y + 4}" width="${Math.max(0, b - 1).toFixed(1)}" height="14" rx="3" fill="var(--ph-f2l)"/>` +
+        `<text x="${(padL + a + b + 5).toFixed(1)}" y="${y + 15}">${sec2(o.d.rec + o.d.exe)}</text></g>`;
+    }).join('');
+    return `<div class="prog-chart"><h3>Where the time goes<small>median per case, slowest ${R.length}</small></h3>
+      <div class="legend"><span><i style="background:var(--ph-cross)"></i>recognise</span><span><i style="background:var(--ph-f2l)"></i>execute</span></div>
+      <svg class="prog-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Recognition and execution time per case">${bars}</svg></div>`;
+  }
+  // how many cases of the set you've learned, over time (from when you marked each one learned)
+  function learnedSvg(all) {
+    const at = all.filter(c => db.learned[c.id] && (db.learnedAt || {})[c.id]).map(c => db.learnedAt[c.id]).sort((a, b) => a - b);
+    if (!at.length) return '';
+    const W = 340, H = 110, padL = 26, padR = 8, padT = 8, padB = 18, t0 = at[0], t1 = Math.max(Date.now(), t0 + 864e5), n = all.length;
+    const X = t => padL + (W - padL - padR) * (t - t0) / (t1 - t0), Y = k => padT + (H - padT - padB) * (1 - k / n);
+    let d = `M${X(t0).toFixed(1)} ${Y(0).toFixed(1)}`;
+    at.forEach((t, i) => { d += `H${X(t).toFixed(1)}V${Y(i + 1).toFixed(1)}`; });
+    d += `H${X(t1).toFixed(1)}`;
+    const day = t => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    const dots = at.map((t, i) => `<circle cx="${X(t).toFixed(1)}" cy="${Y(i + 1).toFixed(1)}" r="6" fill="transparent"><title>${day(t)}: ${i + 1} of ${n} learned</title></circle>`).join('');
+    return `<div class="prog-chart"><h3>Learned so far<small>${at.length} of ${n}</small></h3>
+      <svg class="prog-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cases learned over time: ${at.length} of ${n}">
+      <line x1="${padL}" x2="${W - padR}" y1="${Y(n)}" y2="${Y(n)}" stroke="var(--line)"/><line x1="${padL}" x2="${W - padR}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/>
+      <text x="${padL - 5}" y="${Y(n) + 3}" text-anchor="end">${n}</text><text x="${padL - 5}" y="${Y(0) + 3}" text-anchor="end">0</text>
+      <path d="${d}" fill="none" stroke="var(--ready)" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="${X(t1).toFixed(1)}" cy="${Y(at.length).toFixed(1)}" r="4" fill="var(--ready)" stroke="var(--surface)" stroke-width="2"/>${dots}
+      <text x="${padL}" y="${H - 4}">${day(t0)}</text><text x="${W - padR}" y="${H - 4}" text-anchor="end">today</text></svg></div>`;
+  }
+  function renderCases() {
+    const D = caseData(); save();
+    const body = $('learnBody');
+    const set = CASE_SETS.some(s => s[0] === db.casesSet) ? db.casesSet : 'pll';
+    const sort = db.casesSort || 'slow', filter = db.casesFilter || 'all';
+    const inSet = k => ALL_CASES.filter(c => c.id.startsWith(k + ':'));
+    const cards = CASE_SETS.map(([k, label]) => {
+      const all = inSet(k), learned = all.filter(c => db.learned[c.id]).length, timed = all.filter(c => D.has(c.id)).length;
+      return `<button type="button" class="set-card" data-caseset="${k}" aria-pressed="${k === set}">${ringSvg(learned, all.length)}<span><b>${label}</b><small>${learned} of ${all.length} learned · ${timed} timed</small></span></button>`;
+    }).join('');
+    const all = inSet(set);
+    let rows = all.map(c => ({ c, d: D.get(c.id) || null }));
+    const timed = rows.filter(o => o.d), learnedN = all.filter(c => db.learned[c.id]).length;
+    const fresh = timed.filter(o => o.d.x && !db.learned[o.c.id] && knowsIt(o.d.x, o.c));
+    const med = timed.length ? median(timed.map(o => o.d.med)) : null;
+    rows = rows.filter(o => filter === 'all' || (filter === 'learned' ? db.learned[o.c.id] : filter === 'todo' ? !db.learned[o.c.id] : !o.d));
+    const name = (a, b) => a.c.name.localeCompare(b.c.name, undefined, { numeric: true });
+    const by = { slow: (a, b) => (b.d ? b.d.med : -1) - (a.d ? a.d.med : -1) || name(a, b), most: (a, b) => (b.d ? b.d.n : 0) - (a.d ? a.d.n : 0) || name(a, b), name };
+    rows.sort(by[sort] || by.slow);
+    const badge = o => db.learned[o.c.id] ? '<span class="badge ok">Learned</span>' : o.d ? '<span class="badge">Learning</span>' : '<span class="badge none">No data</span>';
+    const card = o => {
+      const d = o.d, k = algTurns(o.c), long = d && d.x && k && d.x.n > k + 2;
+      return `<article class="pcase">${caseDiagram(o.c)}<div class="pcase-main"><div class="pcase-head"><h3>${esc(o.c.name)}</h3>${badge(o)}</div>` +
+        (d ? `<p class="pcase-med"><small>Median</small>${sec2(d.med)} s${d.rec != null ? `<span>${sec2(d.rec)} recognise · ${sec2(d.exe)} execute</span>` : ''}</p>` +
+          `<p class="pcase-n">${[d.seen && `${d.seen} in solves`, d.trained && `${d.trained} in the trainer`, d.drilled && `${d.drilled} drilled`].filter(Boolean).join(' · ')}${long ? `<span class="over" title="The algorithm in Learn takes ${k} turns">${d.x.n.toFixed(0)} turns, alg ${k}</span>` : ''}</p>${sparkSvg(d, o.c.name)}`
+          : '<p class="pcase-n">Not timed yet</p>') +
+        `<div class="pcase-acts"><button type="button" class="mini-btn" data-drill="${o.c.id}">Drill</button><button type="button" class="mini-btn" data-p3d="${o.c.id}">Watch</button></div></div></article>`;
+    };
+    const sel = (key, opts, val) => `<select data-caseopt="${key}">${opts.map(([v, l]) => `<option value="${v}"${v === val ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+    const charts = splitBarsSvg(timed) + learnedSvg(all);
+    body.innerHTML = `<div class="set-cards">${cards}</div>
+      <section class="panel prog-panel">
+        <div class="prog-stats"><div><small>Learned</small><b>${learnedN}<span>/${all.length}</span></b></div><div><small>Timed</small><b>${timed.length}<span>/${all.length}</span></b></div><div><small>Median case</small><b>${med != null ? sec2(med) : '–'}<span>${med != null ? ' s' : ''}</span></b></div></div>
+        ${charts ? `<div class="prog-charts">${charts}</div>` : `<p class="lead">No times for these cases yet. Practise them in the ${esc(PAGE_NAME[set === 'ollf' || set === 'oll' ? 'ollt' : set + 't'] || 'trainer')}, drill them on the timer, or solve with a smart cube, and graphs of your times show up here.</p>`}
+        ${fresh.length ? `<div class="callout"><b>You know ${fresh.length} more</b>${fresh.map(o => esc(o.c.name)).join(', ')}: done 3 times or more in about the turns of the algorithm. <button type="button" class="pill-btn" data-caselearn="${fresh.map(o => o.c.id).join(',')}">Mark ${fresh.length === 1 ? 'it' : 'them'} learned</button></div>` : ''}
+      </section>
+      <div class="prog-bar"><h2>${esc(CASE_SETS.find(s => s[0] === set)[1])} cases</h2><label>Sort ${sel('casesSort', [['slow', 'Slowest first'], ['most', 'Most practised'], ['name', 'Name']], sort)}</label><label>Show ${sel('casesFilter', [['all', 'All'], ['todo', 'Not learned'], ['learned', 'Learned'], ['none', 'No data']], filter)}</label></div>
+      ${rows.length ? `<div class="pcases">${rows.map(card).join('')}</div>` : '<p class="lead">No cases match.</p>'}`;
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-caseset]'); if (!b) return;
+    db.casesSet = b.dataset.caseset; save(); renderLearn();
+  });
+  document.addEventListener('change', e => {
+    const s = e.target.closest('[data-caseopt]'); if (!s) return;
+    db[s.dataset.caseopt] = s.value; save(); renderLearn();
+  });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-caselearn]'); if (!b) return;
+    const now = Date.now(); db.learnedAt = db.learnedAt || {};
+    for (const id of b.dataset.caselearn.split(',')) { db.learned[id] = true; db.learnedAt[id] = now; }
+    save(); renderLearn(); toast('Marked as learned');
+  });
+
+  // ---------- after a smart-cube solve: the time you could have saved ----------
+  // Each step against your usual: the average of your last 12 smart-cube solves, or for OLL and PLL your
+  // own average on that exact case once you've had it twice. Only steps that lost 0.3 s or more are named.
+  function savingsCheck(s) {
+    const el = $('saving');
+    el.hidden = true;
+    if (!coachOn() || !s || s.ex || s.f2l || drill || !['333', 'oh'].includes(EV()) || s.pen === 'dnf') return;
+    const me = stepTimes(s); if (!me) return;
+    const list = db.solves[db.event], idx = list.indexOf(s);
+    const prev = list.slice(0, idx).filter(x => x.mv && x.mt && !x.f2l).slice(-12).map(stepTimes).filter(Boolean);
+    if (prev.length < 3) return;
+    const T = caseTable(s), mine = caseRuns(s) || [], items = [];
+    me.t.forEach((v, i) => {
+      let usual = prev.reduce((a, x) => a + x.t[i], 0) / prev.length, c = null, run = null, x = null;
+      if (me.ids[i]) { c = caseById(me.ids[i]); run = mine.find(r => r.id === me.ids[i]); x = T.get(me.ids[i]); if (x && x.seen >= 2) usual = x.r + x.e; else x = null; }
+      const lost = v - usual; if (lost < 300) return;
+      const why = [];
+      if (run && x && run.r - x.r >= 400) why.push(`${(Math.min(lost, run.r - x.r) / 1000).toFixed(1)} s of it was recognising`);
+      const k = c && algTurns(c); if (run && k && run.n > k + 2) why.push(`you used ${run.n} turns, and the algorithm in Learn takes ${k}`);
+      items.push({ i, v, usual, lost, c, own: !!x, why });
+    });
+    if (!items.length) return;
+    items.sort((a, b) => b.lost - a.lost);
+    const total = items.reduce((a, x) => a + x.lost, 0), pct = v => (v / 1000).toFixed(1);
+    el.innerHTML = `<b>You could have saved about ${pct(total)} s</b><ul class="save-list">${items.map(it => `<li><span>${PHASES[it.i]}${it.c ? ` · ${esc(it.c.name)}${it.c.id.startsWith('pll:') ? ' perm' : ''}` : ''}</span>` +
+      `${fmt(it.v)}, usually ${fmt(it.usual)}${it.own ? ' on this case' : ''}: <em>${pct(it.lost)} s lost</em>${it.why.length ? ', ' + esc(it.why.join(', and ')) : ''}.` +
+      `${it.c ? ` <button type="button" class="mini-btn" data-drill="${it.c.id}">Drill it</button>` : it.i < 2 ? ` <button type="button" class="mini-btn" data-coach="go:${it.i}">Practise</button>` : ''}</li>`).join('')}</ul>` +
+      `<div class="row-btns"><button type="button" class="mini-btn" data-saving="close">OK</button> <button type="button" class="mini-btn" data-saving="cases">My progress</button></div>`;
+    el.hidden = false;
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-saving]'); if (!b) return;
+    $('saving').hidden = true;
+    if (b.dataset.saving === 'cases') { learnMethod = 'cfop'; learnSet = lastStep.cfop = 'algs'; location.hash = 'learn'; renderLearn(); window.scrollTo(0, 0); }
+  });
+
   // test hook for simulated cubes; only on a local development server
-  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, db };
+  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, savingsCheck, caseTable, db };
 
   // ---------- splits ----------
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];   // usual share of a CFOP solve
