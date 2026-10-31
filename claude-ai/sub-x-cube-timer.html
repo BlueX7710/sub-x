@@ -254,6 +254,11 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .bgn-alg { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; background: var(--sunk); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
 .bgn-alg b { font-family: var(--font-display); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .bgn-alg code { font-family: var(--font-mono); font-size: 17px; word-spacing: .2em; }
+.h2-right { display: inline-flex; align-items: center; gap: 6px; }
+.fold { background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-size: 12px; line-height: 1; width: 26px; height: 22px; padding: 0; }
+.fold:hover { color: var(--ink); border-color: var(--muted); }
+.panel.shut > :not(h2) { display: none !important; }
+.panel.shut h2 { margin: 0; }
 .goal-table td small { display: block; color: var(--muted); font-size: 12px; }
 .goal-table .over { color: var(--hold); }
 .goal-table .under { color: var(--ready); }
@@ -1556,6 +1561,20 @@ body.racing { overflow: hidden; }
     $('summary').innerHTML = `<span>Solves <b>${ok.length}/${L}</b></span><span>Mean <b>${fmt(mean)}</b></span><span>Sub-${db.goal} <b>${L ? Math.round(under / L * 100) : 0}%</b></span>`;
     renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo(); renderComp(); achCheck(); renderGoal();
   }
+  // ---------- folding panels: the camera, smart cube and Stackmat panels can be folded down to their title ----------
+  function foldApply() {
+    db.fold = db.fold || {};
+    document.querySelectorAll('[data-fold]').forEach(b => {
+      const shut = !!db.fold[b.dataset.fold];
+      b.closest('.panel').classList.toggle('shut', shut);
+      b.setAttribute('aria-expanded', !shut); b.textContent = shut ? '▸' : '▾';
+    });
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-fold]'); if (!b) return;
+    db.fold = db.fold || {}; db.fold[b.dataset.fold] = !db.fold[b.dataset.fold]; save(); foldApply(); b.blur();
+  });
+  foldApply();
   // ---------- goal splits: what each CFOP step should take for your sub-X goal ----------
   // A CFOP solve usually splits about 13% cross, 50% F2L, 17% OLL and 20% PLL (inspection not counted), with
   // roughly 8, 28, 10 and 12 moves. With smart-cube solves, your own average per step is shown beside it.
@@ -1973,7 +1992,7 @@ body.racing { overflow: hidden; }
     const p = RACE.pads[i];
     if (p.s === 'running') {
       p.ms = Math.round(performance.now() - p.t0); p.s = 'done';
-      if (RACE.pads.every(q => q.s === 'done')) { const [a, b] = RACE.pads.map(q => q.ms); if (a !== b) RACE.wins[a < b ? 0 : 1]++; }
+      if (RACE.pads.every(q => q.s === 'done')) { const [a, b] = RACE.pads.map(q => q.ms); if (a !== b) RACE.wins[a < b ? 0 : 1]++; db.races = (db.races || 0) + 1; save(); achCheck(); }
       raceUI(); return;
     }
     if (p.s !== 'idle') return;
@@ -4124,6 +4143,7 @@ body.racing { overflow: hidden; }
       const c = caseById(P.id); db.coachCase = null; coachMsg = null; save();
       drill = null; newScramble(); clock.textContent = '0.00'; setState('idle'); coachShow();
       toast(`Nice. ${c ? c.name : 'That case'} is drilled: back to scrambles.`);
+      db.coachDone = (db.coachDone || 0) + 1; save(); achCheck();
     } else coachShow();
   }
   document.addEventListener('click', e => { const b = e.target.closest('[data-coach]'); if (b) { coachAction(b.dataset.coach); b.blur(); } });
@@ -4158,7 +4178,15 @@ body.racing { overflow: hidden; }
     const full = Object.values(rounds).filter(r => r.length >= 5).map(r => avgOf(r, 5, 5));
     const learnedAll = pre => { const c = ALL_CASES.filter(x => x.id.startsWith(pre)); return c.length > 0 && c.every(x => db.learned[x.id]); };
     const P = db.plan && db.plan[learnMethod];
-    return { n: all.length, best, ao5, ao12, streak: dayRun(days), dailyRun: dayRun(new Set(Object.keys(dailyN).filter(d => dailyN[d] >= 5))),
+    const perDay = {}; for (const x of all) { const d = dayKey(x.t); perDay[d] = (perDay[d] || 0) + 1; }
+    const bestOf = ev => Math.min(Infinity, ...keys.filter(k => evOfKey(k) === ev).flatMap(k => db.solves[k]).filter(x => !x.ex).map(eff));
+    let clean = 0, run = 0; for (const x of all.slice().sort((a, b) => a.t - b.t)) { run = x.pen ? 0 : run + 1; clean = Math.max(clean, run); }
+    const hours = all.map(x => new Date(x.t).getHours());
+    const extra = { maxDay: Math.max(0, ...Object.values(perDay)), learned: Object.values(db.learned).filter(Boolean).length,
+      bgn: Object.values(db.bgn || {}).filter(Boolean).length, coach: db.coachDone || 0, races: db.races || 0,
+      smart: all.some(x => x.smart), stk: all.some(x => x.stk), bld: bestOf('333bf') < Infinity, oh: bestOf('oh'), clean,
+      night: hours.some(h => h < 4), early: hours.some(h => h >= 5 && h < 7) };
+    return { ...extra, n: all.length, best, ao5, ao12, streak: dayRun(days), dailyRun: dayRun(new Set(Object.keys(dailyN).filter(d => dailyN[d] >= 5))),
       daily: Object.values(dailyN).some(n => n >= 5), events: new Set(keys.filter(k => db.solves[k].some(x => !x.ex)).map(evOfKey)).size,
       comp: full.length > 0, compGoal: full.some(a => a < db.goal * 1000), learnedAll,
       plan: !!(P && P.day === dayStart() && P.items.length >= 3 && P.items.every(it => planDone(it) >= it.n)) };
@@ -4166,16 +4194,32 @@ body.racing { overflow: hidden; }
   const ACH = [
     ['solve1', 'First solve', 'Time your first solve.', S => S.n >= 1],
     ['solve100', 'Hundred club', 'Time 100 solves.', S => S.n >= 100],
+    ['solve500', 'Five hundred', 'Time 500 solves.', S => S.n >= 500],
     ['solve1000', 'Thousand club', 'Time 1,000 solves.', S => S.n >= 1000],
+    ['solve5000', 'Five thousand', 'Time 5,000 solves.', S => S.n >= 5000],
+    ['day100', 'Marathon', 'Time 100 solves in one day.', S => S.maxDay >= 100],
+    ['clean12', 'Clean dozen', '12 solves in a row with no +2 or DNF.', S => S.clean >= 12],
     ['sub60', 'Sub-60', 'A 3×3 single under a minute.', S => S.best < 60000],
+    ['sub45', 'Sub-45', 'A 3×3 single under 45 seconds.', S => S.best < 45000],
     ['sub30', 'Sub-30', 'A 3×3 single under 30 seconds.', S => S.best < 30000],
+    ['sub25', 'Sub-25', 'A 3×3 single under 25 seconds.', S => S.best < 25000],
     ['sub20', 'Sub-20', 'A 3×3 single under 20 seconds.', S => S.best < 20000],
     ['sub15', 'Sub-15', 'A 3×3 single under 15 seconds.', S => S.best < 15000],
     ['sub10', 'Sub-10', 'A 3×3 single under 10 seconds.', S => S.best < 10000],
+    ['sub8', 'Sub-8', 'A 3×3 single under 8 seconds.', S => S.best < 8000],
+    ['ao5sub45', 'Getting there', 'A 3×3 ao5 under 45 seconds.', S => S.ao5 < 45000],
     ['ao5sub30', 'Steady', 'A 3×3 ao5 under 30 seconds.', S => S.ao5 < 30000],
+    ['ao5sub25', 'Steady sub-25', 'A 3×3 ao5 under 25 seconds.', S => S.ao5 < 25000],
     ['ao5sub20', 'Steady sub-20', 'A 3×3 ao5 under 20 seconds.', S => S.ao5 < 20000],
+    ['ao5sub15', 'Steady sub-15', 'A 3×3 ao5 under 15 seconds.', S => S.ao5 < 15000],
+    ['ao12sub30', 'Sub-30 for real', 'A 3×3 ao12 under 30 seconds.', S => S.ao12 < 30000],
+    ['ao12sub25', 'Sub-25 for real', 'A 3×3 ao12 under 25 seconds.', S => S.ao12 < 25000],
     ['ao12sub20', 'Sub-20 for real', 'A 3×3 ao12 under 20 seconds.', S => S.ao12 < 20000],
     ['ao12sub15', 'Sub-15 for real', 'A 3×3 ao12 under 15 seconds.', S => S.ao12 < 15000],
+    ['ao12sub10', 'Sub-10 for real', 'A 3×3 ao12 under 10 seconds.', S => S.ao12 < 10000],
+    ['bgn', 'Beginner graduate', 'Mark all 7 beginner steps done.', S => S.bgn >= 7],
+    ['learned50', 'Fifty cases', 'Mark 50 cases learned.', S => S.learned >= 50],
+    ['learned150', 'Case collector', 'Mark 150 cases learned.', S => S.learned >= 150],
     ['oll2', 'Two-look OLL', 'Mark all 10 two-look OLL cases learned.', S => S.learnedAll('oll:')],
     ['pll', 'All of PLL', 'Mark all 21 PLL cases learned.', S => S.learnedAll('pll:')],
     ['f2l', 'F2L master', 'Mark all 41 F2L cases learned.', S => S.learnedAll('f2l:')],
@@ -4183,12 +4227,23 @@ body.racing { overflow: hidden; }
     ['coll', 'COLL', 'Mark all 40 COLL cases learned.', S => S.learnedAll('coll:')],
     ['streak7', 'Week streak', 'Solve on 7 days in a row.', S => S.streak >= 7],
     ['streak30', 'Month streak', 'Solve on 30 days in a row.', S => S.streak >= 30],
+    ['streak100', '100-day streak', 'Solve on 100 days in a row.', S => S.streak >= 100],
     ['daily', 'Daily 5', 'Finish all five Daily scrambles in one day.', S => S.daily],
     ['daily7', 'Daily week', 'Finish the Daily 5 on 7 days in a row.', S => S.dailyRun >= 7],
+    ['daily30', 'Daily month', 'Finish the Daily 5 on 30 days in a row.', S => S.dailyRun >= 30],
     ['plan', 'Plan done', "Finish everything in a day's practice plan.", S => S.plan],
     ['comp', 'Competitor', 'Finish a comp sim round.', S => S.comp],
     ['compgoal', 'Podium', 'Finish a comp sim round under your goal.', S => S.compGoal],
     ['events5', 'All-rounder', 'Time solves in 5 different events.', S => S.events >= 5],
+    ['events13', 'Every event', 'Time a solve in all 13 events.', S => S.events >= 13],
+    ['oh30', 'One hand, sub-30', 'A one-handed single under 30 seconds.', S => S.oh < 30000],
+    ['bld', 'Blind success', 'Finish a blindfolded solve (not a DNF).', S => S.bld],
+    ['coach', 'Coached', 'Drill a case the coach picked out, all the way.', S => S.coach >= 1],
+    ['race', 'Race day', 'Finish a race against a friend.', S => S.races >= 1],
+    ['smart', 'Smart solver', 'Time a solve on a smart cube.', S => S.smart],
+    ['stackmat', 'Comp ready', 'Time a solve on a Stackmat.', S => S.stk],
+    ['night', 'Night owl', 'Time a solve between midnight and 4 am.', S => S.night],
+    ['early', 'Early bird', 'Time a solve between 5 and 7 am.', S => S.early],
   ];
   var achReady = true;   // (a var: still undefined while the page is starting up, so early calls wait)
   function achCheck() {
