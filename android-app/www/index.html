@@ -4305,6 +4305,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       const ch = new Emitter(); ch.uuid = chr; ch.value = null; let sub = null;
       const where = { deviceId: id, service: svc, characteristic: chr };
       ch.startNotifications = async () => {
+        smartStep('starting move updates');
         if (sub) await sub.remove();
         sub = await BLE.addListener(`notification|${id}|${svc}|${chr}`, ev => { ch.value = toDV(ev && ev.value); ch._emit('characteristicvaluechanged', { target: ch }); });
         await BLE.startNotifications(where); return ch;
@@ -4316,18 +4317,28 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       ch.readValue = async () => { const r = await BLE.read(where); ch.value = toDV(r.value); return ch.value; };
       return ch;
     }
-    function makeDevice(id, name) {
-      const dev = new Emitter(); dev.id = id; dev.name = name;
+    function makeDevice(id, name, adMac) {
+      const dev = new Emitter(); dev.id = id; dev.name = name; dev.adMac = adMac || null;
       let gone = null;
       dev.gatt = {
         connected: false, device: dev,
+        // Android's first connection often fails (GATT error 133 or a timeout), so try three times
         connect: async () => {
+          for (let i = 1; ; i++) {
+            smartStep(i > 1 ? `connecting over Bluetooth (try ${i} of 3)` : 'connecting over Bluetooth');
+            try { await BLE.connect({ deviceId: id, timeout: 12000 }); break; }
+            catch (e) {
+              if (i >= 3) throw e;
+              await BLE.disconnect({ deviceId: id }).catch(() => {});
+              await new Promise(r => setTimeout(r, 800));
+            }
+          }
           gone = await BLE.addListener('disconnected|' + id, () => { dev.gatt.connected = false; if (gone) gone.remove(); gone = null; dev._emit('gattserverdisconnected', { target: dev }); });
-          await BLE.connect({ deviceId: id, timeout: 15000 });
           dev.gatt.connected = true; return dev.gatt;
         },
         disconnect: () => { BLE.disconnect({ deviceId: id }).catch(() => {}); },
         getPrimaryServices: async () => {
+          smartStep("reading the cube's services");
           const { services } = await BLE.getServices({ deviceId: id });
           return services.map(s => {
             const svc = s.uuid.toLowerCase();
@@ -4341,6 +4352,27 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       };
       return dev;
     }
+    // A cube's name in its advert (types 0x09 and 0x08). The plugin only passes Android's cached name,
+    // which is often missing the first time a cube is seen.
+    const advertName = raw => {
+      const b = toDV(raw); let i = 0;
+      while (i < b.byteLength) {
+        const len = b.getUint8(i); if (!len || i + len >= b.byteLength) break;
+        const type = b.getUint8(i + 1);
+        if (type === 0x09 || type === 0x08) return new TextDecoder().decode(new Uint8Array(b.buffer, i + 2, len - 1)).replace(/\0+$/, '');
+        i += len + 1;
+      }
+      return '';
+    };
+    // GAN cubes put their MAC address (backwards) at the end of manufacturer data with a company id ending in 01
+    const advertMac = md => {
+      for (const [k, v] of Object.entries(md || {})) {
+        const h = String(v || '').replace(/[^0-9a-f]/gi, '');
+        if ((Number(k) & 0xff) !== 0x01 || h.length < 12) continue;
+        return (h.slice(-12).match(/../g) || []).reverse().join(':').toUpperCase();
+      }
+      return null;
+    };
     // The plugin's own picker takes only one name prefix, and cubes use several, so list them here.
     function requestDevice(opts) {
       const prefixes = ((opts && opts.filters) || []).map(f => f.namePrefix).filter(Boolean);
@@ -4356,23 +4388,30 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         const notFound = msg => Object.assign(new Error(msg), { name: 'NotFoundError' });
         const draw = () => {
           box.innerHTML = '<p class="lead" style="margin:0 0 6px">' + (found.size ? 'Tap your cube:' : 'Looking for cubes… turn a face to wake yours up.') + '</p>'
-            + [...found].map(([id, n]) => `<button type="button" class="pill-btn" data-cube="${esc(id)}">${esc(n)}</button>`).join(' ')
+            + [...found].map(([id, c]) => `<button type="button" class="pill-btn" data-cube="${esc(id)}">${esc(c.name)}</button>`).join(' ')
             + ' <button type="button" class="mini-btn" data-cube="">Cancel</button>';
         };
         box.onclick = e => {
           const b = e.target.closest('button[data-cube]'); if (!b) return;
-          const id = b.dataset.cube;
-          id ? finish(makeDevice(id, found.get(id))) : finish(null, notFound('No cube was chosen.'));
+          const id = b.dataset.cube, c = found.get(id);
+          id ? finish(makeDevice(id, c.name, c.mac)) : finish(null, notFound('No cube was chosen.'));
         };
         try {
+          smartStep('turning on Bluetooth');
           await init();
+          smartStep('looking for your cube');
           box.hidden = false; draw();
+          // every advert is passed on: the first one often comes without the cube's name
           listener = await BLE.addListener('onScanResult', r => {
-            const id = r && r.device && r.device.deviceId, name = (r && (r.localName || (r.device && r.device.name))) || '';
-            if (!id || found.has(id) || !prefixes.some(p => name.startsWith(p))) return;
-            found.set(id, name); draw();
+            const id = r && r.device && r.device.deviceId; if (!id) return;
+            let name = r.localName || (r.device && r.device.name) || '';
+            try { name = name || advertName(r.rawAdvertisement); } catch (e) {}
+            const mac = advertMac(r.manufacturerData), old = found.get(id);
+            if (!prefixes.some(p => name.startsWith(p)) && !(mac && !name)) return;
+            if (old && (old.name === name || !name) && (old.mac || !mac)) return;
+            found.set(id, { name: name || (old && old.name) || 'GAN cube', mac: mac || (old && old.mac) }); draw();
           });
-          await BLE.requestLEScan({ allowDuplicates: false });
+          await BLE.requestLEScan({ allowDuplicates: true });
           timer = setTimeout(() => { if (!found.size) finish(null, notFound('No cube found nearby.')); }, 25000);
         } catch (e) {
           finish(null, new Error(/permission|denied|not granted/i.test(String(e && e.message)) ? 'Bluetooth permission was refused. Allow "Nearby devices" for Sub-X in Settings → Apps → Sub-X → Permissions.' : (e && e.message) || String(e)));
@@ -4389,6 +4428,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const NATIVE_BT = nativeBluetooth();
   const smartOk = () => NATIVE ? !!NATIVE_BT : !!navigator.bluetooth;
   const smartInfo = msg => { $('smartInfo').textContent = msg; };
+  // what a connection is doing right now, shown while it connects and named if it fails
+  var smartStepNow = '';
+  function smartStep(s) { smartStepNow = s; if (!SM.conn) $('smartState').textContent = 'connecting… ' + s; }
   function smartUI() {
     const c = SM.conn;
     $('smartState').textContent = c ? (c.deviceName || 'connected') + (SM.battery != null ? ` · ${SM.battery}%` : '') : 'not connected';
@@ -4579,6 +4621,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     let saved = null;
     macDevice = device && device.name;
     try { saved = JSON.parse(localStorage.getItem('subx-macs') || '{}')[device.name] || null; } catch (e) {}
+    smartStep("reading the cube's address");
+    if (NATIVE && device.adMac) return Promise.resolve(device.adMac);   // the address the cube itself advertises
     if (NATIVE && /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(device.id || '')) return Promise.resolve(device.id.toUpperCase());
     if (saved || !isFallback) return Promise.resolve(saved);
     return new Promise(resolve => {
@@ -4599,13 +4643,13 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         : "This browser can't use Bluetooth. Use Chrome or Edge on Android, Windows, Mac or ChromeOS. iPhone and iPad browsers don't support it.");
       return;
     }
-    $('smartConnect').disabled = true; $('smartState').textContent = 'connecting…';
+    $('smartConnect').disabled = true; smartStep('loading');
     try {
       if (NATIVE_BT && navigator.bluetooth !== NATIVE_BT) Object.defineProperty(navigator, 'bluetooth', { value: NATIVE_BT, configurable: true });
       SM.lib = SM.lib || await import(GAN_URL);
-      macDevice = null;
-      // a hung Bluetooth connection gives up after a minute (time spent typing the MAC address doesn't count)
-      let timer, waited = 0; const limit = new Promise((_, no) => { timer = setInterval(() => { if ($('smartMac').hidden && (waited += 500) >= 60000) no(new Error('the cube took too long to answer')); }, 500); });
+      macDevice = null; smartStep(NATIVE ? 'looking for your cube' : 'waiting for you to pick the cube');
+      // a hung Bluetooth connection gives up after 40 seconds (time spent picking the cube or typing its address doesn't count)
+      let timer, waited = 0; const limit = new Promise((_, no) => { timer = setInterval(() => { if ($('smartMac').hidden && $('smartPick').hidden && smartStepNow !== 'waiting for you to pick the cube' && (waited += 500) >= 40000) no(new Error('the cube took too long to answer')); }, 500); });
       const conn = await Promise.race([SM.lib.connectGanCube(macProvider), limit]).finally(() => clearInterval(timer));
       if (!conn) throw new Error('no cube');
       SM.conn = conn; SM.cur = Cube.solved(3);
@@ -4624,7 +4668,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       $('smartMac').hidden = true;
       smartCleanup();
       smartInfo(e && e.name === 'NotFoundError' ? 'No cube was chosen. Wake the cube up by turning a face, then try again.'
-        : `Couldn't connect (${e && e.message ? e.message : e}). Make sure the cube is awake and not connected to another app.`);
+        : `Couldn't connect: it stopped at “${smartStepNow}” (${e && e.message ? e.message : e}). Make sure the cube is awake and not connected to another app, such as GAN's own app.`);
     } finally { $('smartConnect').disabled = false; }
   }
   // load the library as soon as the button is touched, so the Bluetooth picker opens straight from the click
