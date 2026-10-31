@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "230721435029",
+    "project_id": "sub-x-feb6b",
+    "storage_bucket": "sub-x-feb6b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:230721435029:android:2d1829bd8ed48f9581b29c",
+        "android_client_info": {
+          "package_name": "app.subx.cubetimer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "230721435029-1ip3jl0kbufq2ojgv4c994masitmt6bm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.subx.cubetimer",
+            "certificate_hash": "49353960bc007637aa262e2c67d04c68ef0004c3"
+          }
+        },
+        {
+          "client_id": "230721435029-d8b2rmhdl1bu83tlq0gn6o16p13eqlm2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.subx.cubetimer",
+            "certificate_hash": "835c69986d9704129d3783670eeb9ecdbdf707a4"
+          }
+        },
+        {
+          "client_id": "230721435029-ae1nke3h52alj1kabis0g1mk7tvqrc7e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkEbo3ywLNBTUm1Q_n11q8Kl-iuN5d6LI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "230721435029-ae1nke3h52alj1kabis0g1mk7tvqrc7e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

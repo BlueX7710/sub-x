@@ -432,6 +432,8 @@ body.running .saving { visibility: hidden; }
 .set-card b { display: block; font-family: var(--font-display); font-size: 17px; letter-spacing: .03em; }
 .set-card small { color: var(--muted); font-size: 12px; }
 .prog-panel { margin-bottom: 16px; }
+.sync-row { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.sync-row .lead { margin: 0 0 8px; }
 .prog-stats { display: flex; flex-wrap: wrap; gap: 8px 28px; }
 .prog-stats small { display: block; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--muted); }
 .prog-stats b { font-family: var(--font-mono); font-size: 26px; font-weight: 500; }
@@ -966,6 +968,10 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <label class="pill-btn" for="importFile" style="cursor:pointer">Restore or import</label>
           <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" hidden>
         </div>
+        <div class="sync-row" id="syncRow" hidden>
+          <p class="lead" id="syncInfo"></p>
+          <div class="row-btns"><button type="button" class="btn" id="syncBtn">Sign in with Google</button><button type="button" class="pill-btn" id="syncNow" hidden>Sync now</button><button type="button" class="pill-btn" id="syncOut" hidden>Sign out</button></div>
+        </div>
       </section>
     </aside>
   </main>
@@ -1133,7 +1139,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // ---------- storage (this browser only) ----------
   const KEY = 'subx-cube-timer-v1';
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; } };
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} };
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} if (typeof syncSoon === 'function') syncSoon(); };
   const db = load() || {};
   db.event = db.event || '333'; db.goal = db.goal || 20; if (db.inspection === undefined) db.inspection = true; if (db.voice === undefined) db.voice = true;
   db.solves = db.solves || {}; db.learned = db.learned || {};
@@ -2062,12 +2068,14 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (justSolved && i === db.solves[db.event].length - 1) clock.innerHTML = fmtSolve(s).replace(/\+$/, '<span class="pen">+2</span>');
     renderStats();
   }
+  // solves and sessions you delete are remembered (by time stamp and key), so a sync doesn't bring them back
+  const bury = (list, on) => { db.gone = db.gone || {}; for (const s of list) { if (on) db.gone[s.t] = 1; else delete db.gone[s.t]; } };
   function del(i) {
     const list = db.solves[db.event], [s] = list.splice(i, 1), ev = db.event;
-    save(); openIdx = -1;
+    bury([s], true); save(); openIdx = -1;
     if (justSolved && i === list.length) { justSolved = false; clock.textContent = '0.00'; }
     renderStats(); if (s.comp && compOn()) newScramble();
-    toast(`Deleted solve ${i + 1} (${fmtSolve(s)})`, () => { db.solves[ev].splice(i, 0, s); save(); renderStats(); if (s.comp && compOn()) newScramble(); });
+    toast(`Deleted solve ${i + 1} (${fmtSolve(s)})`, () => { db.solves[ev].splice(i, 0, s); bury([s], false); save(); renderStats(); if (s.comp && compOn()) newScramble(); });
   }
   function selectScr() { const r = document.createRange(); r.selectNodeContents($('scramble')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Scramble selected. Press Ctrl+C to copy.'); }
 
@@ -2081,8 +2089,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (b.id === 'clearAsk') { confirmClear = true; renderStats(); }
     else if (b.id === 'clearNo') { confirmClear = false; renderStats(); }
     else if (b.id === 'clearYes') {
-      const ev = db.event, old = db.solves[ev]; db.solves[ev] = []; save(); confirmClear = false; justSolved = false; openIdx = -1; renderStats();
-      toast(`Cleared ${old.length} solves`, () => { db.solves[ev] = old.concat(db.solves[ev]); save(); renderStats(); });
+      const ev = db.event, old = db.solves[ev]; db.solves[ev] = []; bury(old, true); save(); confirmClear = false; justSolved = false; openIdx = -1; renderStats();
+      toast(`Cleared ${old.length} solves`, () => { db.solves[ev] = old.concat(db.solves[ev]); bury(old, false); save(); renderStats(); });
     }
     else if (b.dataset.trend !== undefined) { db.trendN = +b.dataset.trend; save(); renderTrend(solvesFor(db.event), db.goal * 1000); }
     else if (b.id === 'newScr') newScramble();
@@ -2207,7 +2215,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   function backupInfo() {
     const n = Object.values(db.solves).reduce((a, l) => a + l.length, 0);
     const stale = n && (!db.lastBackup || Date.now() - db.lastBackup > 7 * 864e5);
-    $('backupInfo').innerHTML = `<b>Your times are only on this device.</b> Clearing the browser's site data or uninstalling the app deletes them, so keep a backup. Saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings to a file you keep. Recordings are not included. Restore takes a Sub-X backup, or a csTimer export (each csTimer session becomes a session here). <b>Send to another device</b> makes a link that adds everything on your new phone or computer.<br>Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
+    $('backupInfo').innerHTML = (typeof SY !== 'undefined' && SY && SY.user ? '<b>Your times are synced to your Google account.</b> A backup file is still a good extra copy.' : `<b>Your times are only on this device.</b> Clearing the browser's site data or uninstalling the app deletes them, so keep a backup or sign in to sync.`) + ` Saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings to a file you keep. Recordings are not included. Restore takes a Sub-X backup, or a csTimer export (each csTimer session becomes a session here). <b>Send to another device</b> makes a link that adds everything on your new phone or computer.<br>Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
   }
   async function saveTextFile(name, text) {
     if (typeof NATIVE !== 'undefined' && NATIVE) {           // Android app: no browser downloads
@@ -2275,16 +2283,28 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   });
   function restoreBackup(j) {
     if (!j || j.app !== 'sub-x' || !j.data || typeof j.data.solves !== 'object') { toast("That file isn't a Sub-X backup or a csTimer export."); return; }
-    const data = j.data;
-    const before = JSON.stringify(db);
-    let added = 0, newSessions = 0;
+    const before = JSON.stringify(db), { added, newSessions } = mergeData(j.data);
+    save(); fillSessions(); renderStats(); if (view === 'learn') renderLearn();
+    toast(`Restored ${added} solve${added === 1 ? '' : 's'}${newSessions ? ` and ${newSessions} session${newSessions === 1 ? '' : 's'}` : ''}`, () => {
+      for (const k of Object.keys(db)) delete db[k];
+      Object.assign(db, JSON.parse(before)); save(); fillSessions(); renderStats();
+    });
+  }
+  // adds another copy's data to this one: solves are matched by time stamp, and ones deleted on either side stay deleted
+  function mergeData(data) {
+    let added = 0, newSessions = 0, removed = 0;
+    db.gone = db.gone || {}; db.goneSess = db.goneSess || {};
+    for (const k of Object.keys(data.gone || {})) db.gone[k] = 1;
+    for (const k of Object.keys(data.goneSess || {})) db.goneSess[k] = 1;
+    for (const k of Object.keys(db.goneSess)) if (db.sessions[k]) { delete db.sessions[k]; delete db.solves[k]; if (db.event === k) db.event = '333'; removed++; }
+    for (const [k, list] of Object.entries(db.solves)) { const keep = list.filter(s => !db.gone[s.t]); removed += list.length - keep.length; db.solves[k] = keep; }
     for (const [k, s] of Object.entries(data.sessions || {})) {
-      if (!db.sessions[k] && s && EVENTS[s.event]) { db.sessions[k] = { name: String(s.name || 'Imported').slice(0, 30), event: s.event }; newSessions++; }
+      if (!db.sessions[k] && !db.goneSess[k] && s && EVENTS[s.event]) { db.sessions[k] = { name: String(s.name || 'Imported').slice(0, 30), event: s.event }; newSessions++; }
     }
-    for (const [k, list] of Object.entries(data.solves)) {
+    for (const [k, list] of Object.entries(data.solves || {})) {
       if (!Array.isArray(list) || !(EVENTS[k] || db.sessions[k])) continue;
       const mine = db.solves[k] = db.solves[k] || [], seen = new Set(mine.map(s => s.t));
-      for (const s of list) if (s && typeof s.ms === 'number' && typeof s.t === 'number' && !s.ex && !seen.has(s.t)) { mine.push(s); seen.add(s.t); added++; }
+      for (const s of list) if (s && typeof s.ms === 'number' && typeof s.t === 'number' && !s.ex && !seen.has(s.t) && !db.gone[s.t]) { mine.push(s); seen.add(s.t); added++; }
       mine.sort((a, b) => a.t - b.t);
     }
     for (const [k, v] of Object.entries(data.learned || {})) if (v) db.learned[k] = true;
@@ -2301,11 +2321,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     for (const [k, v] of Object.entries(data.srs || {})) if (v && (!db.srs[k] || (v.seen || 0) > (db.srs[k].seen || 0))) db.srs[k] = v;
     for (const [k, v] of Object.entries(data.caseStats || {})) if (v && Array.isArray(v.rec) && (!db.caseStats[k] || (v.last || 0) > (db.caseStats[k].last || 0))) db.caseStats[k] = v;
     for (const [k, v] of Object.entries(data.ach || {})) if (typeof v === 'number' && !(db.ach || {})[k]) (db.ach = db.ach || {})[k] = v;
-    save(); fillSessions(); renderStats(); if (view === 'learn') renderLearn();
-    toast(`Restored ${added} solve${added === 1 ? '' : 's'}${newSessions ? ` and ${newSessions} session${newSessions === 1 ? '' : 's'}` : ''}`, () => {
-      for (const k of Object.keys(db)) delete db[k];
-      Object.assign(db, JSON.parse(before)); save(); fillSessions(); renderStats();
-    });
+    return { added, newSessions, removed };
   }
 
   // ---------- send to another device: everything packed into a link, or the backup file when it's too big for one ----------
@@ -2376,9 +2392,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const key = db.event, s = db.sessions[key]; if (!s) return;
     if (!delArmed) { delArmed = true; $('sessDelete').textContent = `Tap again to delete "${s.name}" (${db.solves[key].length} solve${db.solves[key].length === 1 ? '' : 's'})`; return; }
     disarmDelete();
-    const solves = db.solves[key]; delete db.sessions[key]; delete db.solves[key];
+    const solves = db.solves[key]; delete db.sessions[key]; delete db.solves[key]; (db.goneSess = db.goneSess || {})[key] = 1; bury(solves, true);
     switchSession(s.event); $('sessNote').textContent = '';
-    toast(`Deleted session "${s.name}"`, () => { db.sessions[key] = s; db.solves[key] = solves; switchSession(key); });
+    toast(`Deleted session "${s.name}"`, () => { db.sessions[key] = s; db.solves[key] = solves; delete db.goneSess[key]; bury(solves, false); switchSession(key); });
   });
   $('voice').addEventListener('change', e => { db.voice = e.target.checked; save(); if (db.voice) { audioWarm(); inspCall(8); } e.target.blur(); });
   $('insp').addEventListener('change', e => { db.inspection = e.target.checked; save(); cancel(); setState('idle'); e.target.blur(); });
@@ -5107,8 +5123,118 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (b.dataset.saving === 'cases') { learnMethod = 'cfop'; learnSet = lastStep.cfop = 'algs'; location.hash = 'learn'; renderLearn(); window.scrollTo(0, 0); }
   });
 
+  // ---------- sync: sign in with Google, and the same times on every device ----------
+  // Everything a backup holds is kept in Firebase under your Google account, where only you can read it (see the
+  // rules in the Firebase project). A sync fetches it, merges it in like Restore does, and saves the result back.
+  // It runs a few seconds after a change, when Sub-X comes back to the front, and after signing in.
+  // The Android app signs in with Google's own sign-in (Google doesn't allow its web page inside apps).
+  const FB_CFG = { apiKey: 'AIzaSyAGbAs1nJ_Td0yP8jnQSmB2QG7NcDhquOQ', authDomain: 'sub-x-feb6b.firebaseapp.com', projectId: 'sub-x-feb6b', appId: '1:230721435029:web:e8b7bae166cfd05081b29c' };
+  const FB_URL = 'https://www.gstatic.com/firebasejs/12.19.0/';
+  const SYNC_KEY = 'subx-sync', PART = 900000;   // Firestore keeps up to 1 MB in a document, so big data goes in parts
+  const syncHere = NATIVE || ['bluex7710.github.io', 'localhost'].includes(location.hostname);
+  var SY = { fb: null, user: null, busy: false, again: false, timer: 0, seen: null, pushed: '', err: '' };
+  const syncState = () => { try { return JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch (e) { return {}; } };
+  const setSyncState = o => { try { localStorage.setItem(SYNC_KEY, JSON.stringify({ ...syncState(), ...o })); } catch (e) {} };
+  async function fbLoad() {
+    if (SY.fb) return SY.fb;
+    const [app, auth, fs] = await Promise.all(['firebase-app', 'firebase-auth', 'firebase-firestore-lite'].map(m => import(FB_URL + m + '.js')));
+    const a = app.initializeApp(FB_CFG);
+    SY.fb = { auth, fs, A: auth.getAuth(a), D: fs.getFirestore(a) };
+    auth.onAuthStateChanged(SY.fb.A, u => {
+      SY.user = u; setSyncState({ on: !!u }); syncUI();
+      if (u) syncNow();
+    });
+    return SY.fb;
+  }
+  const nativeAuth = () => NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication;
+  async function syncSignIn() {
+    if (NATIVE && !nativeAuth()) { toast('Signing in needs the newest Sub-X app: get it from github.com/BlueX7710/sub-x/releases.'); return; }
+    $('syncBtn').disabled = true;
+    try {
+      const F = await fbLoad(), P = nativeAuth(), google = new F.auth.GoogleAuthProvider();
+      if (P) {
+        const r = await P.signInWithGoogle({ skipNativeAuth: true });
+        const tok = r && r.credential && r.credential.idToken; if (!tok) throw new Error('Google sent no sign-in token');
+        await F.auth.signInWithCredential(F.A, F.auth.GoogleAuthProvider.credential(tok));
+      } else {
+        try { await F.auth.signInWithPopup(F.A, google); }
+        catch (e) { if (/popup-blocked|operation-not-supported/.test(e && e.code)) await F.auth.signInWithRedirect(F.A, google); else throw e; }
+      }
+    } catch (e) {
+      const m = String((e && (e.code || e.message)) || e);
+      if (!/cancel|closed-by-user|popup-closed|12501/i.test(m)) toast(navigator.onLine ? "Couldn't sign in (" + m.replace(/^auth\//, '') + ')' : "You're offline. Connect to the internet to sign in.");
+    }
+    $('syncBtn').disabled = false; syncUI();
+  }
+  async function syncSignOut() {
+    const F = SY.fb; if (!F) return;
+    try { const P = nativeAuth(); if (P) await P.signOut(); } catch (e) {}
+    await F.auth.signOut(F.A); SY.pushed = ''; SY.seen = null;
+    toast('Signed out. Your times stay on this device.');
+  }
+  // JSON with every character above ASCII escaped, so each character is one byte when it's stored
+  const asciiJson = o => JSON.stringify(o).replace(/[\u007f-￿]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+  function syncSoon() {
+    if (!SY || !SY.user || SY.busy) return;
+    clearTimeout(SY.timer); SY.timer = setTimeout(syncNow, 8000);
+  }
+  async function syncNow() {
+    if (!SY.user || !SY.fb) return;
+    if (SY.busy) { SY.again = true; return; }
+    if (state === 'running' || state === 'inspecting') { syncSoon(); return; }   // not in the middle of a solve
+    SY.busy = true; SY.err = ''; syncUI();
+    const { fs, D } = SY.fb, uid = SY.user.uid, ref = (...p) => fs.doc(D, 'users', uid, ...p);
+    try {
+      const meta = await fs.getDoc(ref());
+      const m = meta.exists() ? meta.data() : null;
+      if (m && m.at !== SY.seen) {   // changed since this device last looked: bring the other device's times in
+        const parts = await Promise.all(Array.from({ length: m.parts || 0 }, (_, i) => fs.getDoc(ref('parts', String(i)))));
+        const j = JSON.parse(parts.map(p => (p.exists() && p.data().t) || '').join(''));
+        const r = mergeData(j.data || {});
+        try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {}
+        if (r.added || r.removed || r.newSessions) {
+          fillSessions(); renderStats(); if (view === 'learn') renderLearn();
+          if (r.added) toast(`Synced: ${r.added} solve${r.added === 1 ? '' : 's'} from your other device`);
+        }
+        SY.seen = m.at;
+      }
+      const text = asciiJson({ app: 'sub-x', version: 1, data: db });
+      if (text !== SY.pushed) {
+        const chunks = []; for (let i = 0; i < text.length; i += PART) chunks.push(text.slice(i, i + PART));
+        const b = fs.writeBatch(D), at = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        chunks.forEach((c, i) => b.set(ref('parts', String(i)), { t: c }));
+        for (let i = chunks.length; i < ((m && m.parts) || 0); i++) b.delete(ref('parts', String(i)));
+        b.set(ref(), { parts: chunks.length, at, updated: Date.now(), by: NATIVE ? 'app' : 'web' });
+        await b.commit(); SY.pushed = text; SY.seen = at;
+      }
+      setSyncState({ at: Date.now() });
+    } catch (e) {
+      SY.err = navigator.onLine ? 'Sync failed: ' + String((e && (e.code || e.message)) || e).replace(/^firestore\//, '') : 'Offline: syncs when you are back online';
+    }
+    SY.busy = false; syncUI(); backupInfo();
+    if (SY.again) { SY.again = false; syncNow(); }
+  }
+  function syncUI() {
+    const row = $('syncRow'); if (!row) return;
+    row.hidden = !syncHere; if (!syncHere) return;
+    const u = SY.user, at = syncState().at;
+    const ago = at ? (Date.now() - at < 60000 ? 'just now' : new Date(at).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit', day: 'numeric', month: 'short' })) : 'not yet';
+    $('syncInfo').innerHTML = u ? `<b>Synced with ${esc(u.email || 'your Google account')}</b> · ${SY.busy ? 'syncing…' : SY.err ? `<span style="color:var(--warn)">${esc(SY.err)}</span>` : 'last sync ' + ago}`
+      : 'Sign in with Google to keep the same times, sessions and learning progress on your phone and computer.';
+    $('syncBtn').hidden = !!u; $('syncNow').hidden = $('syncOut').hidden = !u;
+  }
+  if (syncHere) {
+    $('syncBtn').addEventListener('click', e => { e.currentTarget.blur(); syncSignIn(); });
+    $('syncNow').addEventListener('click', e => { e.currentTarget.blur(); syncNow(); });
+    $('syncOut').addEventListener('click', e => { e.currentTarget.blur(); syncSignOut(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SY.user) syncNow(); });
+    window.addEventListener('online', () => { if (SY.user) syncNow(); });
+    if (syncState().on) fbLoad().catch(() => {});   // signed in before: Firebase remembers who, then syncs
+  }
+  syncUI();
+
   // test hook for simulated cubes; only on a local development server
-  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, savingsCheck, caseTable, db };
+  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, savingsCheck, caseTable, mergeData, SY, db };
 
   // ---------- splits ----------
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];   // usual share of a CFOP solve
