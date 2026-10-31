@@ -181,6 +181,9 @@ body.running .side, body.running .scramble-card, body.running .bar, body.running
 body.running .hint, body.running .last-actions { visibility: hidden; }
 
 .side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* the goal splits, then the session stats */
+.side > #goalPanel { order: -2; }
+.side > .session-panel { order: -1; }
 .example-note { font-size: 13px; color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); border-radius: 6px; padding: 6px 10px; margin: 0 0 10px; }
 table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .stats th, .stats td { padding: 6px 0; text-align: right; border-bottom: 1px solid var(--line); }
@@ -751,7 +754,7 @@ body.racing { overflow: hidden; }
     </div>
 
     <aside class="side">
-      <section class="panel">
+      <section class="panel session-panel">
         <h2>Session <b id="evName">3×3×3</b></h2>
         <p class="example-note" id="exampleNote" hidden>Example times shown. Your first solve clears them.</p>
         <table class="stats">

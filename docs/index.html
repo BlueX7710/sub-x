@@ -202,7 +202,11 @@ body.running .hint, body.running .last-actions { visibility: hidden; }
 /* hardware most people don't have goes below your times, and moves to the top while it's in use */
 .side > .hw { order: 1; }
 .side > .backup-panel { order: 2; }
-.side > .hw.live { order: -1; }
+.side > .hw.live { order: -4; }
+/* your splits, then the goal splits, then the session stats */
+.side > #splitsPanel { order: -3; }
+.side > #goalPanel { order: -2; }
+.side > .session-panel { order: -1; }
 .example-note { font-size: 13px; color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); border-radius: 6px; padding: 6px 10px; margin: 0 0 10px; }
 table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .stats th, .stats td { padding: 6px 0; text-align: right; border-bottom: 1px solid var(--line); }
@@ -865,7 +869,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <button type="button" class="pill-btn" id="stackBtn">Connect Stackmat</button>
         </div>
       </section>
-      <section class="panel">
+      <section class="panel session-panel">
         <h2>Session <b id="evName">3×3×3</b></h2>
         <p class="example-note" id="exampleNote" hidden>Example times shown. Your first solve clears them.</p>
         <table class="stats">
