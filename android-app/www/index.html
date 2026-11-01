@@ -2083,7 +2083,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
     if (drill) {
       drill.times.push(ms); if (drill.times.length > 50) drill.times.shift(); save(); clock.textContent = fmt(ms);
-      setState('idle'); if (drill.coach) coachDrillDone(); return;
+      setState('idle'); if (drill.coach) coachDrillDone();
+      if (drill && SM.conn) smartScramble();   // a smart cube follows the same setup again for the next try
+      return;
     }
     const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now() };
     keepData();
@@ -5274,12 +5276,13 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   function smartScramble() {
     const note = $('smartNote');
     if (!SM.conn) { note.hidden = true; SM.T = null; return; }
-    if (drill || db.scrMode === 'own' || !SMART_EVENTS.includes(EV())) {
+    if ((!drill && db.scrMode === 'own') || !SMART_EVENTS.includes(EV())) {
       SM.T = null; note.hidden = false; note.classList.remove('err');
       note.textContent = 'Smart cube connected: the timer stops by itself when the cube is solved. Scramble tracking works with generated 3×3 scrambles.';
       return;
     }
-    SM.T = SmartCore.track(scramble, f2lMode() ? toCube : null); SmartCore.step(SM.T, SM.cur, null); smartShow();   // F2L scrambles are done white on the bottom
+    // F2L scrambles and drill setups are done white on the bottom (yellow on top), like the trainers' setups
+    SM.T = SmartCore.track(scramble, f2lMode() || drill ? toCube : null); SmartCore.step(SM.T, SM.cur, null); smartShow();
   }
   function smartShow() {
     const T = SM.T, note = $('smartNote'); if (!T) return;
@@ -5304,7 +5307,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (exampleActive() && exSmartMove(m)) return;
     if (state === 'running') {
       SM.moves.push({ m, t: ts }); if (ev) SM.raw.push(ev);
-      if (SmartCore.isSolved(SM.cur) || (f2lMode() && SmartCore.f2lSolvedTop(SM.cur))) smartFinish();   // F2L practice stops when the pairs are in
+      if (SmartCore.isSolved(SM.cur) || (f2lMode() && SmartCore.f2lSolvedTop(SM.cur)) || (drill && SmartCore.solvedUpToAuf(SM.cur))) smartFinish();   // F2L practice stops when the pairs are in, a drill without its last top turn
       return;
     }
     if ((state === 'inspecting' || state === 'smartReady') && SM.T && SM.T.done) {
