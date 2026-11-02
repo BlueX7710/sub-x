@@ -9,7 +9,7 @@
   "android": {
     "backgroundColor": "#0D1117"
   },
-  "appendUserAgent": "SubX/1.6",
+  "appendUserAgent": "SubX/1.7",
   "plugins": {
     "FirebaseAuthentication": {
       "skipNativeAuth": true,
