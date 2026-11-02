@@ -2200,6 +2200,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (b.id === 'exitDrill') { drill = null; newScramble(); setState('idle'); clock.textContent = '0.00'; }
     else if (b.dataset.tr) trNext();
     else if (b.dataset.f2lt) f2ltAction(b.dataset.f2lt);
+    else if (b.dataset.bf) bfAction(b.dataset.bf);
+    else if (b.dataset.tps) tpsAction(b.dataset.tps);
     else if (b.dataset.llt) lltAction(b.dataset.llt);
     else if (b.dataset.fbt) fbtAction(b.dataset.fbt);
     else if (b.dataset.sol !== undefined) { const i = +b.dataset.sol; solIdx = solIdx === i ? -1 : i; renderList(solvesFor(db.event), db.goal * 1000); }
@@ -3395,6 +3397,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     lse: { title: 'LSE', lead: 'How to finish with M and U turns, then a worked example you can watch in 3D.' },
     lset: { title: 'LSE', lead: 'Practise the last six edges: set up a case with M and U turns, solve it, and compare with the shortest way.' },
     f2lt: { title: 'F2L trainer', lead: 'Practise one F2L pair at a time: set up a random case, recognise it, insert it, and see how long each part took.' },
+    f2lbf: { title: 'Blind F2L', lead: 'Inspect as long as you need and plan your pairs, then close your eyes and insert them without looking. Practise two pairs at once, or one at a time.' },
+    tps: { title: 'TPS trainer', lead: 'Train your turns per second: repeat a short sequence as fast and as cleanly as you can. Every sequence ends on a solved cube, so you can go straight into the next try.' },
     cross: { title: 'Cross', lead: 'Practise planning the cross. Sub-X finds the shortest possible cross for every scramble, so you can compare it with yours.' },
     today: { title: 'Today', lead: 'A short practice plan made from your own times: your slowest step, your slowest cases, a few new cases to learn and some timed solves. It changes every day. Each part ticks off as you do it.' },
     saved: { title: 'My solves', lead: 'Solves you saved from the Timer, like a new best. Do the same scramble again to try to beat it, or watch how you solved it in 3D, one move at a time. Saved solves stay here when you clear a session, and are in backups.' },
@@ -3416,18 +3420,18 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
     beginner: { name: 'Beginner', steps: [['bgn', 'Learn to solve'], ['notation', 'Notation'], ['words', 'Words']] },
-    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['algs', 'Progress'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['zbll', 'ZBLL'], ['zbllt', 'ZBLL trainer'], ['yw', 'Yiheng Wang'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
-    roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
+    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['algs', 'Progress'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['f2lbf', 'Blind F2L'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['zbll', 'ZBLL'], ['zbllt', 'ZBLL trainer'], ['yw', 'Yiheng Wang'], ['tps', 'TPS'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
+    roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
   const ROUX_PAGES = { fb: { teach: 'fb', train: 'fbt' }, sb: { teach: 'sb', train: 'sbt' }, cmll: { teach: 'cmll', train: 'cmllt' }, lse: { teach: 'lse', train: 'lset' } };
   const learnMode = () => db.learnMode === 'train' ? 'train' : 'teach';
   const stepOf = page => Object.keys(ROUX_PAGES).find(s => ROUX_PAGES[s].teach === page || ROUX_PAGES[s].train === page) || page;
   const pageOf = step => ROUX_PAGES[step] ? ROUX_PAGES[step][learnMode()] : step;
-  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], zbll: CFOP_STEPS[5], zbllt: CFOP_STEPS[5], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
+  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], f2lbf: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], zbll: CFOP_STEPS[5], zbllt: CFOP_STEPS[5], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
   // the Learn buttons, grouped by the step they belong to
-  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', coll: 'COLL', collt: 'COLL', zbll: 'ZBLL', zbllt: 'ZBLL', yw: 'Pros',
-    fb: 'Steps', sb: 'Steps', cmll: 'Steps', lse: 'Steps', quiz: 'Practice', saved: 'Practice', notation: 'Help', words: 'Help' };
+  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', f2lbf: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', coll: 'COLL', collt: 'COLL', zbll: 'ZBLL', zbllt: 'ZBLL', yw: 'Pros',
+    fb: 'Steps', sb: 'Steps', cmll: 'Steps', lse: 'Steps', tps: 'Practice', quiz: 'Practice', saved: 'Practice', notation: 'Help', words: 'Help' };
   const defMethod = () => METHODS[db.defMethod] ? db.defMethod : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
   const lastStep = {};
@@ -3450,12 +3454,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // stops it. Space does the next step as well.
   const TR = { phase: 'scramble', t0: 0, t1: 0, t2: 0, moves: 0, track: null, timer: 0 };
   const trSmartOn = () => typeof SM !== 'undefined' && !!SM && !!SM.conn && typeof SmartCore !== 'undefined';
-  const TRAINERS = ['cross', 'f2lt', 'ollt', 'pllt', 'collt', 'zbllt', 'fbt', 'sbt', 'cmllt', 'lset'];
+  const TRAINERS = ['cross', 'f2lt', 'f2lbf', 'ollt', 'pllt', 'collt', 'zbllt', 'fbt', 'sbt', 'cmllt', 'lset'];
   const trainerActive = () => view === 'learn' && TRAINERS.includes(learnSet);
-  const trData = () => ({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
-  const trNew = () => ({ cross: newCross, f2lt: newF2L, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), zbllt: () => newLL('zbll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
+  const trData = () => ({ cross, f2lt, f2lbf, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
+  const trNew = () => ({ cross: newCross, f2lt: newF2L, f2lbf: newBF, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), zbllt: () => newLL('zbll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
   // what "done" means for each trainer, on a smart cube's state (white on top)
-  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), zbllt: st => SmartCore.isSolved(st), cmllt: st => SmartCore.solvedUpToAuf(st),
+  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), f2lbf: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), zbllt: st => SmartCore.isSolved(st), cmllt: st => SmartCore.solvedUpToAuf(st),
     fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.solvedAnyWay(st) };
   // the last-layer corners are solved, up to a turn of that layer (on the bottom: the smart cube holds white on top)
   const faceOfN = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
@@ -3484,7 +3488,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const fix = SmartCore.fixMoves(T, SM.cur); if (!fix) return null;
     return (yellow ? Solver.heldAs(CrossSolver.flip(fix), T.toks.slice(0, T.k).join(' ')) : fix).join(' ');
   }
-  function renderTrainer() { const D = trData(); if (D) trSync(D.scr); ({ cross: renderCross, f2lt: renderF2LT, ollt: renderLLT, pllt: renderLLT, collt: renderLLT, zbllt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
+  function renderTrainer() { const D = trData(); if (D) trSync(D.scr); ({ cross: renderCross, f2lt: renderF2LT, f2lbf: renderBF, ollt: renderLLT, pllt: renderLLT, collt: renderLLT, zbllt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
   function trNext() {
     const now = performance.now();
     if (TR.phase === 'scramble') { TR.phase = 'plan'; TR.t0 = now; }
@@ -3494,8 +3498,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       const D = trData(), r = { plan: Math.round(TR.t1 - TR.t0), solve: Math.round(TR.t2 - TR.t1), moves: TR.moves, t: Date.now() }; D.shown = true;
       if (f2lBlind()) {
         // blindfolded tries have their own list: a blind insert isn't a fair time for that case
-        const H = bfHist();
-        r.id = D.c.id; r.ok = trSmartOn() ? !!TR_DONE.f2lt(SM.cur) : null;
+        const H = bfHist(); db.trHist.f2lbf = H;
+        r.n = D.n; r.ok = trSmartOn() ? !!TR_DONE.f2lt(SM.cur) : null;
         H.push(r); if (H.length > 200) H.splice(0, H.length - 200);
         save(); if (r.ok) bfBeep();
       } else {
@@ -3524,11 +3528,11 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   }
   function trClockHtml(goal) {
     const blind = f2lBlind();
-    const label = { scramble: 'Scramble first', plan: 'Planning', solve: `Solving the ${goal}`, done: 'Finished' }[TR.phase];
+    const label = { scramble: 'Scramble first', plan: blind ? 'Inspecting' : 'Planning', solve: `Solving the ${goal}`, done: 'Finished' }[TR.phase];
     const btn = { scramble: "I've scrambled: start the clock", plan: blind ? 'Close your eyes and start' : 'Start solving', solve: 'Done', done: 'Next' }[TR.phase];
     const done = TR.phase === 'done' ? `Planned for ${((TR.t1 - TR.t0) / 1000).toFixed(1)}s, then ${blind ? 'turned without looking for' : `solved the ${goal} in`} ${fmt(TR.t2 - TR.t1)}${TR.moves ? ` with ${TR.moves} turns (${tpsOf(TR.moves, TR.t2 - TR.t1)} TPS)` : ''}.` : '';
     const smart = trSmartText(goal);
-    const cover = blind && TR.phase === 'solve' ? `<button type="button" class="bf-cover" data-tr="next"><b>Eyes closed</b><span>${trSmartOn() ? 'You will hear a beep when the pair is in. Tap anywhere or press space to stop sooner.' : 'Tap anywhere or press space when you think the pair is in.'}</span></button>` : '';
+    const cover = blind && TR.phase === 'solve' ? `<button type="button" class="bf-cover" data-tr="next"><b>Eyes closed</b><span>${trSmartOn() ? `You will hear a beep when the ${goal} ${f2lbf.n === 1 ? 'is' : 'are'} in. Tap anywhere or press space to stop sooner.` : `Tap anywhere or press space when you think the ${goal} ${f2lbf.n === 1 ? 'is' : 'are'} in.`}</span></button>` : '';
     return `${cover}<div class="tr-clock" data-phase="${TR.phase}"><span class="tr-label">${label}</span><b id="trTime">${trTimeText()}</b>
       <button type="button" class="btn" data-tr="next">${btn}</button>
       <span class="tr-hint" id="trTurns">${done || (TR.phase === 'solve' && trSmartOn() ? `${TR.moves} turn${TR.moves === 1 ? '' : 's'} so far` : 'On a computer, press space for the next step.')}</span>
@@ -3659,6 +3663,74 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     renderCross();
   }
 
+  // ---------- TPS trainer ----------
+  // Short sequences repeated at speed. Each was checked in the cube model: it ends on a solved cube.
+  // The turn count is known, so TPS works without a smart cube; with one, the first turn starts the clock and
+  // the last one stops it.
+  const TPS_DRILLS = [
+    { id: 'sexy', name: 'Sexy move', alg: "R U R' U'", reps: 6, n: 24 },
+    { id: 'lefty', name: 'Left-hand sexy', alg: "L' U' L U", reps: 6, n: 24 },
+    { id: 'sledge', name: 'Sledgehammer', alg: "R' F R F'", reps: 6, n: 24 },
+    { id: 'niklas', name: 'Niklas', alg: "R U' L' U R' U' L U", reps: 3, n: 24 },
+    { id: 'tperm', name: 'T perm', alg: "R U R' U' R' F R2 U' R' U' R U R' F'", reps: 2, n: 28 },
+    { id: 'slice', name: 'M slice', alg: "M' U M U'", reps: 5, n: 20 },
+  ];
+  const tpsT = { id: TPS_DRILLS.some(d => d.id === db.tpsDrill) ? db.tpsDrill : 'sexy', phase: 'ready', t0: 0, ms: 0, timer: 0 };
+  const tpsDrill = () => TPS_DRILLS.find(d => d.id === tpsT.id);
+  const tpsTries = () => (db.trHist.tps || []).filter(r => r.id === tpsT.id && r.moves);
+  const tpsOfTry = r => r.moves / Math.max(0.001, r.solve / 1000);
+  function tpsStop(turns) {
+    tpsT.ms = performance.now() - tpsT.t0; tpsT.phase = 'done'; clearInterval(tpsT.timer);
+    const H = db.trHist.tps = db.trHist.tps || [];
+    H.push({ plan: 0, solve: Math.round(tpsT.ms), moves: turns, t: Date.now(), id: tpsT.id });
+    if (H.length > 200) H.splice(0, H.length - 200);
+    save(); renderTPS();
+  }
+  function tpsNext() {
+    if (tpsT.phase === 'run') { tpsStop(trSmartOn() ? TR.moves : tpsDrill().n); return; }
+    TR.done = 0; TR.grp = null; TR.moves = 0;
+    tpsT.phase = 'run'; tpsT.t0 = performance.now(); renderTPS();
+    tpsT.timer = setInterval(() => { const el = $('tpsTime'); if (!el || tpsT.phase !== 'run') { clearInterval(tpsT.timer); return; } el.textContent = fmt(performance.now() - tpsT.t0); }, 50);
+  }
+  // smart-cube turns on this page (website and app only; see smartMove)
+  function tpsSmartMove(m) {
+    if (view !== 'learn' || learnSet !== 'tps') return false;
+    if (tpsT.phase !== 'run') tpsNext();
+    trCount(m);
+    if (TR.moves >= tpsDrill().n) tpsStop(TR.moves);
+    return true;
+  }
+  function renderTPS() {
+    const d = tpsDrill(), run = tpsT.phase === 'run', done = tpsT.phase === 'done', H = tpsTries(), vals = H.map(tpsOfTry), last = H[H.length - 1];
+    const best = vals.length ? Math.max(...vals) : 0, recent = vals.slice(-5), avg = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+    const smart = trSmartOn();
+    $('learnBody').innerHTML = `<div class="cross-grid">
+      <section class="panel">
+        <div class="label"><span>Sequence</span></div>
+        <div class="chips" style="margin-bottom:12px">${TPS_DRILLS.map(x => `<button type="button" class="chip" data-tps="pick:${x.id}" aria-pressed="${x.id === d.id}">${esc(x.name)}</button>`).join('')}</div>
+        <p class="scramble">${esc(d.alg)}${d.reps > 1 ? ` <span style="color:var(--muted)">× ${d.reps}</span>` : ''}</p>
+        <p class="lead">${d.n} turns, starting and ending on a solved cube. Turn smoothly and don't stop: a steady pace beats bursts with pauses.</p>
+        <button type="button" class="pill-btn" data-tps="3d">Watch in 3D</button>
+      </section>
+      <section class="panel">
+        <div class="tr-clock" data-phase="${run ? 'solve' : done ? 'done' : 'plan'}"><span class="tr-label">${run ? 'Go!' : done ? 'Finished' : 'Ready'}</span><b id="tpsTime">${run ? '0.00' : done ? fmt(tpsT.ms) : '0.00'}</b>
+          <button type="button" class="btn" data-tps="next">${run ? 'Stop' : done ? 'Go again' : 'Start'}</button>
+          <span class="tr-hint">${smart ? 'Smart cube: your first turn starts the clock and your last turn stops it.' : 'On a computer, press space to start and stop.'}</span></div>
+        ${done && last ? `<p class="callout plan-win" style="margin:0 0 12px"><b>${tpsOfTry(last).toFixed(1)} TPS</b>${last.moves} turns in ${fmt(last.solve)}${tpsOfTry(last) >= best && H.length > 1 ? ': your best on this sequence' : ''}.</p>` : ''}
+        <p class="drill-stats">${H.length ? `${esc(d.name)}: best <b>${best.toFixed(1)} TPS</b> · average of your last ${recent.length} <b>${avg.toFixed(1)} TPS</b> · ${H.length} tr${H.length === 1 ? 'y' : 'ies'}` : 'Your best and your recent average show up here for each sequence.'}</p>
+      </section></div>`;
+  }
+  function tpsAction(a) {
+    if (a === 'next') { tpsNext(); return; }
+    if (a === '3d') { const d = tpsDrill(); openPlayer({ id: 'tps', name: d.name, alg: Array(d.reps).fill(d.alg).join(' '), mode: 'solve', setup: '' }); return; }
+    if (a.startsWith('pick:')) { clearInterval(tpsT.timer); tpsT.id = db.tpsDrill = a.slice(5); tpsT.phase = 'ready'; save(); }
+    renderTPS();
+  }
+  document.addEventListener('keydown', e => {
+    if (view !== 'learn' || learnSet !== 'tps' || e.code !== 'Space' || e.repeat || typing(e.target) || P3.open) return;
+    e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); tpsNext();
+  });
+
   // ---------- F2L trainer ----------
   // A random F2L case for the front-right slot, set up on a solved cube (yellow on top, green in
   // front) with a random top-layer turn, so you practise recognising it as well as solving it.
@@ -3668,11 +3740,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   let focusN = 0;
   function focusPick(all) { const w = slowest(all, 5).map(x => x.c); return w.length >= 3 && (++focusN % 4) ? w : all; }
   const focusNote = (all, c) => slowest(all, 5).some(x => x.c === c) ? '<p class="drill-note">One of your 5 slowest cases. It leaves the list when its average gets faster.</p>' : '';
-  const f2lt = { c: null, scr: '', pool: 'focus', shown: false, pic: true, hist: [], blind: !!db.f2lBlind };
-  // Blindfolded: plan the pair while you can see it, then insert it with your eyes closed. A smart cube
-  // knows whether it went in; otherwise you say so. Hits and misses are kept in their own list.
-  const f2lBlind = () => learnSet === 'f2lt' && f2lt.blind;
-  const bfHist = () => db.trHist.f2lbf = db.trHist.f2lbf || [];
+  const f2lt = { c: null, scr: '', pool: 'focus', shown: false, pic: true, hist: [] };
+  // Blind F2L, a page of its own: inspect for as long as you like, then insert one or two pairs with your eyes
+  // closed. A smart cube knows whether they went in; otherwise you say so. Tries stay out of your F2L case times.
+  const f2lbf = { scr: '', n: db.bfPairs === 1 ? 1 : 2, shown: false, pic: true, hist: [] };
+  const f2lBlind = () => learnSet === 'f2lbf';
+  const bfHist = () => f2lbf.hist;
   function bfWarm() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) {} }
   function bfBeep() {
     try {
@@ -3682,17 +3755,67 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.31);
     } catch (e) {}
   }
-  function bfResultHtml() {
+  const BF_SLOTS = [['', 2, 2], ['fl', -2, 2], ['br', 2, -2], ['bl', -2, -2]];
+  const bfCases = s => s ? F2L_BACK.flatMap(g => g.items).filter(c => c.id.startsWith('f2lb:' + s)) : F2L.flatMap(g => g.items);
+  const bfMixed = st => BF_SLOTS.filter(([, x, z]) => st.some(k => k.p[0] === x && k.p[2] === z && k.p[1] !== 2 && k.col !== faceOfN(k.n))).length;
+  // Each case's algorithm backwards, on a random slot: it only moves that slot and the top layer, so the cross and
+  // the other slots stay solved. A setup that happens to leave a pair solved is thrown away.
+  function newBF() {
+    const pick = a => a[Math.floor(Math.random() * a.length)];
+    for (;;) {
+      const slots = BF_SLOTS.map(s => s[0]).sort(() => Math.random() - 0.5).slice(0, f2lbf.n);
+      const scr = Solver.faceTurns(slots.map(s => Cube.invert(pick(bfCases(s)).alg) + ' ' + randAuf()).join(' ')).join(' ');
+      if (scr !== f2lbf.scr && bfMixed(Cube.apply(Cube.solved(3), 3, scr)) === f2lbf.n) { f2lbf.scr = scr; break; }
+    }
+    f2lbf.shown = false;
+    trStart(f2lbf.scr, true);
+  }
+  function bfResultHtml(what) {
     if (TR.phase !== 'done') return '';
     const r = bfHist()[bfHist().length - 1];
-    if (!r || r.ok === null) return `<div class="cross-sol"><p>Open your eyes. Did the pair go in, with the rest of the first two layers still solved?</p>
-      <div class="row-btns"><button type="button" class="pill-btn" data-f2lt="bf:1">Yes, it went in</button><button type="button" class="pill-btn" data-f2lt="bf:0">No, I missed it</button></div></div>`;
-    return `<p class="drill-note">${r.ok ? 'The pair went in.' : 'Missed: the first two layers are not solved.'}</p>`;
+    if (!r || r.ok === null) return `<div class="cross-sol"><p>Open your eyes. Did ${what} go in, with the rest of the first two layers still solved?</p>
+      <div class="row-btns"><button type="button" class="pill-btn" data-bf="yes">Yes, all in</button><button type="button" class="pill-btn" data-bf="no">No, I missed</button></div></div>`;
+    return `<p class="drill-note">${r.ok ? 'All in.' : 'Missed: the first two layers are not solved.'}</p>`;
   }
   function bfStatsText() {
-    const J = bfHist().filter(r => r.ok === true || r.ok === false), hits = J.filter(r => r.ok);
-    if (!J.length) return 'Look at the case and plan every turn, then close your eyes. Hits and misses are kept apart from your normal F2L times.';
-    return `Blindfolded so far: ${hits.length} of ${J.length} pair${J.length === 1 ? '' : 's'} went in (${Math.round(hits.length / J.length * 100)}%)${hits.length ? ` · average planning ${(avgOfList(hits, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(hits, r => r.solve))}` : ''}`;
+    const J = bfHist().filter(r => (r.n || 1) === f2lbf.n && (r.ok === true || r.ok === false)), hits = J.filter(r => r.ok), word = f2lbf.n === 1 ? 'pair' : 'two pairs';
+    if (!J.length) return 'Your hits and misses show up here, kept apart from your normal F2L times.';
+    return `${word === 'pair' ? 'One pair' : 'Two pairs'}: ${hits.length} of ${J.length} tries went in (${Math.round(hits.length / J.length * 100)}%)${hits.length ? ` · average inspection ${(avgOfList(hits, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(hits, r => r.solve))}` : ''}`;
+  }
+  function renderBF() {
+    if (!f2lbf.scr) newBF();
+    const two = f2lbf.n === 2, what = two ? 'both pairs' : 'the pair';
+    $('learnBody').innerHTML = `<div class="cross-grid">
+      <section class="panel">
+        <div class="label"><span>Setup · yellow on top, green in front</span><button type="button" class="mini-btn" data-bf="new">New setup</button></div>
+        <p class="scramble">${trScr(f2lbf.scr)}</p>
+        <p class="lead">Do these moves on a solved cube. They mix up ${two ? 'two pairs' : 'one pair'} and leave the rest of the first two layers solved. ${two ? 'They can be in any two slots, so look all round the cube.' : 'It can be in any slot, so look all round the cube.'}</p>
+        ${f2lbf.pic ? `<div class="f2lt-pic">${f2l3DSetup(f2lbf.scr)}</div>` : ''}
+        <div class="chips" style="margin-top:12px"><button type="button" class="chip" data-bf="n:2" aria-pressed="${two}">Two pairs</button><button type="button" class="chip" data-bf="n:1" aria-pressed="${!two}">One pair</button>
+          <button type="button" class="chip" data-bf="pic" aria-pressed="${!f2lbf.pic}">Hide picture</button></div>
+      </section>
+      <section class="panel">
+        ${trClockHtml(two ? 'pairs' : 'pair')}
+        ${bfResultHtml(what)}
+        <p class="lead">Take as long as you need to inspect: the clock only shows how long you took. Plan every turn of ${what}, then close your eyes, start, and insert ${two ? 'them' : 'it'} without looking.</p>
+        <div class="row-btns"><button type="button" class="btn ghost" data-bf="reveal">${f2lbf.shown ? 'Hide a solution' : 'Show a solution'}</button></div>
+        ${f2lbf.shown ? `<div class="cross-sol">
+          <p><b>One way to solve it</b>, which may not be the shortest</p>
+          <p class="alg">${esc(Cube.invert(f2lbf.scr))}</p>
+          <div class="row-btns"><button type="button" class="pill-btn" data-bf="3d">Watch in 3D</button></div>
+        </div>` : ''}
+        <p class="drill-stats">${bfStatsText()}</p>
+      </section></div>`;
+    trTick();
+  }
+  function bfAction(a) {
+    if (a === 'new') newBF();
+    else if (a.startsWith('n:')) { f2lbf.n = db.bfPairs = +a.slice(2); save(); bfWarm(); newBF(); }
+    else if (a === 'pic') f2lbf.pic = !f2lbf.pic;
+    else if (a === 'reveal') f2lbf.shown = !f2lbf.shown;
+    else if (a === 'yes' || a === 'no') { const H = bfHist(), r = H[H.length - 1]; if (r) { r.ok = a === 'yes'; save(); } }
+    else if (a === '3d') { openPlayer({ id: 'bf', name: 'Blind F2L', alg: Cube.invert(f2lbf.scr), mode: 'f2l', setup: f2lbf.scr }); return; }
+    renderBF();
   }
   function newF2L(id) {
     const all = F2L.flatMap(g => g.items);
@@ -3715,21 +3838,19 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <p class="lead">Do these moves on a solved cube. They mix up the front-right pair and leave the rest of the first two layers solved.</p>
         ${f2lt.pic ? `<div class="f2lt-pic">${f2l3DSetup(f2lt.scr)}</div>` : ''}
         <div class="chips" style="margin-top:12px">${pools.map(([k, l]) => `<button type="button" class="chip" data-f2lt="pool:${k}" aria-pressed="${f2lt.pool === k}">${l}</button>`).join('')}
-          <button type="button" class="chip" data-f2lt="pic" aria-pressed="${!f2lt.pic}">Hide picture</button>
-          <button type="button" class="chip" data-f2lt="blind" aria-pressed="${f2lt.blind}">Blindfolded</button></div>
+          <button type="button" class="chip" data-f2lt="pic" aria-pressed="${!f2lt.pic}">Hide picture</button></div>
         ${focusNote(F2L.flatMap(g => g.items), c)}
       </section>
       <section class="panel">
         ${trClockHtml('pair')}
-        ${f2lt.blind ? bfResultHtml() : ''}
-        <p class="lead">${f2lt.blind ? 'Find the white corner and its edge and plan the whole insert. Then close your eyes, start, and insert the pair into the front-right slot without looking.' : 'Find the white corner and its edge, recognise the case, then insert the pair into the front-right slot. Planning time is your recognition time.'}</p>
+        <p class="lead">Find the white corner and its edge, recognise the case, then insert the pair into the front-right slot. Planning time is your recognition time.</p>
         <div class="row-btns"><button type="button" class="btn ghost" data-f2lt="reveal">${f2lt.shown ? 'Hide the case' : 'Show the case'}</button></div>
         ${f2lt.shown ? `<div class="cross-sol">
           <p><b>${esc(c.name)}</b> · ${esc((F2L.find(g => g.items.includes(c)) || {}).group || '')}</p>
           <p class="alg">${esc(c.alg)}</p>
           <div class="row-btns"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn learn-btn" data-f2lt="learn" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button></div>
         </div>` : ''}
-        <p class="drill-stats">${f2lt.blind ? bfStatsText() : H.length ? `Your times so far: ${H.length} pair${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The cube picture shows the case after the setup. Hide it to practise recognising the case on your real cube.'}</p>
+        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} pair${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The cube picture shows the case after the setup. Hide it to practise recognising the case on your real cube.'}</p>
         ${slowHtml(F2L.flatMap(g => g.items), 'f2lt')}
       </section></div>`;
     trTick();
@@ -3739,8 +3860,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (a.startsWith('pool:')) { f2lt.pool = a.slice(5); newF2L(); }
     else if (a.startsWith('case:')) newF2L(a.slice(5));
     else if (a === 'pic') f2lt.pic = !f2lt.pic;
-    else if (a === 'blind') { f2lt.blind = db.f2lBlind = !f2lt.blind; save(); bfWarm(); newF2L(); }
-    else if (a.startsWith('bf:')) { const H = bfHist(), r = H[H.length - 1]; if (r) { r.ok = a === 'bf:1'; save(); } }
     else if (a === 'reveal') f2lt.shown = !f2lt.shown;
     else if (a === 'learn') { db.learned[f2lt.c.id] = !db.learned[f2lt.c.id]; if (db.learned[f2lt.c.id]) (db.learnedAt = db.learnedAt || {})[f2lt.c.id] = Date.now(); save(); }
     renderF2LT();
@@ -3972,7 +4091,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const rx = Object.fromEntries(['sb', 'lse'].map(k => [k, { scr: '', sol: null, shown: false, pic: true, check: '', checkClass: '', try: '', hist: [] }]));
   // every trainer's timed tries (last 200) are kept on this device and in backups, so its stats survive a reload
   db.trHist = db.trHist || {};
-  for (const [k, D] of Object.entries({ cross, f2lt, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })) if (Array.isArray(db.trHist[k])) D.hist = db.trHist[k];
+  for (const [k, D] of Object.entries({ cross, f2lt, f2lbf, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })) if (Array.isArray(db.trHist[k])) D.hist = db.trHist[k];
   const rxKind = () => learnSet === 'sbt' ? 'sb' : 'lse';
   function newRx(kind) { const T = rx[kind]; T.scr = rxSetup(kind); T.sol = null; T.shown = false; T.check = ''; T.try = ''; trStart(T.scr, true); }
   function renderRx() {
@@ -4445,7 +4564,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // trainer with your slowest case, new cases from the next set you haven't finished, and 12 solves.
   const dayStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
   const LEARN_ORDER = [['oll', '2-Look OLL'], ['pll', 'PLL'], ['f2l', 'F2L cases'], ['f2lb', 'F2L other slots'], ['ollf', 'Full OLL'], ['coll', 'COLL'], ['zbll', 'ZBLL']];
-  const PHASE_PAGE = ['cross', 'f2lt', 'ollt', 'pllt'], PAGE_NAME = { cross: 'Cross', f2lt: 'F2L trainer', ollt: 'OLL trainer', pllt: 'PLL trainer', collt: 'COLL trainer', zbllt: 'ZBLL trainer', fbt: 'First block', sbt: 'Second block', cmllt: 'CMLL', lset: 'LSE' };
+  const PHASE_PAGE = ['cross', 'f2lt', 'ollt', 'pllt'], PAGE_NAME = { cross: 'Cross', f2lt: 'F2L trainer', f2lbf: 'Blind F2L', ollt: 'OLL trainer', pllt: 'PLL trainer', collt: 'COLL trainer', zbllt: 'ZBLL trainer', fbt: 'First block', sbt: 'Second block', cmllt: 'CMLL', lset: 'LSE' };
   function makePlan(method) {
     const items = [];
     if (method === 'roux') {
@@ -4576,6 +4695,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       return;
     }
     if (learnSet === 'quiz') { renderQuiz(); return; }
+    if (learnSet === 'tps') { renderTPS(); return; }
     if (learnSet === 'today') { renderToday(); return; }
     if (learnSet === 'saved') { renderSaved(); return; }
     if (learnSet === 'algs') { renderCases(); return; }
@@ -5363,6 +5483,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const before = SmartCore.clone(SM.cur);
     Cube.apply(SM.cur, 3, m); live3dMove(m);
     if (trainerActive() && trSmartMove(m)) return;
+    if (tpsSmartMove(m)) return;
     if (exampleActive() && exSmartMove(m)) return;
     if (state === 'running') {
       SM.moves.push({ m, t: ts }); if (ev) SM.raw.push(ev);
