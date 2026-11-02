@@ -2751,7 +2751,7 @@ body.racing { overflow: hidden; }
       if (f2lBlind()) {
         // blindfolded tries have their own list: a blind insert isn't a fair time for that case
         const H = bfHist(); db.trHist.f2lbf = H;
-        r.n = D.n; r.ok = trSmartOn() ? !!TR_DONE.f2lt(SM.cur) : null;
+        r.n = D.n; r.side = D.side; r.ok = trSmartOn() ? !!TR_DONE.f2lt(SM.cur) : null;
         H.push(r); if (H.length > 200) H.splice(0, H.length - 200);
         save(); if (r.ok) bfBeep();
       } else {
@@ -2995,7 +2995,7 @@ body.racing { overflow: hidden; }
   const f2lt = { c: null, scr: '', pool: 'focus', shown: false, pic: true, hist: [] };
   // Blind F2L, a page of its own: inspect for as long as you like, then insert one or two pairs with your eyes
   // closed. A smart cube knows whether they went in; otherwise you say so. Tries stay out of your F2L case times.
-  const f2lbf = { scr: '', n: db.bfPairs === 1 ? 1 : 2, shown: false, pic: true, hist: [] };
+  const f2lbf = { scr: '', n: db.bfPairs === 1 ? 1 : 2, side: ['right', 'left', 'back'].includes(db.bfSide) ? db.bfSide : 'all', shown: false, pic: true, hist: [] };
   const f2lBlind = () => learnSet === 'f2lbf';
   const bfHist = () => f2lbf.hist;
   function bfWarm() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) {} }
@@ -3008,14 +3008,19 @@ body.racing { overflow: hidden; }
     } catch (e) {}
   }
   const BF_SLOTS = [['', 2, 2], ['fl', -2, 2], ['br', 2, -2], ['bl', -2, -2]];
-  const bfCases = s => s ? F2L_BACK.flatMap(g => g.items).filter(c => c.id.startsWith('f2lb:' + s)) : F2L.flatMap(g => g.items);
+  // Right hand and left hand: that side's two slots, using only cases that side's face and U can solve. Back: the two back slots.
+  const BF_SIDES = { all: { name: 'All slots', slots: ['', 'fl', 'br', 'bl'], where: 'any slot' }, right: { name: 'Right hand', slots: ['', 'br'], only: /^[RU]/, where: 'the right-hand slots, solvable with only R and U' }, left: { name: 'Left hand', slots: ['fl', 'bl'], only: /^[LU]/, where: 'the left-hand slots, solvable with only L and U' }, back: { name: 'Back', slots: ['br', 'bl'], where: 'the back slots' } };
+  const bfCases = s => {
+    const all = s ? F2L_BACK.flatMap(g => g.items).filter(c => c.id.startsWith('f2lb:' + s)) : F2L.flatMap(g => g.items), only = BF_SIDES[f2lbf.side].only;
+    return only ? all.filter(c => Cube.tokens(c.alg).every(t => only.test(t))) : all;
+  };
   const bfMixed = st => BF_SLOTS.filter(([, x, z]) => st.some(k => k.p[0] === x && k.p[2] === z && k.p[1] !== 2 && k.col !== faceOfN(k.n))).length;
   // Each case's algorithm backwards, on a random slot: it only moves that slot and the top layer, so the cross and
   // the other slots stay solved. A setup that happens to leave a pair solved is thrown away.
   function newBF() {
     const pick = a => a[Math.floor(Math.random() * a.length)];
     for (;;) {
-      const slots = BF_SLOTS.map(s => s[0]).sort(() => Math.random() - 0.5).slice(0, f2lbf.n);
+      const slots = BF_SIDES[f2lbf.side].slots.slice().sort(() => Math.random() - 0.5).slice(0, f2lbf.n);
       const scr = Solver.faceTurns(slots.map(s => Cube.invert(pick(bfCases(s)).alg) + ' ' + randAuf()).join(' ')).join(' ');
       if (scr !== f2lbf.scr && bfMixed(Cube.apply(Cube.solved(3), 3, scr)) === f2lbf.n) { f2lbf.scr = scr; break; }
     }
@@ -3030,9 +3035,9 @@ body.racing { overflow: hidden; }
     return `<p class="drill-note">${r.ok ? 'All in.' : 'Missed: the first two layers are not solved.'}</p>`;
   }
   function bfStatsText() {
-    const J = bfHist().filter(r => (r.n || 1) === f2lbf.n && (r.ok === true || r.ok === false)), hits = J.filter(r => r.ok), word = f2lbf.n === 1 ? 'pair' : 'two pairs';
+    const J = bfHist().filter(r => (r.n || 1) === f2lbf.n && (r.side || 'all') === f2lbf.side && (r.ok === true || r.ok === false)), hits = J.filter(r => r.ok), word = f2lbf.n === 1 ? 'pair' : 'two pairs';
     if (!J.length) return 'Your hits and misses show up here, kept apart from your normal F2L times.';
-    return `${word === 'pair' ? 'One pair' : 'Two pairs'}: ${hits.length} of ${J.length} tries went in (${Math.round(hits.length / J.length * 100)}%)${hits.length ? ` · average inspection ${(avgOfList(hits, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(hits, r => r.solve))}` : ''}`;
+    return `${BF_SIDES[f2lbf.side].name}, ${word === 'pair' ? 'one pair' : 'two pairs'}: ${hits.length} of ${J.length} tries went in (${Math.round(hits.length / J.length * 100)}%)${hits.length ? ` · average inspection ${(avgOfList(hits, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(hits, r => r.solve))}` : ''}`;
   }
   function renderBF() {
     if (!f2lbf.scr) newBF();
@@ -3041,8 +3046,9 @@ body.racing { overflow: hidden; }
       <section class="panel">
         <div class="label"><span>Setup · yellow on top, green in front</span><button type="button" class="mini-btn" data-bf="new">New setup</button></div>
         <p class="scramble">${trScr(f2lbf.scr)}</p>
-        <p class="lead">Do these moves on a solved cube. They mix up ${two ? 'two pairs' : 'one pair'} and leave the rest of the first two layers solved. ${two ? 'They can be in any two slots, so look all round the cube.' : 'It can be in any slot, so look all round the cube.'}</p>
+        <p class="lead">Do these moves on a solved cube. They mix up ${two ? 'two pairs' : 'one pair'} and leave the rest of the first two layers solved. ${two ? 'Both are' : 'It is'} in ${BF_SIDES[f2lbf.side].where}.</p>
         ${f2lbf.pic ? `<div class="f2lt-pic">${f2l3DSetup(f2lbf.scr)}</div>` : ''}
+        <div class="chips" style="margin-top:12px">${Object.entries(BF_SIDES).map(([k, s]) => `<button type="button" class="chip" data-bf="side:${k}" aria-pressed="${f2lbf.side === k}">${s.name}</button>`).join('')}</div>
         <div class="chips" style="margin-top:12px"><button type="button" class="chip" data-bf="n:2" aria-pressed="${two}">Two pairs</button><button type="button" class="chip" data-bf="n:1" aria-pressed="${!two}">One pair</button>
           <button type="button" class="chip" data-bf="pic" aria-pressed="${!f2lbf.pic}">Hide picture</button></div>
       </section>
@@ -3063,6 +3069,7 @@ body.racing { overflow: hidden; }
   function bfAction(a) {
     if (a === 'new') newBF();
     else if (a.startsWith('n:')) { f2lbf.n = db.bfPairs = +a.slice(2); save(); bfWarm(); newBF(); }
+    else if (a.startsWith('side:')) { f2lbf.side = db.bfSide = a.slice(5); save(); newBF(); }
     else if (a === 'pic') f2lbf.pic = !f2lbf.pic;
     else if (a === 'reveal') f2lbf.shown = !f2lbf.shown;
     else if (a === 'yes' || a === 'no') { const H = bfHist(), r = H[H.length - 1]; if (r) { r.ok = a === 'yes'; save(); } }
