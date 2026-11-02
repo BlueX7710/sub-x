@@ -5211,6 +5211,30 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       removeEventListener(t, f) { this._l[t] = (this._l[t] || []).filter(x => x !== f); }
       _emit(t, e) { (this._l[t] || []).slice().forEach(f => { try { f(e); } catch (err) { console.error(err); } }); }
     }
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    // scans until this cube's advert shows up, for at most 4 seconds
+    const seeCube = id => new Promise(async done => {
+      let listener = null, timer = 0, over = false;
+      const end = async () => {
+        if (over) return; over = true; clearTimeout(timer);
+        try { if (listener) await listener.remove(); await BLE.stopLEScan(); } catch (e) {}
+        await wait(600); done();
+      };
+      try {
+        listener = await BLE.addListener('onScanResult', r => { if (r && r.device && r.device.deviceId === id) end(); });
+        await BLE.requestLEScan({ allowDuplicates: true });
+        if (!over) timer = setTimeout(end, 4000);
+      } catch (e) { end(); }
+    });
+    // a cube holds one link at a time, so a link left over from an earlier try blocks every app, GAN's too
+    let picked = null;
+    const letGo = () => { if (picked) BLE.disconnect({ deviceId: picked }).catch(() => {}); };
+    async function dropOldLinks(prefixes) {
+      try {
+        const { devices } = await BLE.getConnectedDevices({ services: [] });
+        for (const d of devices || []) if (prefixes.some(p => (d.name || '').startsWith(p))) await BLE.disconnect({ deviceId: d.deviceId }).catch(() => {});
+      } catch (e) {}
+    }
     let ready = false;
     async function init() {
       if (ready) return;
@@ -5239,15 +5263,18 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       let gone = null;
       dev.gatt = {
         connected: false, device: dev,
-        // Android's first connection often fails (GATT error 133 or a timeout), so try three times
+        // Android's first connection often fails (GATT error 133 or a timeout), and connecting right after a scan
+        // makes that likelier. So pause first, and before each new try let go and see the cube advertise again.
         connect: async () => {
+          await wait(600);
           for (let i = 1; ; i++) {
-            smartStep(i > 1 ? `connecting over Bluetooth (try ${i} of 3)` : 'connecting over Bluetooth');
-            try { await BLE.connect({ deviceId: id, timeout: 12000 }); break; }
+            smartStep(i > 1 ? `connecting over Bluetooth (try ${i} of 4)` : 'connecting over Bluetooth');
+            try { await BLE.connect({ deviceId: id, timeout: 15000 }); break; }
             catch (e) {
-              if (i >= 3) throw e;
               await BLE.disconnect({ deviceId: id }).catch(() => {});
-              await new Promise(r => setTimeout(r, 800));
+              if (i >= 4) throw e;
+              smartStep(`turn a face to wake the cube (before try ${i + 1})`);
+              await wait(1500); await seeCube(id);
             }
           }
           gone = await BLE.addListener('disconnected|' + id, () => { dev.gatt.connected = false; if (gone) gone.remove(); gone = null; dev._emit('gattserverdisconnected', { target: dev }); });
@@ -5311,11 +5338,13 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         box.onclick = e => {
           const b = e.target.closest('button[data-cube]'); if (!b) return;
           const id = b.dataset.cube, c = found.get(id);
+          if (id) picked = id;
           id ? finish(makeDevice(id, c.name, c.mac)) : finish(null, notFound('No cube was chosen.'));
         };
         try {
           smartStep('turning on Bluetooth');
           await init();
+          await dropOldLinks(prefixes);
           smartStep('looking for your cube');
           box.hidden = false; draw();
           // every advert is passed on: the first one often comes without the cube's name
@@ -5335,7 +5364,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         }
       });
     }
-    return { requestDevice };
+    return { requestDevice, letGo };
   }
 
   // ---------- smart cube: Bluetooth connection and timer ----------
@@ -5567,8 +5596,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (NATIVE_BT && navigator.bluetooth !== NATIVE_BT) Object.defineProperty(navigator, 'bluetooth', { value: NATIVE_BT, configurable: true });
       SM.lib = SM.lib || await import(GAN_URL);
       macDevice = null; smartStep(NATIVE ? 'looking for your cube' : 'waiting for you to pick the cube');
-      // a hung Bluetooth connection gives up after 40 seconds (time spent picking the cube or typing its address doesn't count)
-      let timer, waited = 0; const limit = new Promise((_, no) => { timer = setInterval(() => { if ($('smartMac').hidden && $('smartPick').hidden && smartStepNow !== 'waiting for you to pick the cube' && (waited += 500) >= 40000) no(new Error('the cube took too long to answer')); }, 500); });
+      // a hung Bluetooth connection gives up after 40 seconds on one step (time spent picking the cube or typing its address doesn't count)
+      let timer, waited = 0, onStep = ''; const limit = new Promise((_, no) => { timer = setInterval(() => { if (onStep !== smartStepNow) { onStep = smartStepNow; waited = 0; } if ($('smartMac').hidden && $('smartPick').hidden && smartStepNow !== 'waiting for you to pick the cube' && (waited += 500) >= 40000) no(new Error('the cube took too long to answer')); }, 500); });
       const conn = await Promise.race([SM.lib.connectGanCube(macProvider), limit]).finally(() => clearInterval(timer));
       if (!conn) throw new Error('no cube');
       SM.conn = conn; SM.cur = Cube.solved(3);
@@ -5584,10 +5613,11 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     } catch (e) {
       if (macDevice && !/too long/.test(e && e.message)) forgetMac(macDevice);   // an address that didn't work is asked for again next time
       try { SM.conn && SM.conn.disconnect(); } catch (err) {}
+      if (NATIVE_BT) NATIVE_BT.letGo();   // or the half-made link keeps the cube from every app
       $('smartMac').hidden = true;
       smartCleanup();
       smartInfo(e && e.name === 'NotFoundError' ? 'No cube was chosen. Wake the cube up by turning a face, then try again.'
-        : `Couldn't connect: it stopped at “${smartStepNow}” (${e && e.message ? e.message : e}). Make sure the cube is awake and not connected to another app, such as GAN's own app.`);
+        : `Couldn't connect: it stopped at “${smartStepNow}” (${e && e.message ? e.message : e}). Turn a face to wake the cube, close GAN's own app, turn your phone's Bluetooth off and on, then try again.`);
     } finally { $('smartConnect').disabled = false; }
   }
   // load the library as soon as the button is touched, so the Bluetooth picker opens straight from the click
