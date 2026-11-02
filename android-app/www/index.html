@@ -6019,6 +6019,22 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       } catch (e) {}
     };
     navigator.serviceWorker.ready.then(() => navigator.serviceWorker.controller ? warmOffline() : navigator.serviceWorker.addEventListener('controllerchange', warmOffline, { once: true }));
+    // A page left open in the background doesn't reload by itself, so coming back asks the site whether it has
+    // changed (its ETag does with each push). After 5 minutes away on an idle timer it reloads; otherwise it offers to.
+    let pageTag = null, hiddenAt = 0;
+    const siteTag = async () => { try { return (await fetch(location.pathname, { method: 'HEAD', cache: 'no-cache' })).headers.get('etag'); } catch (e) { return null; } };
+    siteTag().then(t => { pageTag = t; });
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState !== 'visible') { hiddenAt = Date.now(); return; }
+      const away = Date.now() - hiddenAt, tag = await siteTag();
+      if (!tag || !pageTag) { pageTag = pageTag || tag; return; }
+      if (tag === pageTag || state !== 'idle') return;
+      const free = view === 'timer' && !justSolved && !drill && !friendScr && !RACE.open && !P3.open && !SM.conn && ![...document.querySelectorAll('video')].some(v => v.srcObject);
+      if (free && away >= 5 * 60000) { location.reload(); return; }
+      toast('A new version of Sub-X is ready.');
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Reload'; b.onclick = () => location.reload();
+      $('toast').appendChild(b);
+    });
   }
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   let installEvt = null;

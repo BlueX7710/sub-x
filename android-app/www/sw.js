@@ -23,7 +23,7 @@ self.addEventListener('fetch', e => {
 
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req).then(res => {
+      fetch(req, { cache: 'no-cache' }).then(res => {   // ask the site each time: its pages may otherwise be reused for 10 minutes
         if (res.ok && !res.redirected) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(BASE, copy)); }
         return res;
       }).catch(() => caches.match(BASE))
