@@ -142,6 +142,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 @media (max-width: 520px) { .tr-clock { grid-template-columns: minmax(0, 1fr); } .tr-clock .btn { justify-self: start; } }
 .tr-clock .tr-hint, .tr-clock .drill-note { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin: 0; }
 .f2lt-pic svg { width: 170px; height: 170px; display: block; margin-top: 4px; }
+.bf-cover { position: fixed; inset: 0; z-index: 1000; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; border: 0; border-radius: 0; background: var(--bg); color: var(--ink); font: inherit; text-align: center; cursor: pointer; }
+.bf-cover b { font-family: var(--font-display); font-size: 34px; font-weight: 600; }
+.bf-cover span { max-width: 30em; font-size: 15px; color: var(--muted); }
 .scramble .sdone { opacity: .35; text-decoration: line-through; text-decoration-thickness: 2px; }
 .scramble .snext { color: var(--accent); text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
 .scramble .shalf::after { content: "½"; font-size: .6em; margin-left: 2px; vertical-align: super; }
@@ -2576,6 +2579,22 @@ body.racing { overflow: hidden; }
       { id: 'coll:as6', name: 'Antisune 6', alg: "R' U' R U' L U' R' U L' U2 R" },
     ] },
   ];
+  // Yiheng Wang: last-layer algorithms from reconstructions of world-record solves (ruwix.com/blog), only those that
+  // differ from the ones in OLL and PLL here. Each was checked in the cube model: it keeps the first two layers and its
+  // case matches the OLL or PLL case it is named after.
+  const YIHENG = [
+    { group: 'OLL', mode: 'oll', items: [
+      { id: 'yw:oll26', name: 'OLL 26', mode: 'oll', alg: "L' U R U' L U R'", tip: 'From the 3.96 in the 4.25 average.' },
+      { id: 'yw:oll44', name: 'OLL 44', mode: 'oll', alg: "f R U R' U' f'", tip: 'From the 3.81 in the 3.91 average.' },
+      { id: 'yw:oll53', name: 'OLL 53', mode: 'oll', alg: "r' U2 R U R' U' R U R' U r", tip: 'From the 4.93 in the 3.91 average.' },
+    ] },
+    { group: 'PLL', mode: 'pll', items: [
+      { id: 'yw:aa', name: 'Aa', mode: 'pll', alg: "x' R2 D2 R' U' R D2 R' U R' x", tip: 'From the 4.17 in the 3.91 average.' },
+      { id: 'yw:ua', name: 'Ua', mode: 'pll', alg: "R U R' U R' U' R2 U' R' U R' U R", tip: 'From the 3.81 in the 3.91 average.' },
+      { id: 'yw:gc', name: 'Gc', mode: 'pll', alg: "R2 F2 R U2 R U2 R' F R U R' U' R' F R2", tip: 'From the 6.11 in the 4.36 average.' },
+      { id: 'yw:ja', name: 'Ja', mode: 'pll', alg: "L' U' L F L' U' L U L F' L2 U L", tip: 'From the 4.00 in the 4.25 average.' },
+    ] },
+  ];
   // How to do each step. Every step page in Learn opens with its lesson, then the practice for it.
   const CFOP_STEPS = [
     { title: 'Cross', sub: 'no algorithms', text: 'Solve the four white edges so they form a cross on the bottom, each one matching the center next to it.',
@@ -2617,6 +2636,7 @@ body.racing { overflow: hidden; }
     pll: { title: 'PLL', lead: 'With the top face yellow, these 21 algorithms move the last-layer pieces into place. Start with Ua, Ub, Aa, Ab, T and Jb.', groups: PLL, mode: 'pll' },
     coll: { title: 'COLL', lead: 'When the top edges are already oriented (a yellow cross on top), one COLL algorithm makes the top yellow and solves the corners, so only an edge PLL (Ua, Ub, H or Z) is left, or nothing at all. 40 cases, grouped by the shape of the yellow corners. Grey stickers are edges, whose places do not matter yet.', groups: COLL, mode: 'coll' },
     collt: { title: 'COLL trainer', lead: 'Practise one COLL case at a time: set it up, recognise it from the corners, solve them, and see how long each part took. Turn on random edges to practise all 472 ZBLL cases the two-look way: COLL, then an edge PLL.' },
+    yw: { title: 'Yiheng Wang', lead: 'Other ways to do a few OLL and PLL cases, taken from reconstructions of world-record solves by Yiheng Wang. Each one is from a single solve, so it may not be the usual algorithm for that case.', groups: YIHENG },
     ollt: { title: 'OLL trainer', lead: 'Practise one OLL case at a time: set it up on a solved cube, recognise it, make the top yellow, and see how long each part took.' },
     pllt: { title: 'PLL trainer', lead: 'Practise one PLL case at a time, from any angle: set it up, recognise it from the side colours, solve the cube, and see how long each part took.' },
     fb: { title: 'First block', lead: 'How to build it, then a worked example: a scramble and the shortest first block for it.' },
@@ -2643,12 +2663,12 @@ body.racing { overflow: hidden; }
     ['x  y  z', 'Rotate the whole cube: x like R, y like U, z like F. No pieces move relative to each other.'],
     ["(R U R' U')", 'The "sexy move". Brackets group a trigger you learn as one motion. Six in a row returns the cube to where it started.'],
   ];
-  const ALL_CASES = [...F2L, ...F2L_BACK, ...OLL, ...OLL_FULL, ...PLL, ...COLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.id.startsWith('ollf:') ? 'oll' : c.id.startsWith('f2lb:') ? 'f2l' : c.id.split(':')[0] })));
+  const ALL_CASES = [...F2L, ...F2L_BACK, ...OLL, ...OLL_FULL, ...PLL, ...COLL, ...YIHENG].flatMap(g => g.items.map(c => ({ ...c, mode: c.mode || (c.id.startsWith('ollf:') ? 'oll' : c.id.startsWith('f2lb:') ? 'f2l' : c.id.split(':')[0]) })));
   const caseById = id => ALL_CASES.find(c => c.id === id);
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
     beginner: { name: 'Beginner', steps: [['bgn', 'Learn to solve'], ['notation', 'Notation'], ['words', 'Words']] },
-    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
+    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['yw', 'Yiheng Wang'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
     roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
@@ -2658,7 +2678,7 @@ body.racing { overflow: hidden; }
   const pageOf = step => ROUX_PAGES[step] ? ROUX_PAGES[step][learnMode()] : step;
   const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
   // the Learn buttons, grouped by the step they belong to
-  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', coll: 'COLL', collt: 'COLL',
+  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', coll: 'COLL', collt: 'COLL', yw: 'Pros',
     fb: 'Steps', sb: 'Steps', cmll: 'Steps', lse: 'Steps', quiz: 'Practice', saved: 'Practice', notation: 'Help', words: 'Help' };
   const defMethod = () => METHODS[db.defMethod] ? db.defMethod : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
@@ -2723,11 +2743,19 @@ body.racing { overflow: hidden; }
     else if (TR.phase === 'plan') { TR.phase = 'solve'; TR.t1 = now; }
     else if (TR.phase === 'solve') {
       TR.phase = 'done'; TR.t2 = now;
-      const D = trData();
-      D.hist.push({ plan: Math.round(TR.t1 - TR.t0), solve: Math.round(TR.t2 - TR.t1), moves: TR.moves, t: Date.now() }); D.shown = true;
-      if (D.hist.length > 200) D.hist.splice(0, D.hist.length - 200);
-      db.trHist[learnSet] = D.hist; save();
-      if (D.c) recordCase(D.c.id, TR.t1 - TR.t0, TR.t2 - TR.t1);
+      const D = trData(), r = { plan: Math.round(TR.t1 - TR.t0), solve: Math.round(TR.t2 - TR.t1), moves: TR.moves, t: Date.now() }; D.shown = true;
+      if (f2lBlind()) {
+        // blindfolded tries have their own list: a blind insert isn't a fair time for that case
+        const H = bfHist();
+        r.id = D.c.id; r.ok = trSmartOn() ? !!TR_DONE.f2lt(SM.cur) : null;
+        H.push(r); if (H.length > 200) H.splice(0, H.length - 200);
+        save(); if (r.ok) bfBeep();
+      } else {
+        D.hist.push(r);
+        if (D.hist.length > 200) D.hist.splice(0, D.hist.length - 200);
+        db.trHist[learnSet] = D.hist; save();
+        if (D.c) recordCase(D.c.id, TR.t1 - TR.t0, TR.t2 - TR.t1);
+      }
     }
     else trNew();
     renderTrainer();
@@ -2747,11 +2775,13 @@ body.racing { overflow: hidden; }
     return TR.phase === 'plan' ? 'Smart cube: your first turn starts the solve clock.' : TR.phase === 'solve' ? `Smart cube: the clock stops by itself when the ${goal} is solved.` : '';
   }
   function trClockHtml(goal) {
+    const blind = f2lBlind();
     const label = { scramble: 'Scramble first', plan: 'Planning', solve: `Solving the ${goal}`, done: 'Finished' }[TR.phase];
-    const btn = { scramble: "I've scrambled: start the clock", plan: 'Start solving', solve: 'Done', done: 'Next' }[TR.phase];
-    const done = TR.phase === 'done' ? `Planned for ${((TR.t1 - TR.t0) / 1000).toFixed(1)}s, then solved the ${goal} in ${fmt(TR.t2 - TR.t1)}${TR.moves ? ` with ${TR.moves} turns (${tpsOf(TR.moves, TR.t2 - TR.t1)} TPS)` : ''}.` : '';
+    const btn = { scramble: "I've scrambled: start the clock", plan: blind ? 'Close your eyes and start' : 'Start solving', solve: 'Done', done: 'Next' }[TR.phase];
+    const done = TR.phase === 'done' ? `Planned for ${((TR.t1 - TR.t0) / 1000).toFixed(1)}s, then ${blind ? 'turned without looking for' : `solved the ${goal} in`} ${fmt(TR.t2 - TR.t1)}${TR.moves ? ` with ${TR.moves} turns (${tpsOf(TR.moves, TR.t2 - TR.t1)} TPS)` : ''}.` : '';
     const smart = trSmartText(goal);
-    return `<div class="tr-clock" data-phase="${TR.phase}"><span class="tr-label">${label}</span><b id="trTime">${trTimeText()}</b>
+    const cover = blind && TR.phase === 'solve' ? `<button type="button" class="bf-cover" data-tr="next"><b>Eyes closed</b><span>${trSmartOn() ? 'You will hear a beep when the pair is in. Tap anywhere or press space to stop sooner.' : 'Tap anywhere or press space when you think the pair is in.'}</span></button>` : '';
+    return `${cover}<div class="tr-clock" data-phase="${TR.phase}"><span class="tr-label">${label}</span><b id="trTime">${trTimeText()}</b>
       <button type="button" class="btn" data-tr="next">${btn}</button>
       <span class="tr-hint" id="trTurns">${done || (TR.phase === 'solve' && trSmartOn() ? `${TR.moves} turn${TR.moves === 1 ? '' : 's'} so far` : 'On a computer, press space for the next step.')}</span>
       ${smart ? `<p class="drill-note">${esc(smart)}</p>` : ''}</div>`;
@@ -2890,7 +2920,32 @@ body.racing { overflow: hidden; }
   let focusN = 0;
   function focusPick(all) { const w = slowest(all, 5).map(x => x.c); return w.length >= 3 && (++focusN % 4) ? w : all; }
   const focusNote = (all, c) => slowest(all, 5).some(x => x.c === c) ? '<p class="drill-note">One of your 5 slowest cases. It leaves the list when its average gets faster.</p>' : '';
-  const f2lt = { c: null, scr: '', pool: 'focus', shown: false, pic: true, hist: [] };
+  const f2lt = { c: null, scr: '', pool: 'focus', shown: false, pic: true, hist: [], blind: !!db.f2lBlind };
+  // Blindfolded: plan the pair while you can see it, then insert it with your eyes closed. A smart cube
+  // knows whether it went in; otherwise you say so. Hits and misses are kept in their own list.
+  const f2lBlind = () => learnSet === 'f2lt' && f2lt.blind;
+  const bfHist = () => db.trHist.f2lbf = db.trHist.f2lbf || [];
+  function bfWarm() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) {} }
+  function bfBeep() {
+    try {
+      bfWarm(); if (!actx) return;
+      const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+      o.frequency.value = 880; g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.31);
+    } catch (e) {}
+  }
+  function bfResultHtml() {
+    if (TR.phase !== 'done') return '';
+    const r = bfHist()[bfHist().length - 1];
+    if (!r || r.ok === null) return `<div class="cross-sol"><p>Open your eyes. Did the pair go in, with the rest of the first two layers still solved?</p>
+      <div class="row-btns"><button type="button" class="pill-btn" data-f2lt="bf:1">Yes, it went in</button><button type="button" class="pill-btn" data-f2lt="bf:0">No, I missed it</button></div></div>`;
+    return `<p class="drill-note">${r.ok ? 'The pair went in.' : 'Missed: the first two layers are not solved.'}</p>`;
+  }
+  function bfStatsText() {
+    const J = bfHist().filter(r => r.ok === true || r.ok === false), hits = J.filter(r => r.ok);
+    if (!J.length) return 'Look at the case and plan every turn, then close your eyes. Hits and misses are kept apart from your normal F2L times.';
+    return `Blindfolded so far: ${hits.length} of ${J.length} pair${J.length === 1 ? '' : 's'} went in (${Math.round(hits.length / J.length * 100)}%)${hits.length ? ` · average planning ${(avgOfList(hits, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(hits, r => r.solve))}` : ''}`;
+  }
   function newF2L(id) {
     const all = F2L.flatMap(g => g.items);
     let pool = f2lt.pool === 'focus' ? focusPick(all) : f2lt.pool === 'weak' ? slowest(all, 5).map(x => x.c) : all.filter(c => f2lt.pool === 'all' || (f2lt.pool === 'learned') === !!db.learned[c.id]);
@@ -2912,19 +2967,21 @@ body.racing { overflow: hidden; }
         <p class="lead">Do these moves on a solved cube. They mix up the front-right pair and leave the rest of the first two layers solved.</p>
         ${f2lt.pic ? `<div class="f2lt-pic">${f2l3DSetup(f2lt.scr)}</div>` : ''}
         <div class="chips" style="margin-top:12px">${pools.map(([k, l]) => `<button type="button" class="chip" data-f2lt="pool:${k}" aria-pressed="${f2lt.pool === k}">${l}</button>`).join('')}
-          <button type="button" class="chip" data-f2lt="pic" aria-pressed="${!f2lt.pic}">Hide picture</button></div>
+          <button type="button" class="chip" data-f2lt="pic" aria-pressed="${!f2lt.pic}">Hide picture</button>
+          <button type="button" class="chip" data-f2lt="blind" aria-pressed="${f2lt.blind}">Blindfolded</button></div>
         ${focusNote(F2L.flatMap(g => g.items), c)}
       </section>
       <section class="panel">
         ${trClockHtml('pair')}
-        <p class="lead">Find the white corner and its edge, recognise the case, then insert the pair into the front-right slot. Planning time is your recognition time.</p>
+        ${f2lt.blind ? bfResultHtml() : ''}
+        <p class="lead">${f2lt.blind ? 'Find the white corner and its edge and plan the whole insert. Then close your eyes, start, and insert the pair into the front-right slot without looking.' : 'Find the white corner and its edge, recognise the case, then insert the pair into the front-right slot. Planning time is your recognition time.'}</p>
         <div class="row-btns"><button type="button" class="btn ghost" data-f2lt="reveal">${f2lt.shown ? 'Hide the case' : 'Show the case'}</button></div>
         ${f2lt.shown ? `<div class="cross-sol">
           <p><b>${esc(c.name)}</b> · ${esc((F2L.find(g => g.items.includes(c)) || {}).group || '')}</p>
           <p class="alg">${esc(c.alg)}</p>
           <div class="row-btns"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn learn-btn" data-f2lt="learn" aria-pressed="${L}">${L ? 'Learned' : 'Mark learned'}</button></div>
         </div>` : ''}
-        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} pair${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The cube picture shows the case after the setup. Hide it to practise recognising the case on your real cube.'}</p>
+        <p class="drill-stats">${f2lt.blind ? bfStatsText() : H.length ? `Your times so far: ${H.length} pair${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)}s · average insert ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The cube picture shows the case after the setup. Hide it to practise recognising the case on your real cube.'}</p>
         ${slowHtml(F2L.flatMap(g => g.items), 'f2lt')}
       </section></div>`;
     trTick();
@@ -2934,6 +2991,8 @@ body.racing { overflow: hidden; }
     else if (a.startsWith('pool:')) { f2lt.pool = a.slice(5); newF2L(); }
     else if (a.startsWith('case:')) newF2L(a.slice(5));
     else if (a === 'pic') f2lt.pic = !f2lt.pic;
+    else if (a === 'blind') { f2lt.blind = db.f2lBlind = !f2lt.blind; save(); bfWarm(); newF2L(); }
+    else if (a.startsWith('bf:')) { const H = bfHist(), r = H[H.length - 1]; if (r) { r.ok = a === 'bf:1'; save(); } }
     else if (a === 'reveal') f2lt.shown = !f2lt.shown;
     else if (a === 'learn') { db.learned[f2lt.c.id] = !db.learned[f2lt.c.id]; if (db.learned[f2lt.c.id]) (db.learnedAt = db.learnedAt || {})[f2lt.c.id] = Date.now(); save(); }
     renderF2LT();
@@ -3227,7 +3286,7 @@ body.racing { overflow: hidden; }
     r.due = now + (r.box ? SRS_DAYS[r.box] * 864e5 : 60e3); r.seen = now;
     db.srs[id] = r; save();
   }
-  const quizPool = () => ALL_CASES.filter(c => quiz.pool === 'all' || c.mode === quiz.pool);
+  const quizPool = () => ALL_CASES.filter(c => !c.id.startsWith('yw:') && (quiz.pool === 'all' || c.mode === quiz.pool));
   const fmtWhen = ms => ms < 36e5 ? `in ${Math.max(1, Math.round(ms / 6e4))} min` : ms < 864e5 ? `in ${Math.round(ms / 36e5)} h` : `in ${Math.round(ms / 864e5)} days`;
   function srsLine() {
     const pool = quizPool(), now = Date.now(), srs = db.srs || {};
