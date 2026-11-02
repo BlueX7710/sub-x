@@ -154,6 +154,13 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .tr-clock b.over { color: var(--warn); }
 @media (max-width: 520px) { .tr-clock { grid-template-columns: minmax(0, 1fr); } .tr-clock .btn { justify-self: start; } }
 .tr-clock .tr-hint, .tr-clock .drill-note { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin: 0; }
+.pllr-bar { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; margin-bottom: 12px; }
+.pllr-bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+.pllr-case { display: flex; flex-direction: column; align-items: center; text-align: center; min-height: 300px; }
+.pllr-case svg { width: min(100%, 280px); height: auto; aspect-ratio: 1; display: block; }
+.pllr-case .row-btns { justify-content: center; }
+.pllr-name { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin: 4px 0; }
+.pllr-range { width: 100%; accent-color: var(--accent); padding: 0; border: 0; background: none; }
 .f2lt-pic svg { width: 170px; height: 170px; display: block; margin-top: 4px; }
 .bf-cover { position: fixed; inset: 0; z-index: 1000; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; border: 0; border-radius: 0; background: var(--bg); color: var(--ink); font: inherit; text-align: center; cursor: pointer; }
 .bf-cover b { font-family: var(--font-display); font-size: 34px; font-weight: 600; }
@@ -2202,6 +2209,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (b.dataset.f2lt) f2ltAction(b.dataset.f2lt);
     else if (b.dataset.bf) bfAction(b.dataset.bf);
     else if (b.dataset.tps) tpsAction(b.dataset.tps);
+    else if (b.dataset.pllr) pllrAction(b.dataset.pllr);
     else if (b.dataset.llt) lltAction(b.dataset.llt);
     else if (b.dataset.fbt) fbtAction(b.dataset.fbt);
     else if (b.dataset.sol !== undefined) { const i = +b.dataset.sol; solIdx = solIdx === i ? -1 : i; renderList(solvesFor(db.event), db.goal * 1000); }
@@ -3387,6 +3395,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     yw: { title: 'Yiheng Wang', lead: 'Other ways to do a few OLL and PLL cases, taken from reconstructions of world-record solves by Yiheng Wang. Each one is from a single solve, so it may not be the usual algorithm for that case.', groups: YIHENG },
     zbllt: { title: 'ZBLL trainer', lead: 'Practise one ZBLL case at a time: set it up, recognise it from the corners and edges, solve the whole last layer, and see how long each part took. Pick a corner shape to practise one set at a time.' },
     ollt: { title: 'OLL trainer', lead: 'Practise one OLL case at a time: set it up on a solved cube, recognise it, make the top yellow, and see how long each part took.' },
+    pllr: { title: 'PLL recognition', lead: 'Train your eyes: a PLL case comes up, and after the time you set the next one replaces it, whether you finished or not. Name each one in your head, or turn it on your cube.' },
     pllt: { title: 'PLL trainer', lead: 'Practise one PLL case at a time, from any angle: set it up, recognise it from the side colours, solve the cube, and see how long each part took.' },
     fb: { title: 'First block', lead: 'How to build it, then a worked example: a scramble and the shortest first block for it.' },
     fbt: { title: 'First block', lead: 'Practise planning the first block. Sub-X finds the shortest block on any of the four sides, so you can compare it with yours.' },
@@ -3420,7 +3429,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
     beginner: { name: 'Beginner', steps: [['bgn', 'Learn to solve'], ['notation', 'Notation'], ['words', 'Words']] },
-    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['algs', 'Progress'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['f2lbf', 'Blind F2L'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['zbll', 'ZBLL'], ['zbllt', 'ZBLL trainer'], ['yw', 'Yiheng Wang'], ['tps', 'TPS'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
+    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['algs', 'Progress'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['f2lbf', 'Blind F2L'], ['oll', '2-Look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['pllr', 'PLL recognition'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['zbll', 'ZBLL'], ['zbllt', 'ZBLL trainer'], ['yw', 'Yiheng Wang'], ['tps', 'TPS'], ['quiz', 'Drill'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
     roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
@@ -3430,7 +3439,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const pageOf = step => ROUX_PAGES[step] ? ROUX_PAGES[step][learnMode()] : step;
   const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], f2lbf: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], zbll: CFOP_STEPS[5], zbllt: CFOP_STEPS[5], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
   // the Learn buttons, grouped by the step they belong to
-  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', f2lbf: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', coll: 'COLL', collt: 'COLL', zbll: 'ZBLL', zbllt: 'ZBLL', yw: 'Pros',
+  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', f2lbf: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', pllr: 'PLL', coll: 'COLL', collt: 'COLL', zbll: 'ZBLL', zbllt: 'ZBLL', yw: 'Pros',
     fb: 'Steps', sb: 'Steps', cmll: 'Steps', lse: 'Steps', tps: 'Practice', quiz: 'Practice', saved: 'Practice', notation: 'Help', words: 'Help' };
   const defMethod = () => METHODS[db.defMethod] ? db.defMethod : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
@@ -3963,6 +3972,87 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (a === 'learn') { db.learned[T.c.id] = !db.learned[T.c.id]; if (db.learned[T.c.id]) (db.learnedAt = db.learnedAt || {})[T.c.id] = Date.now(); save(); }
     renderLLT();
   }
+
+  // ---------- PLL recognition ----------
+  // A PLL case stays on screen for a set time, then the next one comes, whether or not you finished it. Nothing is
+  // timed or saved but your settings. Two sides in 3D is what you see on a real cube; the top view shows all four.
+  const PLLR_POOLS = [['all', 'All 21'], ['2look', '2-look PLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']];
+  const pllr = { on: false, c: null, scr: '', last: null, bag: [], at: 0, timer: 0, lock: null, sec: db.pllrSec >= 1 && db.pllrSec <= 30 ? db.pllrSec : 5, pool: PLLR_POOLS.some(p => p[0] === db.pllrPool) ? db.pllrPool : 'all', top: !!db.pllrTop, names: !!db.pllrNames };
+  const pllrName = c => esc(c.name) + ' perm';
+  const pllrSecText = () => pllr.sec.toFixed(1) + 's';
+  function pllrCaseHtml() {
+    if (!pllr.c) return `<p class="lead">Press Start. Each case stays for <span class="pllr-sec-text">${pllrSecText()}</span>, then the next one comes, finished or not.</p>`;
+    const pic = pllr.top ? llDiagramSetup(pllr.scr, 'pll') : Cube3D.svg(Cube3D.frame(Cube.apply(Cube.solved(3), 3, pllr.scr), { ...F2L_VIEW, body: 'var(--plastic)', colorOf: k => PAL_LL[k.col] }), 'A PLL case in 3D: yellow on top, green in front');
+    return `${pic}
+      ${pllr.names || !pllr.on ? `<p class="pllr-name">${pllrName(pllr.c)}</p>` : ''}
+      ${pllr.on ? '' : `<p class="alg">${esc(pllr.c.alg)}</p><div class="row-btns"><button type="button" class="pill-btn" data-p3d="${pllr.c.id}">Watch in 3D</button></div>`}
+      <p class="drill-stats">${pllr.last ? `Last one: <b>${pllrName(pllr.last)}</b>` : '&nbsp;'}</p>`;
+  }
+  function pllrNext() {
+    if (pllr.c) pllr.last = pllr.c;
+    if (!pllr.bag.length) pllr.bag = llPool('pll', pllr.pool).sort(() => Math.random() - 0.5);   // every case once, then again
+    const i = pllr.bag.length > 1 && pllr.bag[pllr.bag.length - 1] === pllr.c ? pllr.bag.length - 2 : pllr.bag.length - 1;
+    pllr.c = pllr.bag.splice(i, 1)[0];
+    pllr.scr = Solver.faceTurns(`${randAuf()} ${Cube.invert(pllr.c.alg)} ${randAuf()}`).join(' ');
+    pllr.at = performance.now();
+    const el = $('pllrCase'); if (el) el.innerHTML = pllrCaseHtml();
+  }
+  function pllrTick() {
+    if (view !== 'learn' || learnSet !== 'pllr' || document.hidden || P3.open) { pllrStop(); return; }
+    const left = pllr.at + pllr.sec * 1000 - performance.now();
+    if (left <= 0) { pllrNext(); return; }
+    const t = $('pllrLeft'), bar = $('pllrBar');
+    if (t) t.textContent = (left / 1000).toFixed(1);
+    if (bar) bar.style.transform = `scaleX(${left / (pllr.sec * 1000)})`;
+  }
+  function pllrStart() {
+    pllr.on = true; pllrNext(); renderPLLR();
+    $('pllrLeft').parentElement.scrollIntoView({ block: 'start' });   // on a phone the step buttons push the picture off screen
+    clearInterval(pllr.timer); pllr.timer = setInterval(pllrTick, 50);
+    try { navigator.wakeLock && navigator.wakeLock.request('screen').then(l => { pllr.lock = l; }).catch(() => {}); } catch (e) {}
+  }
+  function pllrStop() {
+    pllr.on = false; clearInterval(pllr.timer);
+    if (pllr.lock) { pllr.lock.release().catch(() => {}); pllr.lock = null; }
+    if (view === 'learn' && learnSet === 'pllr') renderPLLR();
+  }
+  function renderPLLR() {
+    $('learnBody').innerHTML = `<div class="cross-grid">
+      <section class="panel">
+        <div class="tr-clock" data-phase="${pllr.on ? 'solve' : 'plan'}"><span class="tr-label">${pllr.on ? 'Next PLL in' : pllr.c ? 'Paused' : 'Ready'}</span><b id="pllrLeft">${pllr.sec.toFixed(1)}</b>
+          <button type="button" class="btn" data-pllr="go">${pllr.on ? 'Pause' : pllr.c ? 'Keep going' : 'Start'}</button>
+          <span class="tr-hint">Pausing shows the case's name and algorithm. On a computer, press space to start and pause.</span></div>
+        <div class="pllr-bar"><i id="pllrBar"></i></div>
+        <div class="pllr-case" id="pllrCase">${pllrCaseHtml()}</div>
+      </section>
+      <section class="panel">
+        <div class="label"><label for="pllrSec">Time for each case</label><b class="pllr-sec-text">${pllrSecText()}</b></div>
+        <input class="pllr-range" id="pllrSec" type="range" min="1" max="30" step="0.5" value="${pllr.sec}">
+        <div class="label" style="margin-top:16px"><span>Cases</span></div>
+        <div class="chips">${PLLR_POOLS.map(([k, l]) => `<button type="button" class="chip" data-pllr="pool:${k}" aria-pressed="${pllr.pool === k}">${l}</button>`).join('')}</div>
+        <div class="label" style="margin-top:16px"><span>Picture</span></div>
+        <div class="chips"><button type="button" class="chip" data-pllr="top" aria-pressed="${!pllr.top}">Two sides in 3D</button><button type="button" class="chip" data-pllr="top" aria-pressed="${pllr.top}">Top view</button>
+          <button type="button" class="chip" data-pllr="names" aria-pressed="${pllr.names}">Show names straight away</button></div>
+        <p class="drill-stats">Say the name before the next case comes. The name of the one before appears under the picture, so you can check yourself.</p>
+      </section></div>`;
+  }
+  function pllrAction(a) {
+    if (a === 'go') { if (pllr.on) pllrStop(); else pllrStart(); return; }
+    if (a.startsWith('pool:')) { pllr.pool = db.pllrPool = a.slice(5); pllr.bag = []; }
+    else if (a === 'top') pllr.top = db.pllrTop = !pllr.top;
+    else if (a === 'names') pllr.names = db.pllrNames = !pllr.names;
+    save(); renderPLLR();
+  }
+  document.addEventListener('input', e => {
+    if (e.target.id !== 'pllrSec') return;
+    pllr.sec = db.pllrSec = +e.target.value; save();
+    document.querySelectorAll('.pllr-sec-text').forEach(el => { el.textContent = pllrSecText(); });
+    if (!pllr.on) $('pllrLeft').textContent = pllr.sec.toFixed(1);
+  });
+  document.addEventListener('keydown', e => {
+    if (view !== 'learn' || learnSet !== 'pllr' || e.code !== 'Space' || e.repeat || (typing(e.target) && e.target.type !== 'range') || P3.open) return;
+    e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); pllrAction('go');
+  });
 
   // ---------- Roux: first block trainer ----------
   const fbt = { scr: '', sol: null, shown: false, check: '', checkClass: '', try: '', hist: [] };
@@ -4712,6 +4802,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     }
     if (learnSet === 'quiz') { renderQuiz(); return; }
     if (learnSet === 'tps') { renderTPS(); return; }
+    if (learnSet === 'pllr') { renderPLLR(); return; }
     if (learnSet === 'today') { renderToday(); return; }
     if (learnSet === 'saved') { renderSaved(); return; }
     if (learnSet === 'algs') { renderCases(); return; }
