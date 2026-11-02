@@ -157,7 +157,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .pllr-bar { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; margin-bottom: 12px; }
 .pllr-bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
 .pllr-case { display: flex; flex-direction: column; align-items: center; text-align: center; min-height: 300px; }
-.pllr-case svg { width: min(100%, 280px); height: auto; aspect-ratio: 1; display: block; }
+.pllr-case svg { width: min(100%, 340px); height: auto; aspect-ratio: 1; display: block; }
 .pllr-case .row-btns { justify-content: center; }
 .pllr-name { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin: 4px 0; }
 .pllr-range { width: 100%; accent-color: var(--accent); padding: 0; border: 0; background: none; }
@@ -1422,14 +1422,21 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       // blocks are separated by planes across the turn axis: draw the far side first
       const toward = T ? view([0, 0, 0].map((_, i) => i === T.ax ? 1 : 0), o.yaw, o.pitch)[2] : 0;
       const order = [...groups.values()].sort((a, b) => (a.n ? a.ax / a.n : 0) * toward - (b.n ? b.ax / b.n : 0) * toward);
+      const flat = v => { const w = view(v, o.yaw, o.pitch); return [w[0], -w[1]]; };
       const polys = [];
+      // o.pop floats the hidden sides of the top layer out behind the cube, that far from its centre, so all four show
+      if (o.pop) for (const k of st) {
+        if (k.p[1] !== 2 || k.n[1] || view(k.n, o.yaw, o.pitch)[2] > 0) continue;
+        const ax = k.n.findIndex(v => v !== 0), c = k.p.map((v, i) => i === ax ? k.n[i] * o.pop : v);
+        polys.push({ pts: quad(c, ax, 1).map(flat), fill: o.body }, { pts: quad(c, ax, 0.84).map(flat), fill: o.colorOf(k) });
+      }
       for (const G of order) for (const f of G.faces.concat(G.stickers)) {
         if (view(f.n, o.yaw, o.pitch)[2] <= 1e-6) continue;
-        polys.push({ pts: f.pts.map(v => { const w = view(v, o.yaw, o.pitch); return [w[0], -w[1]]; }), fill: f.fill });
+        polys.push({ pts: f.pts.map(flat), fill: f.fill });
       }
       return polys;
     }
-    const svg = (polys, label) => `<svg viewBox="-5.4 -5.4 10.8 10.8" role="img" aria-label="${label}">${polys.map(p => `<polygon points="${p.pts.map(([x, y]) => x.toFixed(2) + ',' + y.toFixed(2)).join(' ')}" fill="${p.fill}" stroke="${p.fill}" stroke-width="0.05" stroke-linejoin="round"/>`).join('')}</svg>`;
+    const svg = (polys, label, box = '-5.4 -5.4 10.8 10.8') => `<svg viewBox="${box}" role="img" aria-label="${label}">${polys.map(p => `<polygon points="${p.pts.map(([x, y]) => x.toFixed(2) + ',' + y.toFixed(2)).join(' ')}" fill="${p.fill}" stroke="${p.fill}" stroke-width="0.05" stroke-linejoin="round"/>`).join('')}</svg>`;
     return { frame, svg };
   })();
   // F2L: grey out the last-layer pieces (any piece with a yellow sticker) so the pair stands out
@@ -3975,14 +3982,16 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
 
   // ---------- PLL recognition ----------
   // A PLL case stays on screen for a set time, then the next one comes, whether or not you finished it. Nothing is
-  // timed or saved but your settings. Two sides in 3D is what you see on a real cube; the top view shows all four.
+  // timed or saved but your settings. The 3D picture floats the two hidden sides out behind the cube, so all four show.
+  const PLLR_PICS = [['pop', '3D, all sides'], ['two', '3D, two sides'], ['top', 'Top view']];
   const PLLR_POOLS = [['all', 'All 21'], ['2look', '2-look PLL'], ['learned', 'Learned'], ['new', 'Not learned yet'], ['weak', 'My slowest']];
-  const pllr = { on: false, c: null, scr: '', last: null, bag: [], at: 0, timer: 0, lock: null, sec: db.pllrSec >= 1 && db.pllrSec <= 30 ? db.pllrSec : 5, pool: PLLR_POOLS.some(p => p[0] === db.pllrPool) ? db.pllrPool : 'all', top: !!db.pllrTop, names: !!db.pllrNames };
+  const pllr = { on: false, c: null, scr: '', last: null, bag: [], at: 0, timer: 0, lock: null, sec: db.pllrSec >= 1 && db.pllrSec <= 30 ? db.pllrSec : 5, pool: PLLR_POOLS.some(p => p[0] === db.pllrPool) ? db.pllrPool : 'all', pic: PLLR_PICS.some(p => p[0] === db.pllrPic) ? db.pllrPic : 'pop', names: !!db.pllrNames };
   const pllrName = c => esc(c.name) + ' perm';
   const pllrSecText = () => pllr.sec.toFixed(1) + 's';
   function pllrCaseHtml() {
     if (!pllr.c) return `<p class="lead">Press Start. Each case stays for <span class="pllr-sec-text">${pllrSecText()}</span>, then the next one comes, finished or not.</p>`;
-    const pic = pllr.top ? llDiagramSetup(pllr.scr, 'pll') : Cube3D.svg(Cube3D.frame(Cube.apply(Cube.solved(3), 3, pllr.scr), { ...F2L_VIEW, body: 'var(--plastic)', colorOf: k => PAL_LL[k.col] }), 'A PLL case in 3D: yellow on top, green in front');
+    const draw = (v, label, box) => Cube3D.svg(Cube3D.frame(Cube.apply(Cube.solved(3), 3, pllr.scr), { ...v, body: 'var(--plastic)', colorOf: k => PAL_LL[k.col] }), label, box);
+    const pic = pllr.pic === 'top' ? llDiagramSetup(pllr.scr, 'pll') : pllr.pic === 'two' ? draw(F2L_VIEW, 'A PLL case in 3D: yellow on top, green in front') : draw({ yaw: -Math.PI / 4, pitch: 0.62, pop: 5.2 }, 'A PLL case in 3D: yellow on top, green in front, with the two back sides floating behind the cube', '-6.4 -6.4 12.8 12.8');
     return `${pic}
       ${pllr.names || !pllr.on ? `<p class="pllr-name">${pllrName(pllr.c)}</p>` : ''}
       ${pllr.on ? '' : `<p class="alg">${esc(pllr.c.alg)}</p><div class="row-btns"><button type="button" class="pill-btn" data-p3d="${pllr.c.id}">Watch in 3D</button></div>`}
@@ -4031,7 +4040,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <div class="label" style="margin-top:16px"><span>Cases</span></div>
         <div class="chips">${PLLR_POOLS.map(([k, l]) => `<button type="button" class="chip" data-pllr="pool:${k}" aria-pressed="${pllr.pool === k}">${l}</button>`).join('')}</div>
         <div class="label" style="margin-top:16px"><span>Picture</span></div>
-        <div class="chips"><button type="button" class="chip" data-pllr="top" aria-pressed="${!pllr.top}">Two sides in 3D</button><button type="button" class="chip" data-pllr="top" aria-pressed="${pllr.top}">Top view</button>
+        <div class="chips">${PLLR_PICS.map(([k, l]) => `<button type="button" class="chip" data-pllr="pic:${k}" aria-pressed="${pllr.pic === k}">${l}</button>`).join('')}
           <button type="button" class="chip" data-pllr="names" aria-pressed="${pllr.names}">Show names straight away</button></div>
         <p class="drill-stats">Say the name before the next case comes. The name of the one before appears under the picture, so you can check yourself.</p>
       </section></div>`;
@@ -4039,7 +4048,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   function pllrAction(a) {
     if (a === 'go') { if (pllr.on) pllrStop(); else pllrStart(); return; }
     if (a.startsWith('pool:')) { pllr.pool = db.pllrPool = a.slice(5); pllr.bag = []; }
-    else if (a === 'top') pllr.top = db.pllrTop = !pllr.top;
+    else if (a.startsWith('pic:')) pllr.pic = db.pllrPic = a.slice(4);
     else if (a === 'names') pllr.names = db.pllrNames = !pllr.names;
     save(); renderPLLR();
   }
