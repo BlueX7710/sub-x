@@ -3467,9 +3467,13 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // A smart cube counts turns with white on top, by its centers. Setups done on a solved cube held yellow
   // on top are turned over for it, and their slice turns and rotations become the face turns it sees.
   const toCube = toks => CrossSolver.flip(Solver.faceTurns(toks.join(' '))).join(' ');
+  // what each trainer needs solved before its setup, so whatever else your last try left behind doesn't matter
+  const TR_MASK = { cross: 'cross', f2lt: 'f2l', f2lbf: 'f2l', ollt: 'oll', sbt: 'sb' };
+  const trMask = () => learnSet === 'collt' && !llt.coll.zb ? 'coll' : TR_MASK[learnSet];
+  const TR_NEEDS = { cross: 'the white cross', f2l: 'the first two layers', oll: 'the first two layers with an all-yellow top', coll: 'the first two layers with an all-yellow top and its corners in place', sb: 'both blocks' };
   function trStart(setup, yellowTop) {
     TR.phase = 'scramble'; TR.t0 = TR.t1 = TR.t2 = 0; TR.moves = 0; TR.yellow = !!yellowTop; TR.setup = setup;
-    TR.track = trSmartOn() ? SmartCore.track(setup, yellowTop ? toCube : null) : null;
+    TR.track = trSmartOn() ? SmartCore.track(setup, yellowTop ? toCube : null, trMask()) : null;
     if (TR.track) SmartCore.step(TR.track, SM.cur, null);
   }
   // Track the setup that's on screen: after switching trainers TR still holds the other one's, and a
@@ -3478,7 +3482,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (!setup) return;
     if (TR.setup !== setup) { trStart(setup, !['cross', 'fbt'].includes(learnSet)); return; }
     if (!trSmartOn()) TR.track = null;
-    else if (!TR.track && TR.phase === 'scramble') { TR.track = SmartCore.track(setup, TR.yellow ? toCube : null); SmartCore.step(TR.track, SM.cur, null); }
+    else if (!TR.track && TR.phase === 'scramble') { TR.track = SmartCore.track(setup, TR.yellow ? toCube : null, trMask()); SmartCore.step(TR.track, SM.cur, null); }
   }
   // a setup being followed on a smart cube: turns done are crossed out, the next one is underlined
   const trackSpans = (T, toks) => toks.map((t, i) => `<span class="${i < T.k ? 'sdone' : i === T.k && !T.done ? 'snext' + (T.half ? ' shalf' : '') : ''}">${esc(t)}</span>`).join(' ');
@@ -3522,9 +3526,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       const fix = T.sync ? null : trFix(T);
       return T.sync ? `Smart cube: ${T.k} of ${T.toks.length} moves done. The clock starts by itself when you finish.`
         : fix ? 'Smart cube: off the setup. Fix it with ' + fix
-        : "Smart cube: it doesn't match. Solve it and start the setup again, or tap “My cube is solved” in the Timer tab.";
+        : `Smart cube: it doesn't match. Solve ${TR_NEEDS[T.mask] || 'the cube'} and start the setup again${T.mask ? ' (the rest can be anything)' : ''}, or tap “My cube is solved” in the Timer tab.`;
     }
-    return TR.phase === 'plan' ? 'Smart cube: your first turn starts the solve clock.' : TR.phase === 'solve' ? `Smart cube: the clock stops by itself when the ${goal} is solved.` : '';
+    return TR.phase === 'plan' ? 'Smart cube: your first turn starts the solve clock.' : TR.phase === 'solve' ? `Smart cube: the clock stops by itself when the ${goal} ${goal === 'pairs' ? 'are' : 'is'} solved.` : TR.phase === 'done' ? 'Smart cube: turn any face for the next case.' : '';
   }
   function trClockHtml(goal) {
     const blind = f2lBlind();
@@ -3585,7 +3589,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (TR.track.done) trNext(); else renderTrainer();
       return true;
     }
-    if (TR.phase === 'plan') { TR.done = 0; TR.grp = null; trCount(m); trNext(); return true; }
+    if (TR.phase === 'done') { trNext(); return true; }   // your next turn brings the next case, so you don't have to reach for the screen
+    if (TR.phase === 'plan') {
+      // a turn that moves only pieces that don't matter (like the setup's last U) isn't the start of your solve
+      if (TR.track && TR.track.mask && SmartCore.step(TR.track, SM.cur, m).done) return true;
+      TR.done = 0; TR.grp = null; trCount(m); trNext(); return true;
+    }
     if (TR.phase === 'solve') {
       trCount(m);
       const solved = TR_DONE[learnSet](SM.cur);
@@ -4045,7 +4054,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const exampleActive = () => view === 'learn' && !!RX[learnSet] && !!workedExamples[learnSet];
   function exScr(kind, E) {
     if (!trSmartOn()) { E.track = null; return esc(E.scr); }
-    if (!E.track) { E.track = SmartCore.track(E.scr, kind === 'fb' ? null : toCube); SmartCore.step(E.track, SM.cur, null); }
+    if (!E.track) { E.track = SmartCore.track(E.scr, kind === 'fb' ? null : toCube, kind === 'sb' ? 'sb' : undefined); SmartCore.step(E.track, SM.cur, null); }
     return trackSpans(E.track, E.track.toks);
   }
   function exNote(kind, E) {
@@ -5068,7 +5077,21 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const HOME = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
     const key = (p, n) => p.join() + '/' + n.join();
     const ORDER = Cube.solved(3).map(k => key(k.p, k.n));
-    const sig = st => { const m = new Map(st.map(k => [key(k.p, k.n), k.col])); return ORDER.map(x => m.get(x)).join(''); };
+    // What a trainer needs from the cube, so the rest can be anything. With white on top the last layer has the
+    // yellow (D) stickers. Each rule looks at one sticker and all the colours of its piece; '.' means it doesn't matter.
+    const MASKS = {
+      cross: (col, cols) => cols.length === 1 || (cols.length === 2 && cols.includes('U')) ? col : '.',
+      f2l: (col, cols) => cols.length === 1 || !cols.includes('D') ? col : '.',
+      oll: (col, cols) => cols.length === 1 || !cols.includes('D') || col === 'D' ? col : '.',
+      coll: (col, cols) => cols.length !== 2 || !cols.includes('D') || col === 'D' ? col : '.',
+      sb: (col, cols) => !cols.includes('D') && /[RL]/.test(cols) ? col : '.',
+    };
+    const sig = (st, mask) => {
+      const rule = MASKS[mask], m = new Map(); let cols = null;
+      if (rule) { cols = new Map(); for (const k of st) { const id = k.p.join(); cols.set(id, (cols.get(id) || '') + k.col); } }
+      for (const k of st) m.set(key(k.p, k.n), rule ? rule(k.col, cols.get(k.p.join())) : k.col);
+      return ORDER.map(x => m.get(x)).join('');
+    };
     const isSolved = st => st.every(k => k.col === HOME(k.n));
     // Kociemba facelet order (U R F D L B, each read row by row) matches the layout of the net
     const idx = c => (c + 2) / 2;
@@ -5100,7 +5123,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     // The states part-way through one scramble move that takes d quarter turns on the cube: half of a
     // U2, or one side of an M (the cube reports M as two face turns, R and L', in either order).
     function partWay(a, b, d) {
-      if (d < 2) return null;
+      if (d < 2 || a === b) return null;   // (a turn of pieces that don't matter changes nothing)
       const da = around(a, d - 1), db = around(b, d - 1), out = [];
       for (const [x, i] of da) if (i > 0 && db.get(x) === d - i) out.push(x);
       return out.length ? out : null;
@@ -5108,18 +5131,19 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const quarterCount = tok => Solver.faceTurns(tok).reduce((n, t) => n + (t.endsWith('2') ? 2 : 1), 0);
     // Scramble tracking: compare the cube with the state after each scramble move. `toModel` turns the
     // first moves of the scramble into the turns the cube itself sees (by default, the moves as written).
-    function track(scramble, toModel) {
+    function track(scramble, toModel, mask) {
       const toks = Cube.tokens(scramble), model = toModel || (list => list.join(' '));
-      const at = list => sig(Cube.apply(Cube.solved(3), 3, model(list)));
+      const at = list => sig(Cube.apply(Cube.solved(3), 3, model(list)), mask);
       const states = toks.map((_, i) => at(toks.slice(0, i))).concat(at(toks));
       const mids = [null].concat(toks.map((t, i) => partWay(states[i], states[i + 1], quarterCount(t))));
-      return { toks, states, mids, k: 0, off: [], done: false, lost: false };
+      return { toks, states, mids, mask, k: 0, off: [], done: false, lost: false };
     }
     // update tracking after the cube moved (m = the move just made, st = cube state now)
     function step(T, st, m) {
-      const s = sig(st);
-      const j = T.states.indexOf(s, T.k);
-      if (j >= 0) { T.k = j; T.off = []; }
+      const s = sig(st, T.mask);
+      let j = T.states.indexOf(s, T.k);
+      // turns that only move pieces that don't matter count as done, or a setup could never finish
+      if (j >= 0) { while (T.states[j + 1] === s) j++; T.k = j; T.off = []; }
       else if (T.k < T.toks.length && T.mids[T.k + 1] && T.mids[T.k + 1].includes(s) && !T.off.length) { /* half of a half turn */ }
       else if (T.states.indexOf(s) >= 0) { T.k = T.states.indexOf(s); T.off = []; }
       else if (m) T.off.push(m);
@@ -5137,7 +5161,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       turnPerms = turnPerms || FACE_TURNS.map(permOf);
       const goal = new Map(); T.states.forEach((g, j) => goal.set(g, j));
       for (const g of T.mids[T.k + 1] || []) if (!goal.has(g)) goal.set(g, T.k + 0.5);
-      let level = [[sig(st), []]];
+      let level = [[sig(st, T.mask), []]];
       for (let depth = 1; depth <= 3; depth++) {
         const next = []; let best = null;
         for (const [s, path] of level) for (let m = 0; m < FACE_TURNS.length; m++) {
@@ -5490,7 +5514,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       return;
     }
     // F2L scrambles and drill setups are done white on the bottom (yellow on top), like the trainers' setups
-    SM.T = SmartCore.track(scramble, f2lMode() || drill ? toCube : null); SmartCore.step(SM.T, SM.cur, null); smartShow();
+    SM.T = SmartCore.track(scramble, f2lMode() || drill ? toCube : null, f2lMode() ? 'f2l' : undefined); SmartCore.step(SM.T, SM.cur, null); smartShow();
   }
   function smartShow() {
     const T = SM.T, note = $('smartNote'); if (!T) return;
