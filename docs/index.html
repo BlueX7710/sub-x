@@ -2660,7 +2660,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (b.id === 'compEnd') compEnd();
     else if (b.id === 'compAgain') { $('compCut').value = db.compCut || ''; $('compLim').value = db.compLim || ''; compStart(); }
     else if (b.id === 'exitDrill') { drill = null; newScramble(); setState('idle'); showTime('0.00'); }
-    else if (b.dataset.tr) { if (!(e.detail && b.closest('.tr-clock[data-trbox]') && performance.now() - (TR.downAt || 0) < 1500)) trNext(); }   // a press on the clock box already did it (or was a scroll)
+    else if (b.dataset.tr) { if (!(e.detail && b.closest('.tr-clock[data-trbox], .bf-cover') && performance.now() - (TR.downAt || 0) < 1500)) trNext(); }   // a press on the clock box (or the blind cover that replaced it under your finger) already did it
     else if (b.dataset.f2lt) f2ltAction(b.dataset.f2lt);
     else if (b.dataset.bf) bfAction(b.dataset.bf);
     else if (b.dataset.tps) tpsAction(b.dataset.tps);
@@ -4019,7 +4019,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // lifts without having moved (a swipe that starts on the box is a scroll); the click that follows is skipped
   let trTouch = null;
   document.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || !trainerActive() || !e.target.closest('.tr-clock[data-trbox]')) return;
+    if (e.button !== 0 || !trainerActive() || !e.target.closest('.tr-clock[data-trbox], .bf-cover')) return;
     if (e.pointerType === 'mouse') { TR.downAt = performance.now(); trNext(); }
     else trTouch = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() };
   });
@@ -5347,6 +5347,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (!set.groups) { body.innerHTML = ''; return; }
     const all = count(learnSet), pct = all ? Math.round(done(learnSet) / all * 100) : null;
     let html = pct === null ? '' : `<div class="set-sum"><span><b>${done(learnSet)}</b> of ${all} learned</span><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${pct}% learned"><i style="width:${pct}%"></i></div></div>` + (done(learnSet) ? '' : '<p class="set-hint">Tap the ✓ on a card once you know it by heart.</p>');
+    html += '<p class="set-hint">To get a case on your cube, hold a solved cube with yellow on top and green in front and do its scramble.</p>';
     let shown = set.groups;
     // ZBLL shows one corner shape at a time
     if (learnSet === 'zbll') {
@@ -5364,13 +5365,18 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         html += `<article class="case${L ? ' learned' : ''}"><div class="case-head">${caseDiagram({ ...c, mode }, true)}<div><h3>${esc(c.name)}${mode === 'pll' ? '<small>perm</small>' : ''}</h3>` +
           (c.tip ? `<p class="tip">${esc(c.tip)}</p>` : '') + `</div></div>` +
           `<button type="button" class="learn-tick" data-learn="${c.id}" aria-pressed="${L}" aria-label="Mark learned: ${esc(c.name)}" title="${L ? 'Learned' : 'Mark learned'}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` +
-          `<p class="alg">${esc(c.alg)}</p>` + caseTimesHtml(c.id) +
+          `<p class="alg">${esc(c.alg)}</p><p class="setup scr-line">Scramble: <span>${esc(caseScramble(c))}</span></p>` + caseTimesHtml(c.id) +
           `<div class="acts"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn" data-drill="${c.id}">Drill on timer</button></div></article>`;
       }
       html += '</div>';
     }
     body.innerHTML = html;
   }
+
+  // the face turns that set a case up on a solved cube (yellow on top, green in front): its algorithm as face
+  // turns, backwards. (Reversing first would leave out the algorithm's rotations, and show the case from another side.)
+  const caseScrambles = {};
+  const caseScramble = c => caseScrambles[c.id] || (caseScrambles[c.id] = Cube.invert(Solver.faceTurns(c.alg).join(' ')));
 
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-zbpage]'); if (!b) return;
