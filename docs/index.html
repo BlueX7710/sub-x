@@ -315,10 +315,6 @@ body.running .hint, body.running .last-actions { visibility: hidden; }
 .kpi .delta.down { color: var(--ready); }
 .kpi .delta.up { color: var(--hold); }
 body.running .kpis { opacity: .12; transition: opacity .2s; }
-body.running .rec-box { display: none; }
-.rec-box { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
-.rec-box summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--muted); }
-.rec-box summary b { font-family: var(--font-mono); font-weight: 500; }
 .legend i.sq { width: 10px; height: 10px; border-radius: 2px; }
 .steps-bar { display: flex; height: 28px; border-radius: 7px; overflow: hidden; margin-bottom: 10px; }
 .steps-bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--font-display); font-weight: 600; font-size: 12px; letter-spacing: .04em; min-width: 0; overflow: hidden; white-space: nowrap; }
@@ -780,12 +776,6 @@ body { margin: 0; }
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* ---- camera ---- */
-.cam-panel .cam-box { position: relative; border-radius: 8px; overflow: hidden; background: var(--plastic); aspect-ratio: 4 / 3; max-width: 100%; }
-.cam-panel video { width: 100%; height: 100%; object-fit: cover; display: block; }
-.cam-panel .cam-off { position: absolute; inset: 0; display: grid; place-items: center; color: #9aa3b2; font-size: 13px; text-align: center; padding: 12px; }
-.rec-dot { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 6px; background: rgb(0 0 0 / .6); color: #fff; font-family: var(--font-display); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; border-radius: 999px; padding: 2px 9px; }
-.rec-dot i { width: 8px; height: 8px; border-radius: 50%; background: #ff4b3e; animation: blink 1s steps(2) infinite; }
 @keyframes blink { 50% { opacity: .2; } }
 .cam-ctl { display: flex; gap: 8px 12px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 14px; }
 .cam-ctl select { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; max-width: 100%; }
@@ -1284,43 +1274,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     </div>
 
     <aside class="side">
-      <section class="panel cam-panel hw">
-        <h2>Camera <span class="h2-right"><b id="camState">off</b><button type="button" class="fold" data-fold="cam" aria-expanded="true" aria-label="Fold the camera panel">▾</button></span></h2>
-        <div class="cam-box">
-          <video id="camVideo" autoplay muted playsinline></video>
-          <div class="cam-off" id="camOff">Turn the camera on to record each solve. Point it at your hands and the cube.</div>
-          <div class="rec-dot" id="recDot" hidden><i></i>Rec</div>
-        </div>
-        <div class="cam-ctl">
-          <button type="button" class="pill-btn" id="camBtn">Turn camera on</button>
-          <select id="camSelect" aria-label="Camera" hidden></select>
-          <label class="toggle" for="camRec"><input id="camRec" type="checkbox" checked> Record solves</label>
-        </div>
-        <details class="rec-box disc" id="recBox" hidden>
-          <summary>Your recordings <b id="recCount"></b></summary>
-          <p class="lead" style="margin:8px 0">Your last 12 camera-recorded solves stay on this device.</p>
-          <ul class="rec-list" id="rvList"></ul>
-          <p class="lead" id="rvNone" hidden></p>
-          <div id="rvClipPanel" hidden>
-          <h3 class="dash-h3">Clip <b id="rvTitle"></b></h3>
-          <video id="rvVideo" class="vid" controls playsinline muted style="max-height:300px"></video>
-          <div class="row-btns" style="margin-top:12px">
-            <button type="button" class="btn" id="rvAi">Review with AI</button>
-            <button type="button" class="btn ghost" id="rvSave">Save clip</button>
-            <button type="button" class="btn ghost" id="rvShare" hidden>Share…</button>
-          </div>
-          <p class="lead" style="margin-top:8px">File: <span id="rvFile" style="font-family:var(--font-mono);overflow-wrap:anywhere"></span></p>
-          <div class="notice" style="margin-top:14px">
-            <b>AI review is free on your Claude plan:</b>
-            <ol style="margin:6px 0 0;padding-left:20px;line-height:1.6">
-              <li>Tap <b>Review with AI</b>. Sub-X saves the clip and opens the review page in Claude (the Claude app, if you have it).</li>
-              <li>Tap <b>Choose video</b> and pick the newest <i>subx-…</i> clip. The review starts by itself.</li>
-              <li>If Claude doesn't open, <a id="rvOpen" target="_blank" rel="noopener">open the review page</a>.</li>
-            </ol>
-          </div>
-          </div>
-        </details>
-      </section>
       <section class="panel hw" id="smartPanel">
         <h2>Smart cube <span class="h2-right"><b id="smartState">not connected</b><button type="button" class="fold" data-fold="smart" aria-expanded="true" aria-label="Fold the smart cube panel">▾</button></span></h2>
         <p class="lead" id="smartInfo">Connect a GAN or MoYu AI smart cube. The timer starts on your first turn, stops when the cube is solved, and every solve gets exact cross, F2L, OLL and PLL splits.</p>
@@ -2289,7 +2242,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       : 'No solves yet today';
   }
 
-  // ---------- folding panels: the camera, smart cube and Stackmat panels can be folded down to their title ----------
+  // ---------- folding panels: the smart cube and Stackmat panels can be folded down to their title ----------
   function foldApply() {
     db.fold = db.fold || {};
     document.querySelectorAll('[data-fold]').forEach(b => {
@@ -2383,7 +2336,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (openIdx === i) {
         const solBtn = solvable(s) ? `<button type="button" class="pill-btn" data-sol="${i}" aria-pressed="${solIdx === i}">${solIdx === i ? 'Hide solution' : 'Solution'}</button>` : '', tt = turnsText(s);
         html += `<div class="solve-detail"><p>${esc(s.scr)}</p><p class="meta">${shortDate(s.t)}${s.ex ? ' · example' : ''}</p>${s.splits ? `<p class="meta">${splitsText(s)}</p>` : tt ? `<p class="meta">${tt}</p>` : ''}` +
-          (ex ? (solBtn ? `<div class="row">${solBtn}</div>` : '') : `<div class="row">${penButtons(s, i)}${saveBtn(s, i)}${s.rec || s.review ? `<button type="button" class="pill-btn" data-review="${i}">Recording</button>` : ''}${solBtn}${delButton(i)}</div>`) +
+          (ex ? (solBtn ? `<div class="row">${solBtn}</div>` : '') : `<div class="row">${penButtons(s, i)}${saveBtn(s, i)}${solBtn}${delButton(i)}</div>`) +
           (solIdx === i && solBtn ? solutionHtml(s, i, ex) : '') + '</div>';
       }
       html += '</li>';
@@ -2399,7 +2352,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (!list.length || !justSolved) { box.innerHTML = ''; return; }
     const i = list.length - 1;
     $('pbTag').hidden = !(list.length > 1 && eff(list[i]) !== Infinity && list.every(s => eff(s) >= eff(list[i])));
-    box.innerHTML = penButtons(list[i], i) + '<span class="la-break"></span>' + saveBtn(list[i], i) + (list[i].rec ? `<button type="button" class="pill-btn" data-aireview="${i}">Review with AI</button>` : '') + delButton(i);
+    box.innerHTML = penButtons(list[i], i) + '<span class="la-break"></span>' + saveBtn(list[i], i) + delButton(i);
   }
 
   // ---------- saved solves: copies kept in Learn → My solves, to do again and learn from ----------
@@ -2564,7 +2517,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (performance.now() - stoppedAt < 400) return;   // a second tap just after stopping is not a new start
       if (coachBlocked()) return;
       if (!$('tour').hidden) tourEnd();   // starting a real solve ends the tour
-      if (!drill) camStart();
       if (useInspection()) { setState('arming'); clock.textContent = '15'; return; }
       showTime('0.00'); beginHold('idle');
     } else if (state === 'inspecting') beginHold('inspecting');
@@ -2577,7 +2529,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     downAt = null;
     if (ignoreRelease) { ignoreRelease = false; return; }
     if (state === 'arming') { audioWarm(); inspStart = performance.now(); setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
-    else if (state === 'holding') { clearTimeout(holdTimer); if (holdFrom === 'idle') { camAbort(); idleClock(); } setState(holdFrom); }
+    else if (state === 'holding') { clearTimeout(holdTimer); if (holdFrom === 'idle') idleClock(); setState(holdFrom); }
     else if (state === 'ready') start();
   }
   function start() {
@@ -2612,9 +2564,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (dailyOn) solve.daily = dailyOn;
     if (f2lMode() && !inComp) solve.f2l = db.scrMode;   // an F2L-only solve: no full-solve Solution for it
     if (friendScr && friendScr.scr === scramble) { solve.shared = true; friendScr = null; }
-    if (cap) solve.rec = true;
     db.solves[db.event].push(solve); save();
-    camFinish(solve, db.event, runStart, stopAt);
     justSolved = true; openIdx = -1;
     showResult(solve);
     setState('idle'); newScramble(); renderStats();
@@ -2624,7 +2574,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     setTimeout(() => { coachCheck(solve); savingsCheck(solve); }, 0);   // after a smart-cube solve has filled in its moves
   }
   function cancel() {
-    clearTimeout(holdTimer); cancelAnimationFrame(raf); camAbort();
+    clearTimeout(holdTimer); cancelAnimationFrame(raf);
     stage.classList.remove('warn', 'over');
     if (state !== 'idle') { setState('idle'); idleClock(); }
   }
@@ -2686,10 +2636,10 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   });
   function abortPress() {
     downAt = null;
-    if (state === 'arming') { if (typeof camAbort === 'function') camAbort(); setState('idle'); idleClock(); }
+    if (state === 'arming') { setState('idle'); idleClock(); }
     else if (state === 'holding' || state === 'ready') {
       clearTimeout(holdTimer);
-      if (holdFrom === 'idle') { if (typeof camAbort === 'function') camAbort(); idleClock(); }
+      if (holdFrom === 'idle') idleClock();
       setState(holdFrom);
     }
   }
@@ -2728,8 +2678,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.pen) setPen(+b.dataset.i, b.dataset.pen);
     else if (b.dataset.del !== undefined) del(+b.dataset.del);
-    else if (b.dataset.aireview !== undefined) aiReviewSolve(db.solves[db.event][+b.dataset.aireview]);
-    else if (b.dataset.review !== undefined) { rvPick = `${db.event}:${b.dataset.review}`; openRecordings(); }
     else if (b.dataset.row !== undefined) { const i = +b.dataset.row; openIdx = openIdx === i ? -1 : i; renderList(solvesFor(db.event), db.goal * 1000); }
     else if (b.id === 'clearAsk') { confirmClear = true; renderStats(); }
     else if (b.id === 'clearNo') { confirmClear = false; renderStats(); }
@@ -2877,7 +2825,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const canSync = typeof SY !== 'undefined' && SY && syncHere, app = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     $('backupInfo').innerHTML = (canSync && SY.user ? '<b>Your times are synced to your Google account.</b>' : '<b>Your times are only on this device.</b>') +
       ` Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
-    $('backupMore').textContent = (canSync && SY.user ? 'A backup file is a good extra copy.' : `${app ? 'Uninstalling the app' : "Clearing the browser's site data"} deletes them, so keep a backup${canSync ? ' or sign in to sync' : ''}.`) + ` A backup saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings, but not recordings. Restore also takes a csTimer export.`;
+    $('backupMore').textContent = (canSync && SY.user ? 'A backup file is a good extra copy.' : `${app ? 'Uninstalling the app' : "Clearing the browser's site data"} deletes them, so keep a backup${canSync ? ' or sign in to sync' : ''}.`) + ` A backup saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings. Restore also takes a csTimer export.`;
   }
   async function saveTextFile(name, text) {
     if (typeof NATIVE !== 'undefined' && NATIVE) {           // Android app: no browser downloads
@@ -5581,232 +5529,10 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     renderQuiz();
   }
 
-  // =====================================================================
-  // CAMERA (records each solve while the timer runs)
-  // =====================================================================
-  const camVideo = $('camVideo');
-  let camStream = null, cap = null; // cap = {frames: [{at, blob}], chunks: [], rec, iv, mime}
-  db.camRec = db.camRec !== false; $('camRec').checked = db.camRec;
-  $('camRec').addEventListener('change', e => { db.camRec = e.target.checked; save(); unfocus(e.target); });
-
-  async function camOn(deviceId) {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { camMsg('This browser cannot use the camera here. Open the page over https, or from a file in Chrome, Edge or Firefox.'); return; }
-    camOffStream();
-    try {
-      camStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: deviceId ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } : { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } });
-    } catch (e) {
-      const blocked = NATIVE
-        ? 'Camera access is blocked for Sub-X. Open your phone’s Settings → Apps → Sub-X → Permissions → Camera, choose Allow, then tap Turn camera on again.'
-        : /Android/.test(navigator.userAgent)
-          ? 'Camera access is blocked for this site. Tap the icon left of the address bar → Permissions → Camera → Allow, then try again. In the installed app: long-press its icon → App info → Permissions.'
-          : /iPhone|iPad|iPod/.test(navigator.userAgent)
-            ? 'Camera access is blocked. Open Settings → Safari → Camera → Allow (or tap aA in the address bar → Website Settings → Camera), then try again.'
-            : 'Camera access is blocked for this site. Click the camera or lock icon in the address bar, allow the camera, then try again.';
-      camMsg(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? blocked
-        : e && e.name === 'NotReadableError' ? 'The camera is busy. Close other apps or tabs that use it (video calls, the camera app), then try again.'
-        : 'Could not start a camera. Check that one is connected and not in use by another app.');
-      return;
-    }
-    camVideo.srcObject = camStream;
-    $('camOff').hidden = true; $('camState').textContent = 'on'; document.querySelector('.cam-panel').classList.add('live'); unfold('cam'); $('camBtn').textContent = 'Turn camera off';
-    try {
-      const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
-      const cur = camStream.getVideoTracks()[0].getSettings().deviceId;
-      const sel = $('camSelect');
-      sel.innerHTML = devs.map((d, i) => `<option value="${esc(d.deviceId)}"${d.deviceId === cur ? ' selected' : ''}>${esc(d.label || 'Camera ' + (i + 1))}</option>`).join('');
-      sel.hidden = devs.length < 2;
-    } catch (e) {}
-  }
-  function camOffStream() { if (camStream) camStream.getTracks().forEach(t => t.stop()); camStream = null; camVideo.srcObject = null; }
-  function camMsg(m) { document.querySelector('.cam-panel').classList.remove('live'); $('camOff').hidden = false; $('camOff').textContent = m; $('camState').textContent = 'off'; $('camBtn').textContent = 'Turn camera on'; }
-  $('camBtn').addEventListener('click', () => { if (camStream) { camAbort(); camOffStream(); camMsg('Camera is off.'); } else camOn(); });
-  $('camSelect').addEventListener('change', e => { camOn(e.target.value); unfocus(e.target); });
-
-  const capCanvas = document.createElement('canvas');
-  function grabFrame(c) {
-    if (!camVideo.videoWidth || c.frames.length >= 900) return;  // 900 frames ≈ 3.5 minutes at 4 per second
-    const scale = Math.min(1, 768 / Math.max(camVideo.videoWidth, camVideo.videoHeight));
-    capCanvas.width = Math.round(camVideo.videoWidth * scale); capCanvas.height = Math.round(camVideo.videoHeight * scale);
-    capCanvas.getContext('2d').drawImage(camVideo, 0, 0, capCanvas.width, capCanvas.height);
-    const at = performance.now();
-    capCanvas.toBlob(b => { if (b) c.frames.push({ at, blob: b }); }, 'image/jpeg', 0.8);
-  }
-  function camStart() {
-    camAbort();
-    if (!camStream || !db.camRec) return;
-    const c = cap = { frames: [], chunks: [], rec: null, mime: '' };
-    try {
-      if (window.MediaRecorder) {
-        const mime = ['video/webm;codecs=vp9', 'video/webm', 'video/mp4'].find(m => MediaRecorder.isTypeSupported(m)) || '';
-        c.rec = new MediaRecorder(camStream, mime ? { mimeType: mime, videoBitsPerSecond: 2500000 } : undefined);
-        c.mime = c.rec.mimeType || mime;
-        c.rec.ondataavailable = e => { if (e.data && e.data.size) c.chunks.push(e.data); };
-        c.rec.start(1000);
-      }
-    } catch (e) { c.rec = null; }
-    c.t0 = performance.now();
-    $('recDot').hidden = false;
-  }
-  function camAbort() {
-    if (!cap) return;
-    clearInterval(cap.iv);
-    try { if (cap.rec && cap.rec.state !== 'inactive') cap.rec.stop(); } catch (e) {}
-    cap = null; $('recDot').hidden = true;
-  }
-  function camFinish(solve, ev, startAt, stopAt) {
-    if (!cap) return;
-    const c = cap; cap = null;
-    setTimeout(() => {   // keep filming briefly past the stop so the last moves are in frame
-      clearInterval(c.iv); $('recDot').hidden = true;
-      const done = () => {
-        const video = c.chunks.length ? new Blob(c.chunks, { type: c.mime || 'video/webm' }) : null;
-        const frames = c.frames.sort((a, b) => a.at - b.at).map(f => ({ t: (f.at - startAt) / 1000, blob: f.blob }));
-        recPut({ id: solve.t, ev, evt: EV(), ms: solve.ms, solveSec: (stopAt - startAt) / 1000, offset: (startAt - c.t0) / 1000, frames, video, at: Date.now() })
-          .then(() => renderReviewSetup())
-          .catch(() => toast('Could not store the recording on this device.'));
-      };
-      if (c.rec && c.rec.state !== 'inactive') { c.rec.onstop = done; try { c.rec.stop(); } catch (e) { done(); } } else done();
-    }, 700);
-  }
-
-  // Recordings live in IndexedDB (too big for localStorage); keep the latest 12.
-  const KEEP = 12;
-  function idb() {
-    return new Promise((res, rej) => {
-      const r = indexedDB.open('subx-recordings', 1);
-      r.onupgradeneeded = () => r.result.createObjectStore('recs', { keyPath: 'id' });
-      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
-    });
-  }
-  async function recAll() {
-    try {
-      const d = await idb();
-      return await new Promise((res, rej) => { const q = d.transaction('recs').objectStore('recs').getAll(); q.onsuccess = () => res(q.result.sort((a, b) => b.id - a.id)); q.onerror = () => rej(q.error); });
-    } catch (e) { return []; }
-  }
-  async function recPut(r) {
-    const d = await idb();
-    await new Promise((res, rej) => { const tx = d.transaction('recs', 'readwrite'); tx.objectStore('recs').put(r); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
-    const all = await recAll();
-    if (all.length > KEEP) { const tx = d.transaction('recs', 'readwrite'); all.slice(KEEP).forEach(x => tx.objectStore('recs').delete(x.id)); }
-  }
-
-  // =====================================================================
-  // RECORDINGS (watch back, save the clip for AI review on claude.ai)
-  // =====================================================================
-  const REVIEW_URL = 'https://claude.ai/artifact/SBNFEGir43uePASXE5h3N9#review';
-  let recs = [], rvRec = null, rvPick = null;
-  const vid = $('rvVideo');
-  const solveForRec = r => (db.solves[r.ev] || []).find(s => s.t === r.id) || null;
-  const pad = n => String(n).padStart(2, '0');
-  function clipName(r) {
-    const d = new Date(r.id), ext = /mp4/.test(r.video.type) ? 'mp4' : 'webm';
-    // The claude.ai review page reads the event, timer reading and start offset from this name.
-    return `subx-${r.evt || evOfKey(r.ev)}-t${r.solveSec.toFixed(2)}-s${Math.max(0, r.offset || 0).toFixed(2)}-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.${ext}`;
-  }
-
-  // a solve's Recording button: the Camera panel on the Timer page opens at that clip
-  async function openRecordings() {
-    if (location.hash !== '#timer' && location.hash !== '') location.hash = 'timer';
-    db.fold = db.fold || {}; db.fold.cam = false; save(); foldApply();
-    await renderReviewSetup(); $('recBox').open = true;
-    const p = $('rvClipPanel').hidden ? $('recBox') : $('rvClipPanel'); p.scrollIntoView({ block: 'center', behavior: calm() ? 'auto' : 'smooth' });
-  }
-  async function renderReviewSetup() {
-    recs = await recAll();
-    if (rvPick) {
-      const [ev, i] = rvPick.split(':'), s = db.solves[ev] && db.solves[ev][+i];
-      rvPick = null;
-      if (s) rvRec = recs.find(r => r.id === s.t) || rvRec;
-    }
-    if (rvRec && !recs.some(r => r.id === rvRec.id)) rvRec = null;
-    if (!rvRec && recs.length) rvRec = recs[0];
-    $('rvList').innerHTML = recs.length ? recs.map(r => {
-      const s = solveForRec(r);
-      return `<li><button type="button" data-rec="${r.id}" aria-current="${!!rvRec && rvRec.id === r.id}"><span>${sessLabel(r.ev)} · <b>${s ? fmtSolve(s) : fmt(r.ms)}</b></span><span class="m">${new Date(r.at).toLocaleString()}</span></button></li>`;
-    }).join('') : '';
-    $('recBox').hidden = !recs.length; $('recCount').textContent = recs.length ? `(${recs.length})` : '';
-    const has = !!(rvRec && rvRec.video);
-    $('rvClipPanel').hidden = !has;
-    $('rvNone').hidden = has;
-    $('rvNone').textContent = rvRec && !rvRec.video ? "This solve was timed with the camera on, but the video couldn't be saved on this device." : 'Pick a recording above to watch it.';
-    if (has) {
-      if (vid.dataset.id !== String(rvRec.id)) { if (vid.src) URL.revokeObjectURL(vid.src); vid.src = URL.createObjectURL(rvRec.video); vid.dataset.id = rvRec.id; }
-      const s = solveForRec(rvRec);
-      $('rvTitle').textContent = `${sessLabel(rvRec.ev)} · ${s ? fmtSolve(s) : fmt(rvRec.ms)}`;
-      $('rvFile').textContent = clipName(rvRec);
-      $('rvShare').hidden = NATIVE || !(navigator.canShare && navigator.canShare({ files: [new File([rvRec.video], clipName(rvRec), { type: rvRec.video.type })] }));
-    }
-  }
-  // Inside the Android app (Capacitor) there are no browser downloads: write the clip
-  // to the app's cache and hand it to Android's share sheet (Files, Drive, Claude…).
+  // Inside the Android app (Capacitor): no browser downloads, and Bluetooth goes through a plugin
   const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-  if (NATIVE) $('rvSave').textContent = 'Save or share clip';
-  async function nativeShareClip(r) {
-    const { Filesystem, Share } = window.Capacitor.Plugins;
-    const data = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.onerror = rej; rd.readAsDataURL(r.video); });
-    const { uri } = await Filesystem.writeFile({ path: clipName(r), data, directory: 'CACHE' });
-    await Share.share({ title: 'Sub-X solve clip', files: [uri] });
-  }
-  const toBase64 = blob => new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.onerror = rej; rd.readAsDataURL(blob); });
-  function downloadClip(r) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(r.video); a.download = clipName(r);
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-  }
-  function openReviewPage() {
-    if (NATIVE) { location.href = REVIEW_URL; return; }  // the Android app hands claude.ai links to the Claude app or browser
-    const w = window.open(REVIEW_URL, '_blank');
-    if (w) w.opener = null; else location.href = REVIEW_URL;
-  }
-  // Save the clip where Claude's file picker can see it, then open the review page.
-  async function reviewWithAI(r) {
-    if (!r || !r.video) return;
-    if (NATIVE) {
-      try {
-        await window.Capacitor.Plugins.Filesystem.writeFile({ path: 'Sub-X/' + clipName(r), data: await toBase64(r.video), directory: 'DOCUMENTS', recursive: true });
-        toast('Clip saved to Documents/Sub-X. Opening Claude…');
-      } catch (e) {
-        // Older Android versions block that folder: fall back to the share sheet (pick Files or Downloads).
-        try { await nativeShareClip(r); } catch (e2) { toast("Couldn't save the clip. Try Save clip instead."); return; }
-      }
-      setTimeout(openReviewPage, 900);
-      return;
-    }
-    downloadClip(r);
-    toast('Clip saved to your downloads. Opening Claude…');
-    openReviewPage();
-  }
-  async function aiReviewSolve(s) {
-    if (!s) return;
-    const r = (await recAll()).find(x => x.id === s.t);
-    if (!r) { toast('The clip is still being saved. Try again in a second.'); return; }
-    reviewWithAI(r);
-  }
-  $('rvAi').addEventListener('click', () => reviewWithAI(rvRec));
-  renderReviewSetup();
-  $('rvList').addEventListener('click', e => {
-    const b = e.target.closest('button[data-rec]'); if (!b) return;
-    rvRec = recs.find(r => r.id === +b.dataset.rec) || null;
-    renderReviewSetup();
-  });
-  $('rvSave').addEventListener('click', async () => {
-    if (!rvRec || !rvRec.video) return;
-    if (NATIVE) {
-      try { await nativeShareClip(rvRec); }
-      catch (e) { if (!/cancel/i.test(String(e && e.message))) toast("Couldn't share the clip. Try again."); }
-      return;
-    }
-    downloadClip(rvRec);
-    toast('Clip saved to your downloads');
-  });
-  $('rvShare').addEventListener('click', async () => {
-    if (!rvRec || !rvRec.video) return;
-    try { await navigator.share({ files: [new File([rvRec.video], clipName(rvRec), { type: rvRec.video.type })] }); } catch (e) {}
-  });
-  $('rvOpen').href = REVIEW_URL;
-  if (NATIVE) $('rvOpen').addEventListener('click', e => { e.preventDefault(); location.href = REVIEW_URL; }); // the app opens outside links in the browser
+  // camera recording was removed: free the space old recordings took up on this device
+  try { indexedDB.deleteDatabase('subx-recordings'); } catch (e) {}
 
   // ---------- smart cube: state, scramble tracking and CFOP splits ----------
   // Pure logic (no Bluetooth here), so it can be tested on its own.
@@ -6266,7 +5992,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   }
   function smartReadyGo() {
     if (state !== 'idle') return;
-    if (typeof camStart === 'function') camStart();
     if (useInspection()) { inspStart = performance.now(); holdFrom = 'inspecting'; setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
     else { holdFrom = 'idle'; setState('smartReady'); showTime('0.00'); }
   }
@@ -6316,7 +6041,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     SM.sub = null; SM.conn = null; SM.T = null; SM.battery = null; smartUI();
     $('smartNote').hidden = true;
     if (!drill && db.scrMode !== 'own') $('scramble').textContent = scramble;
-    if (state === 'smartReady') { setState('idle'); if (typeof camAbort === 'function') camAbort(); }
+    if (state === 'smartReady') setState('idle');
   }
   function onSmartEvent(ev) {
     if (ev.type === 'MOVE') smartMove(ev.move, ev.localTimestamp != null ? ev.localTimestamp : ev.timestamp, ev);

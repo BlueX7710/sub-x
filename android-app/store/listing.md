@@ -83,11 +83,11 @@ Don't use "Rubik's" in the name or as a main keyword: it's a trademark.
 
 - **Ads:** no ads.
 - **Data safety:** no data collected, no data shared. Data is processed only on the device.
-  (Camera and microphone are used on the device only and nothing is sent.)
+  (The microphone is used on the device only and nothing is sent.)
 - **Content rating:** fill the IARC questionnaire as a utility/tool with no violence, user content, chat,
   gambling or purchases. It should come out as Everyone / PEGI 3.
 - **Target audience:** 13 and over is simplest. Including under-13s brings in the Families policy rules.
-- **Permissions to explain:** camera (solve recordings), microphone (Stackmat signal), Bluetooth and
+- **Permissions to explain:** microphone (Stackmat signal), Bluetooth and
   location on Android 11 and older (finding smart cubes; location isn't used).
 
 ## Steps for the owner

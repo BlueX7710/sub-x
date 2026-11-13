@@ -7,7 +7,7 @@ A speedcubing timer you can use in the browser, install as an app, or run on And
 ## What it does
 
 - **Timer**: WCA-style scrambles for 2×2 to 7×7, one-handed, blindfolded, Pyraminx, Skewb, Megaminx, Square-1 and Clock (or scramble it yourself and optionally type the scramble), a picture of the scrambled cube, 15-second inspection with +2/DNF and **voice calls** at 8 and 12 seconds (beeps where the device can't speak), and a hold-to-start timer that works with the space bar or by touch.
-- **Fold panels away**: the Camera, Smart cube and Stackmat panels have a ▾ button that folds them down to their title (remembered).
+- **Fold panels away**: the Smart cube and Stackmat panels have a ▾ button that folds them down to their title (remembered).
 - **Stackmat**: plug a Gen 3 or Gen 4 Stackmat into the microphone jack and press **Connect Stackmat**: each time it stops is saved (website and Android app).
 - **Achievements and streaks**: 52 achievements (first solve to sub-8, ao5 and ao12 milestones, the beginner method, all of PLL, Daily 5 and 100-day streaks, comp sim, every event, a blindfolded success, races, smart cube and Stackmat solves, night owl and early bird) and a day streak in the header.
 - **Coach**: after a slow step, Sub-X says what to practise. With a smart cube it names the exact OLL or PLL case (counting the time to recognise it) and, in **Must practise** mode, the next solve waits until you've drilled that case 3 times. Without one, a solve well over your ao12 asks where you got stuck and opens that trainer. **Suggest** (the default) shows the advice without blocking; pick **Must practise** or **Off** next to Coach (on a phone, under **Settings**).
@@ -36,10 +36,8 @@ A speedcubing timer you can use in the browser, install as an app, or run on And
 - **Goal splits**: set **Goal sub** (say 25) and the Timer shows roughly how long each step should take: cross, F2L (and per pair), OLL and PLL, with about how many turns and the TPS that means. With a smart cube your own time per step sits beside it, and it names your biggest gap, plus what to learn for that goal.
 - **Words**: a glossary in Learn (ao5, mo3, PB, CFOP, OLL, AUF, TPS…), and the stat names in the Timer explain themselves on hover.
 - **Learn**: pick Beginner, CFOP or Roux (and make any one your default). The step buttons are grouped (Cross, F2L, OLL, PLL, COLL, Practice, Help). Each CFOP step opens with a short lesson, then practice; each Roux step has Teach (the lesson and a worked example in 3D) and Train modes. Trainers for the cross, F2L, OLL, PLL, COLL, and the Roux first block, second block, two-look CMLL and last six edges (the shortest cross, block or LSE is found for every case; each trainer has a recognition and solving clock that runs by itself with a smart cube, plus turns and TPS); two-look CMLL for Roux, notation, all 41 F2L cases, 2-look OLL (10 cases), full OLL (all 57), all 21 PLLs and all 40 COLLs. The COLL trainer can also mix up the edges, so you practise every ZBLL case as COLL then an edge PLL. The F2L, OLL, PLL and COLL trainers save each case's times, list your slowest cases, and have a **My slowest** option to drill just those. F2L cases are shown in 3D, and every case has a "Watch in 3D" player that animates the algorithm move by move. Each case has its algorithm and the setup moves that create it on a solved cube, plus "mark learned", a recognition drill with spaced repetition, and timed drills of single cases.
-- **Camera**: records each solve while the timer runs, so every clip starts and stops with the solve.
-- **AI review**: tap **Review with AI** after a recorded solve. Sub-X saves the clip and opens the claude.ai review page (in the Claude app if installed); pick the clip and you get a breakdown of where the time went (cross, F2L, OLL, PLL, pauses and tips). It runs on your Claude plan, so there's no API bill.
 
-Solves and recordings are stored only on your own device.
+Solves are stored only on your own device.
 
 ## Install
 
