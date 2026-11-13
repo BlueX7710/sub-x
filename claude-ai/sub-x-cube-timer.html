@@ -2886,7 +2886,7 @@ body.racing { overflow: hidden; }
     ] },
     { group: 'Step 2 · Orient the corners', items: [
       { id: 'oll:sune', name: 'Sune', alg: "R U R' U R U2 R'", tip: 'One yellow corner on top: put it front-left.' },
-      { id: 'oll:antisune', name: 'Antisune', alg: "R U2 R' U' R U' R'", tip: 'Mirror of Sune: yellow corner front-right.' },
+      { id: 'oll:antisune', name: 'Antisune', alg: "R' U' R U' R' U2 R", tip: 'Mirror of Sune: yellow corner front-right.' },
       { id: 'oll:h', name: 'H', alg: "R U2 R' U' R U R' U' R U' R'", tip: 'Two pairs of headlights facing left and right.' },
       { id: 'oll:pi', name: 'Pi', alg: "R U2 R2 U' R2 U' R2 U2 R", tip: 'Headlights on the left side.' },
       { id: 'oll:headlights', name: 'Headlights', alg: "R2 D R' U2 R D' R' U2 R'", tip: 'Headlights facing you on the front.' },
@@ -2896,15 +2896,15 @@ body.racing { overflow: hidden; }
   ];
   const PLL = [
     { group: 'Edges only', items: [
-      { id: 'pll:ua', name: 'Ua', alg: "R U' R U R U R U' R' U' R2" },
-      { id: 'pll:ub', name: 'Ub', alg: "R2 U R U R' U' R' U' R' U R'" },
+      { id: 'pll:ua', name: 'Ua', alg: "R U R' U R' U' R2 U' R' U R' U R" },
+      { id: 'pll:ub', name: 'Ub', alg: "R' U R' U' R' U' R' U R U R2" },
       { id: 'pll:h', name: 'H', alg: 'M2 U M2 U2 M2 U M2' },
       { id: 'pll:z', name: 'Z', alg: "M' U M2 U M2 U M' U2 M2" },
     ] },
     { group: 'Corners only', items: [
       { id: 'pll:aa', name: 'Aa', alg: "x R' U R' D2 R U' R' D2 R2 x'" },
       { id: 'pll:ab', name: 'Ab', alg: "x R2 D2 R U R' D2 R U' R x'" },
-      { id: 'pll:e', name: 'E', alg: "x' R U' R' D R U R' D' R U R' D R U' R' D' x" },
+      { id: 'pll:e', name: 'E', alg: "R' U' R' D' R U' R' D R U R' D' R U R' D R2" },
     ] },
     { group: 'Adjacent corner swap', items: [
       { id: 'pll:t', name: 'T', alg: "R U R' U' R' F R2 U' R' U' R U R' F'" },
@@ -2915,11 +2915,11 @@ body.racing { overflow: hidden; }
       { id: 'pll:f', name: 'F', alg: "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R" },
       { id: 'pll:ga', name: 'Ga', alg: "R2 U R' U R' U' R U' R2 U' D R' U R D'" },
       { id: 'pll:gb', name: 'Gb', alg: "F' U' F R2 u R' U R U' R u' R2" },
-      { id: 'pll:gc', name: 'Gc', alg: "R2 U' R U' R U R' U R2 U D' R U' R' D" },
+      { id: 'pll:gc', name: 'Gc', alg: "R2 F2 R U2 R U2 R' F R U R' U' R' F R2" },
       { id: 'pll:gd', name: 'Gd', alg: "R U R' U' D R2 U' R U' R' U R' U R2 D'" },
     ] },
     { group: 'Diagonal corner swap', items: [
-      { id: 'pll:v', name: 'V', alg: "R' U R' U' y R' F' R2 U' R' U R' F R F" },
+      { id: 'pll:v', name: 'V', alg: "R' U R' d' R' F' R2 U' R' U R' F R F" },
       { id: 'pll:y', name: 'Y', alg: "F R U' R' U' R U R' F' R U R' U' R' F R F'" },
       { id: 'pll:na', name: 'Na', alg: "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'" },
       { id: 'pll:nb', name: 'Nb', alg: "R' U R U' R' F' U' F R U R' F R' F' R U' R" },
@@ -2999,7 +2999,7 @@ body.racing { overflow: hidden; }
       { id: 'ollf:23', name: 'OLL 23', alg: "R2 D R' U2 R D' R' U2 R'", tip: "Headlights in 2-look OLL." },
       { id: 'ollf:24', name: 'OLL 24', alg: "r U R' U' r' F R F'", tip: "T in 2-look OLL." },
       { id: 'ollf:25', name: 'OLL 25', alg: "F' r U R' U' r' F R", tip: "Bowtie in 2-look OLL." },
-      { id: 'ollf:26', name: 'OLL 26', alg: "R U2 R' U' R U' R'", tip: "Antisune in 2-look OLL." },
+      { id: 'ollf:26', name: 'OLL 26', alg: "R' U' R U' R' U2 R", tip: "Antisune in 2-look OLL." },
       { id: 'ollf:27', name: 'OLL 27', alg: "R U R' U R U2 R'", tip: "Sune in 2-look OLL." },
     ] },
     { group: "Dot (no yellow edges)", items: [
@@ -3008,23 +3008,23 @@ body.racing { overflow: hidden; }
       { id: 'ollf:3', name: 'OLL 3', alg: "f R U R' U' f' U' F R U R' U' F'" },
       { id: 'ollf:4', name: 'OLL 4', alg: "f R U R' U' f' U F R U R' U' F'" },
       { id: 'ollf:17', name: 'OLL 17', alg: "R U R' U R' F R F' U2 R' F R F'" },
-      { id: 'ollf:18', name: 'OLL 18', alg: "R U2 R2 F R F' U2 M' U R U' r'" },
-      { id: 'ollf:19', name: 'OLL 19', alg: "M U R U R' U' M' R' F R F'" },
+      { id: 'ollf:18', name: 'OLL 18', alg: "r U R' U R U2 r2' U' R U' R' U2 r" },
+      { id: 'ollf:19', name: 'OLL 19', alg: "r' R U R U R' U' r R2' F R F'" },
       { id: 'ollf:20', name: 'OLL 20', alg: "M U R U R' U' M2 U R U' r'" },
     ] },
     { group: "All corners done", items: [
-      { id: 'ollf:28', name: 'OLL 28', alg: "r U R' U' M U R U' R'" },
+      { id: 'ollf:28', name: 'OLL 28', alg: "r U R' U' r' R U R U' R'" },
       { id: 'ollf:57', name: 'OLL 57', alg: "R U R' U' M' U R U' r'" },
     ] },
     { group: "Square", items: [
-      { id: 'ollf:5', name: 'OLL 5', alg: "r' U2 R U R' U r" },
+      { id: 'ollf:5', name: 'OLL 5', alg: "l' U2 L U L' U l" },
       { id: 'ollf:6', name: 'OLL 6', alg: "r U2 R' U' R U' r'" },
     ] },
     { group: "Small lightning", items: [
       { id: 'ollf:7', name: 'OLL 7', alg: "r U R' U R U2 r'" },
-      { id: 'ollf:8', name: 'OLL 8', alg: "r' U' R U' R' U2 r" },
+      { id: 'ollf:8', name: 'OLL 8', alg: "l' U' L U' L' U2 l" },
       { id: 'ollf:11', name: 'OLL 11', alg: "r' R2 U R' U R U2 R' U M'" },
-      { id: 'ollf:12', name: 'OLL 12', alg: "M' R' U' R U' R' U2 R U' M" },
+      { id: 'ollf:12', name: 'OLL 12', alg: "r R2' U' R U' R' U2 R U' r' R" },
     ] },
     { group: "Fish", items: [
       { id: 'ollf:9', name: 'OLL 9', alg: "R U R' U' R' F R2 U R' U' F'" },
@@ -3046,7 +3046,7 @@ body.racing { overflow: hidden; }
     ] },
     { group: "P shape", items: [
       { id: 'ollf:31', name: 'OLL 31', alg: "R' U' F U R U' R' F' R" },
-      { id: 'ollf:32', name: 'OLL 32', alg: "R U B' U' R' U R B R'" },
+      { id: 'ollf:32', name: 'OLL 32', alg: "S R U R' U' R' F R f'" },
       { id: 'ollf:43', name: 'OLL 43', alg: "R' U' F' U F R" },
       { id: 'ollf:44', name: 'OLL 44', alg: "F U R U' R' F'" },
     ] },
@@ -3059,7 +3059,7 @@ body.racing { overflow: hidden; }
       { id: 'ollf:46', name: 'OLL 46', alg: "R' U' R' F R F' U R" },
     ] },
     { group: "W shape", items: [
-      { id: 'ollf:36', name: 'OLL 36', alg: "R' U' R U' R' U R U l U' R' U x" },
+      { id: 'ollf:36', name: 'OLL 36', alg: "L' U' L U' L' U L U L F' L' F" },
       { id: 'ollf:38', name: 'OLL 38', alg: "R U R' U R U' R' U' R' F R F'" },
     ] },
     { group: "Big lightning", items: [
@@ -3067,18 +3067,18 @@ body.racing { overflow: hidden; }
       { id: 'ollf:40', name: 'OLL 40', alg: "R' F R U R' U' F' U R" },
     ] },
     { group: "Small L", items: [
-      { id: 'ollf:47', name: 'OLL 47', alg: "F' L' U' L U L' U' L U F" },
+      { id: 'ollf:47', name: 'OLL 47', alg: "R' U' R' F R F' R' F R F' U R" },
       { id: 'ollf:48', name: 'OLL 48', alg: "F R U R' U' R U R' U' F'" },
       { id: 'ollf:49', name: 'OLL 49', alg: "r U' r2 U r2 U r2 U' r" },
       { id: 'ollf:50', name: 'OLL 50', alg: "r' U r2 U' r2 U' r2 U r'" },
-      { id: 'ollf:53', name: 'OLL 53', alg: "r' U' R U' R' U R U' R' U2 r" },
-      { id: 'ollf:54', name: 'OLL 54', alg: "r U R' U R U' R' U R U2 r'" },
+      { id: 'ollf:53', name: 'OLL 53', alg: "l' U' L U' L' U L U' L' U2 l" },
+      { id: 'ollf:54', name: 'OLL 54', alg: "r U2 R' U' R U R' U' R U' r'" },
     ] },
     { group: "Line", items: [
-      { id: 'ollf:51', name: 'OLL 51', alg: "f R U R' U' R U R' U' f'" },
+      { id: 'ollf:51', name: 'OLL 51', alg: "F U R U' R' U R U' R' F'" },
       { id: 'ollf:52', name: 'OLL 52', alg: "R' U' R U' R' U F' U F R" },
       { id: 'ollf:55', name: 'OLL 55', alg: "R' F R U R U' R2 F' R2 U' R' U R U R'" },
-      { id: 'ollf:56', name: 'OLL 56', alg: "r' U' r U' R' U R U' R' U R r' U r" },
+      { id: 'ollf:56', name: 'OLL 56', alg: "r U r' U R U' R' U R U' R' r U' r'" },
     ] },
   ];
   // COLL: orient the last layer and solve its corners in one algorithm, when the top edges are already
