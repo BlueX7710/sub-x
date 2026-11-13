@@ -311,6 +311,7 @@ body.running .hint, body.running .last-actions { visibility: hidden; }
 }
 @media (min-width: 521px) { .d-short { display: none; } }
 @media (max-width: 360px) { .d-short { display: none; } }   /* the smallest phones: just the number */
+@media (max-width: 520px) { :root[data-skin="terminal"] .d-short { display: none; } }   /* Terminal's wide type: just the number */
 .kpis[data-ex]::before { content: attr(data-ex); grid-column: 1 / -1; padding: 8px 14px; font-size: 13px; color: var(--muted); background: var(--sunk); border-radius: 11px 11px 0 0; border-bottom: 1px solid var(--line); }
 .add-time { display: flex; gap: 8px; margin: 0 0 10px; }
 .add-time .field { flex: 1 1 auto; width: auto; min-width: 0; font-family: var(--font-mono); }
@@ -372,7 +373,10 @@ body.running .kpis { opacity: .12; transition: opacity .2s; }
 .heat-scale { display: inline-flex; gap: 3px; align-items: center; }
 /* phones: the timer fills the screen during inspection, a deliberate hold and the solve; a tap anywhere stops it */
 @media (max-width: 860px) {
-  .stage { min-height: clamp(200px, 30vh, 380px); }   /* idle: short enough that your numbers show below it */
+  .stage { min-height: clamp(180px, 24vh, 360px); }   /* idle: short enough that your numbers show below it */
+  :root[data-skin] .stage { min-height: clamp(180px, 24vh, 360px); }   /* the Looks too (Minimal sets its own height) */
+  .stage { padding-block: 20px; gap: 14px; }
+  .last-actions:empty { display: none; }   /* idle: no empty row kept for the buttons that come after a solve */
   body.timing { overflow: hidden; }
   body.timing .stage { position: fixed; inset: 0; z-index: 8; margin: 0; min-height: 0; border-radius: 0; background: var(--bg);
     padding: max(28px, env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(28px, env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
@@ -1339,7 +1343,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <h2>Goal splits <b id="goalName"></b></h2>
         <table class="phase-table goal-table" id="goalTable"></table>
         <p class="lead" id="goalTip" style="margin:10px 0 0"></p>
-        <details class="disc"><summary>How it works</summary><p class="lead">The targets split your goal the usual CFOP way: about 13% cross, 50% F2L, 17% OLL and 20% PLL, with inspection not counted. Change your goal in Modes and settings → Goal sub. With a smart cube, your own time for each step shows here too.</p></details>
+        <details class="disc"><summary>How it works</summary><p class="lead">The targets split your goal the usual CFOP way: about 13% cross, 50% F2L, 17% OLL and 20% PLL, with inspection not counted. Change your goal in Settings → Goal sub. With a smart cube, your own time for each step shows here too.</p></details>
       </section>
       <section class="panel">
         <h2>Trend <span class="ex-tag" hidden>· example</span> <span class="trend-range" id="trendRange"></span></h2>
@@ -2615,7 +2619,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     setTimeout(() => { coachCheck(solve); savingsCheck(solve); }, 0);   // after a smart-cube solve has filled in its moves
   }
   // ---------- typing in a time: a solve timed on something else (a Stackmat without the cable, a friend's timer) ----------
-  // 12.34, 1:02.34, 1234 (= 12.34), 15 (= 15 s); "+2" or "DNF" anywhere adds that penalty. It saves like any other solve.
+  // 12.34, 1:02.34, and digits only the way csTimer reads them: 15 (= 15 s), 1234 (= 12.34), 10234 (= 1:02.34).
+  // "+2" or "DNF" anywhere adds that penalty. It saves like any other solve.
   function parseTyped(txt) {
     const t = String(txt || '').trim().toLowerCase(); if (!t) return null;
     const pen = /dnf/.test(t) ? 'dnf' : /\+/.test(t) ? '+2' : null;
@@ -2623,7 +2628,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const m = rest.match(/(\d+):(\d{1,2}(?:[.,]\d+)?)|(\d+(?:[.,]\d+)?)/); if (!m) return null;
     let ms;
     if (m[1] !== undefined) ms = (+m[1] * 60 + parseFloat(m[2].replace(',', '.'))) * 1000;
-    else ms = /[.,]/.test(m[3]) ? parseFloat(m[3].replace(',', '.')) * 1000 : m[3].length >= 3 ? +m[3] * 10 : +m[3] * 1000;
+    else if (/[.,]/.test(m[3])) ms = parseFloat(m[3].replace(',', '.')) * 1000;
+    else { const d = m[3]; ms = d.length >= 5 ? (+d.slice(0, -4) * 60 + +d.slice(-4, -2)) * 1000 + +d.slice(-2) * 10 : d.length >= 3 ? +d * 10 : +d * 1000; }
     ms = Math.round(ms);
     return ms > 0 && ms < 36e5 ? { ms, pen } : null;
   }
@@ -2632,7 +2638,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const inp = $('addTime'), r = parseTyped(inp.value);
     if (!r) { toast('Type a time like 12.34 or 1:02.34.'); return; }
     if (drill || compOn() || (typeof RACE !== 'undefined' && RACE.open) || state !== 'idle') { toast('You can type a time when no drill, comp sim round or solve is running.'); return; }
-    lastPen = r.pen; stop(r.ms); ignoreRelease = false;
+    lastPen = r.pen; stop(r.ms); ignoreRelease = false; lastPen = null;
     const L = db.solves[db.event], last = L[L.length - 1]; if (last) { last.typed = true; save(); }
     inp.value = ''; inp.blur();
   });
@@ -6754,7 +6760,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (now == null || before == null || now === Infinity || before === Infinity) return '<span class="delta">&nbsp;</span>';
     const d = now - before, cls = d < -5 ? 'down' : d > 5 ? 'up' : '';
     const words = short ? `<span class="d-long"> ${what}</span><span class="d-short"> ${short}</span>` : what ? ' ' + what : '';
-    return `<span class="delta ${cls}" title="${d < 0 ? 'Faster' : 'Slower'} than ${what || 'before'}">${d < 0 ? '−' : '+'}${(Math.abs(d) / 1000).toFixed(2)}${words}</span>`;
+    const than = what ? what.replace(/^vs /, '').replace(/(\d+) before$/, '$1 solves before') : 'before';
+    return `<span class="delta ${cls}" title="${d < 0 ? 'Faster' : 'Slower'} than ${than}">${d < 0 ? '−' : '+'}${(Math.abs(d) / 1000).toFixed(2)}${words}</span>`;
   }
   function renderKpis(list) {
     const box = $('kpis'), L = list.length; if (!box) return;
