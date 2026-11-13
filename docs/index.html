@@ -2213,7 +2213,10 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   function startDrill(c) {
     if (EV() !== '333') { db.event = '333'; $('event').value = '333'; fillSessions(); save(); renderStats(); }
     db.drillTimes = db.drillTimes || {};   // each case's drill times (last 50) are kept, so you see them next time too
-    drill = { name: c.name, alg: c.alg, times: db.drillTimes[c.id] || (db.drillTimes[c.id] = []) };
+    // which step the case belongs to, so a smart cube stops the clock when that step is done (an F2L case when
+    // the pairs are in, an OLL when the top is yellow), whatever the rest of the cube looks like
+    const k = c.mode || c.id.split(':')[0], step = k === 'f2l' || k === 'f2lb' ? 'f2l' : k === 'oll' || k === 'ollf' ? 'oll' : k === 'coll' ? 'coll' : 'll';
+    drill = { name: c.name, alg: c.alg, step, times: db.drillTimes[c.id] || (db.drillTimes[c.id] = []) };
     justSolved = false; renderLastActions();
     newScramble(); setState('idle'); showTime('0.00');
     location.hash = 'timer';
@@ -6256,6 +6259,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (useInspection()) { inspStart = performance.now(); holdFrom = 'inspecting'; setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
     else { holdFrom = 'idle'; setState('smartReady'); showTime('0.00'); }
   }
+  // a drill is done when its own step is: F2L pairs in, the top yellow (OLL), the top yellow with its corners
+  // solved (COLL), or the whole cube without its last top turn (PLL, ZBLL, CMLL)
+  function drillDone(st) {
+    const s = drill && drill.step;
+    return s === 'f2l' ? SmartCore.f2lSolvedTop(st) : s === 'oll' ? SmartCore.ollSolvedTop(st) : s === 'coll' ? SmartCore.ollSolvedTop(st) && cornersDoneBottom(st) : SmartCore.solvedUpToAuf(st);
+  }
   function smartMove(m, ts, ev) {
     const before = SmartCore.clone(SM.cur);
     Cube.apply(SM.cur, 3, m); live3dMove(m);
@@ -6264,7 +6273,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (exampleActive() && exSmartMove(m)) return;
     if (state === 'running') {
       SM.moves.push({ m, t: ts }); if (ev) SM.raw.push(ev);
-      if (SmartCore.isSolved(SM.cur) || (f2lMode() && SmartCore.f2lSolvedTop(SM.cur)) || (drill && SmartCore.solvedUpToAuf(SM.cur))) smartFinish();   // F2L practice stops when the pairs are in, a drill without its last top turn
+      if (SmartCore.isSolved(SM.cur) || (f2lMode() && SmartCore.f2lSolvedTop(SM.cur)) || (drill && drillDone(SM.cur))) smartFinish();   // F2L practice stops when the pairs are in, a drill when its step is done
       return;
     }
     if ((state === 'inspecting' || state === 'smartReady') && SM.T && SM.T.done) {
@@ -6888,7 +6897,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   syncUI();
 
   // test hook for simulated cubes; only on a local development server
-  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, savingsCheck, caseTable, mergeData, SY, db };
+  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, savingsCheck, caseTable, mergeData, SY, db, drillDone, startDrill, caseById, SmartCore, getDrill: () => drill };
 
   // ---------- splits ----------
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];   // usual share of a CFOP solve
