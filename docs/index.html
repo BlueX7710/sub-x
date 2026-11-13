@@ -315,6 +315,10 @@ body.running .hint, body.running .last-actions { visibility: hidden; }
 .kpi .delta.down { color: var(--ready); }
 .kpi .delta.up { color: var(--hold); }
 body.running .kpis { opacity: .12; transition: opacity .2s; }
+body.running .rec-box { display: none; }
+.rec-box { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.rec-box summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--muted); }
+.rec-box summary b { font-family: var(--font-mono); font-weight: 500; }
 .legend i.sq { width: 10px; height: 10px; border-radius: 2px; }
 .steps-bar { display: flex; height: 28px; border-radius: 7px; overflow: hidden; margin-bottom: 10px; }
 .steps-bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--font-display); font-weight: 600; font-size: 12px; letter-spacing: .04em; min-width: 0; overflow: hidden; white-space: nowrap; }
@@ -1164,7 +1168,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       <a href="#timer" data-view="timer">Timer</a>
       <a href="#stats" data-view="stats" class="tab-phone">Stats</a>
       <a href="#learn" data-view="learn">Learn</a>
-      <a href="#review" data-view="review">Recordings</a>
     </nav>
     <label class="ctl skin-pick" for="skin">Look
       <select id="skin"><option value="">Classic</option><option value="minimal">Minimal</option><option value="midnight">Midnight</option><option value="terminal">Terminal</option><option value="speed">Speed</option><option value="dracula">Dracula</option><option value="pink">Pink</option><option value="ocean">Ocean</option><option value="sunset">Sunset</option></select>
@@ -1293,6 +1296,30 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <select id="camSelect" aria-label="Camera" hidden></select>
           <label class="toggle" for="camRec"><input id="camRec" type="checkbox" checked> Record solves</label>
         </div>
+        <details class="rec-box disc" id="recBox" hidden>
+          <summary>Your recordings <b id="recCount"></b></summary>
+          <p class="lead" style="margin:8px 0">Your last 12 camera-recorded solves stay on this device.</p>
+          <ul class="rec-list" id="rvList"></ul>
+          <p class="lead" id="rvNone" hidden></p>
+          <div id="rvClipPanel" hidden>
+          <h3 class="dash-h3">Clip <b id="rvTitle"></b></h3>
+          <video id="rvVideo" class="vid" controls playsinline muted style="max-height:300px"></video>
+          <div class="row-btns" style="margin-top:12px">
+            <button type="button" class="btn" id="rvAi">Review with AI</button>
+            <button type="button" class="btn ghost" id="rvSave">Save clip</button>
+            <button type="button" class="btn ghost" id="rvShare" hidden>Share…</button>
+          </div>
+          <p class="lead" style="margin-top:8px">File: <span id="rvFile" style="font-family:var(--font-mono);overflow-wrap:anywhere"></span></p>
+          <div class="notice" style="margin-top:14px">
+            <b>AI review is free on your Claude plan:</b>
+            <ol style="margin:6px 0 0;padding-left:20px;line-height:1.6">
+              <li>Tap <b>Review with AI</b>. Sub-X saves the clip and opens the review page in Claude (the Claude app, if you have it).</li>
+              <li>Tap <b>Choose video</b> and pick the newest <i>subx-…</i> clip. The review starts by itself.</li>
+              <li>If Claude doesn't open, <a id="rvOpen" target="_blank" rel="noopener">open the review page</a>.</li>
+            </ol>
+          </div>
+          </div>
+        </details>
       </section>
       <section class="panel hw" id="smartPanel">
         <h2>Smart cube <span class="h2-right"><b id="smartState">not connected</b><button type="button" class="fold" data-fold="smart" aria-expanded="true" aria-label="Fold the smart cube panel">▾</button></span></h2>
@@ -1427,37 +1454,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     <div id="learnBody"></div>
   </main>
 
-  <!-- ================= REVIEW ================= -->
-  <main id="view-review" hidden>
-    <div class="review">
-      <section class="panel">
-        <h2>Your recordings</h2>
-        <p class="lead">Your last 12 camera-recorded solves are kept on this device.</p>
-        <ul class="rec-list" id="rvList"></ul>
-      </section>
-      <section class="panel">
-        <p class="result-empty" id="rvNone">Turn the camera on in the Timer tab and do a solve. Each recording starts with the timer and stops just after it, so there is nothing to trim.</p>
-        <div id="rvClipPanel" hidden>
-          <h2>Clip <b id="rvTitle"></b></h2>
-          <video id="rvVideo" class="vid" controls playsinline muted style="max-height:420px"></video>
-          <div class="row-btns" style="margin-top:12px">
-            <button type="button" class="btn" id="rvAi">Review with AI</button>
-            <button type="button" class="btn ghost" id="rvSave">Save clip</button>
-            <button type="button" class="btn ghost" id="rvShare" hidden>Share…</button>
-          </div>
-          <p class="lead" style="margin-top:8px">File: <span id="rvFile" style="font-family:var(--font-mono);overflow-wrap:anywhere"></span></p>
-          <div class="notice" style="margin-top:14px">
-            <b>AI review is free on your Claude plan:</b>
-            <ol style="margin:6px 0 0;padding-left:20px;line-height:1.6">
-              <li>Tap <b>Review with AI</b>. Sub-X saves the clip and opens the review page in Claude (the Claude app, if you have it).</li>
-              <li>Tap <b>Choose video</b> and pick the newest <i>subx-…</i> clip. The review starts by itself.</li>
-              <li>If Claude doesn't open, <a id="rvOpen" target="_blank" rel="noopener">open the review page</a>.</li>
-            </ol>
-          </div>
-        </div>
-      </section>
-    </div>
-  </main>
 </div>
 <div class="p3d-overlay" id="p3d" hidden role="dialog" aria-modal="true" aria-labelledby="p3dTitle">
   <div class="p3d">
@@ -2065,13 +2061,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   $('skin').addEventListener('change', e => { db.skin = e.target.value; save(); applySkin(); unfocus(e.target); });
   function phoneLayout() { return matchMedia('(max-width: 860px)').matches; }
   function showView(v) {
-    if (!['timer', 'stats', 'learn', 'review'].includes(v) || (v === 'stats' && !phoneLayout())) v = 'timer';   // Stats is a tab on phones only
+    if (!['timer', 'stats', 'learn'].includes(v) || (v === 'stats' && !phoneLayout())) v = 'timer';   // Stats is a tab on phones only
     if (view === 'timer' && v !== 'timer') cancel();
     view = v;
-    for (const k of ['timer', 'stats', 'learn', 'review']) $('view-' + k).hidden = k !== v;
+    for (const k of ['timer', 'stats', 'learn']) $('view-' + k).hidden = k !== v;
     document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.view === v ? 'page' : 'false'));
     if (v === 'learn') renderLearn();
-    if (v === 'review') renderReviewSetup();
   }
   // a shared scramble arrives as #timer?e=333&s=R%20U...
   function readHash() {
@@ -2734,7 +2729,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (b.dataset.pen) setPen(+b.dataset.i, b.dataset.pen);
     else if (b.dataset.del !== undefined) del(+b.dataset.del);
     else if (b.dataset.aireview !== undefined) aiReviewSolve(db.solves[db.event][+b.dataset.aireview]);
-    else if (b.dataset.review !== undefined) { rvPick = `${db.event}:${b.dataset.review}`; location.hash = 'review'; }
+    else if (b.dataset.review !== undefined) { rvPick = `${db.event}:${b.dataset.review}`; openRecordings(); }
     else if (b.dataset.row !== undefined) { const i = +b.dataset.row; openIdx = openIdx === i ? -1 : i; renderList(solvesFor(db.event), db.goal * 1000); }
     else if (b.id === 'clearAsk') { confirmClear = true; renderStats(); }
     else if (b.id === 'clearNo') { confirmClear = false; renderStats(); }
@@ -5667,7 +5662,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         const video = c.chunks.length ? new Blob(c.chunks, { type: c.mime || 'video/webm' }) : null;
         const frames = c.frames.sort((a, b) => a.at - b.at).map(f => ({ t: (f.at - startAt) / 1000, blob: f.blob }));
         recPut({ id: solve.t, ev, evt: EV(), ms: solve.ms, solveSec: (stopAt - startAt) / 1000, offset: (startAt - c.t0) / 1000, frames, video, at: Date.now() })
-          .then(() => { if (view === 'review') renderReviewSetup(); })
+          .then(() => renderReviewSetup())
           .catch(() => toast('Could not store the recording on this device.'));
       };
       if (c.rec && c.rec.state !== 'inactive') { c.rec.onstop = done; try { c.rec.stop(); } catch (e) { done(); } } else done();
@@ -5710,6 +5705,13 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     return `subx-${r.evt || evOfKey(r.ev)}-t${r.solveSec.toFixed(2)}-s${Math.max(0, r.offset || 0).toFixed(2)}-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.${ext}`;
   }
 
+  // a solve's Recording button: the Camera panel on the Timer page opens at that clip
+  async function openRecordings() {
+    if (location.hash !== '#timer' && location.hash !== '') location.hash = 'timer';
+    db.fold = db.fold || {}; db.fold.cam = false; save(); foldApply();
+    await renderReviewSetup(); $('recBox').open = true;
+    const p = $('rvClipPanel').hidden ? $('recBox') : $('rvClipPanel'); p.scrollIntoView({ block: 'center', behavior: calm() ? 'auto' : 'smooth' });
+  }
   async function renderReviewSetup() {
     recs = await recAll();
     if (rvPick) {
@@ -5722,12 +5724,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     $('rvList').innerHTML = recs.length ? recs.map(r => {
       const s = solveForRec(r);
       return `<li><button type="button" data-rec="${r.id}" aria-current="${!!rvRec && rvRec.id === r.id}"><span>${sessLabel(r.ev)} · <b>${s ? fmtSolve(s) : fmt(r.ms)}</b></span><span class="m">${new Date(r.at).toLocaleString()}</span></button></li>`;
-    }).join('') : '<li class="empty">Nothing recorded yet. Turn the camera on in the Timer tab and do a solve. Each recording starts with the timer and stops just after it, so there is nothing to trim.<div class="row-btns" style="margin-top:10px"><button type="button" class="btn" id="rvGoCam">Go to the camera</button></div></li>';
+    }).join('') : '';
+    $('recBox').hidden = !recs.length; $('recCount').textContent = recs.length ? `(${recs.length})` : '';
     const has = !!(rvRec && rvRec.video);
     $('rvClipPanel').hidden = !has;
     $('rvNone').hidden = has;
-    $('rvNone').closest('.panel').hidden = !recs.length;   // with nothing recorded, the list says it once
-    $('rvNone').textContent = rvRec && !rvRec.video ? "This solve was timed with the camera on, but the video couldn't be saved on this device." : 'Pick a recording on the left to watch it.';
+    $('rvNone').textContent = rvRec && !rvRec.video ? "This solve was timed with the camera on, but the video couldn't be saved on this device." : 'Pick a recording above to watch it.';
     if (has) {
       if (vid.dataset.id !== String(rvRec.id)) { if (vid.src) URL.revokeObjectURL(vid.src); vid.src = URL.createObjectURL(rvRec.video); vid.dataset.id = rvRec.id; }
       const s = solveForRec(rvRec);
@@ -5783,12 +5785,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     reviewWithAI(r);
   }
   $('rvAi').addEventListener('click', () => reviewWithAI(rvRec));
+  renderReviewSetup();
   $('rvList').addEventListener('click', e => {
-    if (e.target.closest('#rvGoCam')) {   // open the camera panel on the Timer tab
-      db.fold = db.fold || {}; db.fold.cam = false; save(); foldApply(); location.hash = 'timer';
-      setTimeout(() => { const p = document.querySelector('.cam-panel'); if (p) { p.scrollIntoView({ block: 'center' }); const c = p.querySelector('button:not([data-fold])'); if (c) c.focus({ preventScroll: true }); } }, 60);
-      return;
-    }
     const b = e.target.closest('button[data-rec]'); if (!b) return;
     rvRec = recs.find(r => r.id === +b.dataset.rec) || null;
     renderReviewSetup();
