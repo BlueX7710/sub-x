@@ -3084,7 +3084,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     { group: 'Step 2 · Orient the corners', items: [
       { id: 'oll:sune', name: 'Sune', alg: "R U R' U R U2 R'", tip: 'One yellow corner on top: put it front-left.' },
       { id: 'oll:antisune', name: 'Antisune', alg: "R U2 R' U' R U' R'", tip: 'Mirror of Sune: yellow corner front-right.' },
-      { id: 'oll:h', name: 'H', alg: "F R U R' U' R U R' U' R U R' U' F'", tip: 'Two pairs of headlights facing left and right.' },
+      { id: 'oll:h', name: 'H', alg: "R U2 R' U' R U R' U' R U' R'", tip: 'Two pairs of headlights facing left and right.' },
       { id: 'oll:pi', name: 'Pi', alg: "R U2 R2 U' R2 U' R2 U2 R", tip: 'Headlights on the left side.' },
       { id: 'oll:headlights', name: 'Headlights', alg: "R2 D R' U2 R D' R' U2 R'", tip: 'Headlights facing you on the front.' },
       { id: 'oll:t', name: 'T', alg: "r U R' U' r' F R F'", tip: 'Yellow stickers on the left face up front and back.' },
@@ -3093,8 +3093,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   ];
   const PLL = [
     { group: 'Edges only', items: [
-      { id: 'pll:ua', name: 'Ua', alg: "M2 U M U2 M' U M2" },
-      { id: 'pll:ub', name: 'Ub', alg: "M2 U' M U2 M' U' M2" },
+      { id: 'pll:ua', name: 'Ua', alg: "R U' R U R U R U' R' U' R2" },
+      { id: 'pll:ub', name: 'Ub', alg: "R2 U R U R' U' R' U' R' U R'" },
       { id: 'pll:h', name: 'H', alg: 'M2 U M2 U2 M2 U M2' },
       { id: 'pll:z', name: 'Z', alg: "M' U M2 U M2 U M' U2 M2" },
     ] },
@@ -3108,10 +3108,10 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       { id: 'pll:ja', name: 'Ja', alg: "R' U L' U2 R U' R' U2 R L" },
       { id: 'pll:jb', name: 'Jb', alg: "R U R' F' R U R' U' R' F R2 U' R'" },
       { id: 'pll:ra', name: 'Ra', alg: "R U' R' U' R U R D R' U' R D' R' U2 R'" },
-      { id: 'pll:rb', name: 'Rb', alg: "R2 F R U R U' R' F' R U2 R' U2 R" },
+      { id: 'pll:rb', name: 'Rb', alg: "R' U2 R U2 R' F R U R' U' R' F' R2" },
       { id: 'pll:f', name: 'F', alg: "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R" },
       { id: 'pll:ga', name: 'Ga', alg: "R2 U R' U R' U' R U' R2 U' D R' U R D'" },
-      { id: 'pll:gb', name: 'Gb', alg: "R' U' R U D' R2 U R' U R U' R U' R2 D" },
+      { id: 'pll:gb', name: 'Gb', alg: "F' U' F R2 u R' U R U' R u' R2" },
       { id: 'pll:gc', name: 'Gc', alg: "R2 U' R U' R U R' U R2 U D' R U' R' D" },
       { id: 'pll:gd', name: 'Gd', alg: "R U R' U' D R2 U' R U' R' U R' U R2 D'" },
     ] },
@@ -3193,7 +3193,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     { group: "Cross already done (OCLL)", items: [
       { id: 'ollf:21', name: 'OLL 21', alg: "R U2 R' U' R U R' U' R U' R'", tip: "H in 2-look OLL." },
       { id: 'ollf:22', name: 'OLL 22', alg: "R U2 R2 U' R2 U' R2 U2 R", tip: "Pi in 2-look OLL." },
-      { id: 'ollf:23', name: 'OLL 23', alg: "R2 D' R U2 R' D R U2 R", tip: "Headlights in 2-look OLL." },
+      { id: 'ollf:23', name: 'OLL 23', alg: "R2 D R' U2 R D' R' U2 R'", tip: "Headlights in 2-look OLL." },
       { id: 'ollf:24', name: 'OLL 24', alg: "r U R' U' r' F R F'", tip: "T in 2-look OLL." },
       { id: 'ollf:25', name: 'OLL 25', alg: "F' r U R' U' r' F R", tip: "Bowtie in 2-look OLL." },
       { id: 'ollf:26', name: 'OLL 26', alg: "R U2 R' U' R U' R'", tip: "Antisune in 2-look OLL." },
@@ -3205,12 +3205,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       { id: 'ollf:3', name: 'OLL 3', alg: "f R U R' U' f' U' F R U R' U' F'" },
       { id: 'ollf:4', name: 'OLL 4', alg: "f R U R' U' f' U F R U R' U' F'" },
       { id: 'ollf:17', name: 'OLL 17', alg: "R U R' U R' F R F' U2 R' F R F'" },
-      { id: 'ollf:18', name: 'OLL 18', alg: "r U R' U R U2 r2 U' R U' R' U2 r" },
-      { id: 'ollf:19', name: 'OLL 19', alg: "r' R U R U R' U' M' R' F R F'" },
-      { id: 'ollf:20', name: 'OLL 20', alg: "r U R' U' M2 U R U' R' U' M'" },
+      { id: 'ollf:18', name: 'OLL 18', alg: "R U2 R2 F R F' U2 M' U R U' r'" },
+      { id: 'ollf:19', name: 'OLL 19', alg: "M U R U R' U' M' R' F R F'" },
+      { id: 'ollf:20', name: 'OLL 20', alg: "M U R U R' U' M2 U R U' r'" },
     ] },
     { group: "All corners done", items: [
-      { id: 'ollf:28', name: 'OLL 28', alg: "r U R' U' r' R U R U' R'" },
+      { id: 'ollf:28', name: 'OLL 28', alg: "r U R' U' M U R U' R'" },
       { id: 'ollf:57', name: 'OLL 57', alg: "R U R' U' M' U R U' r'" },
     ] },
     { group: "Square", items: [
@@ -3220,31 +3220,31 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     { group: "Small lightning", items: [
       { id: 'ollf:7', name: 'OLL 7', alg: "r U R' U R U2 r'" },
       { id: 'ollf:8', name: 'OLL 8', alg: "r' U' R U' R' U2 r" },
-      { id: 'ollf:11', name: 'OLL 11', alg: "r U R' U R' F R F' R U2 r'" },
-      { id: 'ollf:12', name: 'OLL 12', alg: "M' R' U' R U' R' U2 R U' R r'" },
+      { id: 'ollf:11', name: 'OLL 11', alg: "r' R2 U R' U R U2 R' U M'" },
+      { id: 'ollf:12', name: 'OLL 12', alg: "M' R' U' R U' R' U2 R U' M" },
     ] },
     { group: "Fish", items: [
       { id: 'ollf:9', name: 'OLL 9', alg: "R U R' U' R' F R2 U R' U' F'" },
       { id: 'ollf:10', name: 'OLL 10', alg: "R U R' U R' F R F' R U2 R'" },
       { id: 'ollf:35', name: 'OLL 35', alg: "R U2 R2 F R F' R U2 R'" },
-      { id: 'ollf:37', name: 'OLL 37', alg: "F R' F' R U R U' R'" },
+      { id: 'ollf:37', name: 'OLL 37', alg: "F R U' R' U' R U R' F'" },
     ] },
     { group: "Knight move", items: [
-      { id: 'ollf:13', name: 'OLL 13', alg: "F U R U' R2 F' R U R U' R'" },
+      { id: 'ollf:13', name: 'OLL 13', alg: "r U' r' U' r U r' F' U F" },
       { id: 'ollf:14', name: 'OLL 14', alg: "R' F R U R' F' R F U' F'" },
       { id: 'ollf:15', name: 'OLL 15', alg: "r' U' r R' U' R U r' U r" },
       { id: 'ollf:16', name: 'OLL 16', alg: "r U r' R U R' U' r U' r'" },
     ] },
     { group: "Awkward", items: [
       { id: 'ollf:29', name: 'OLL 29', alg: "R U R' U' R U' R' F' U' F R U R'" },
-      { id: 'ollf:30', name: 'OLL 30', alg: "F R' F R2 U' R' U' R U R' F2" },
+      { id: 'ollf:30', name: 'OLL 30', alg: "F U R U2 R' U' R U2 R' U' F'" },
       { id: 'ollf:41', name: 'OLL 41', alg: "R U R' U R U2 R' F R U R' U' F'" },
       { id: 'ollf:42', name: 'OLL 42', alg: "R' U' R U' R' U2 R F R U R' U' F'" },
     ] },
     { group: "P shape", items: [
       { id: 'ollf:31', name: 'OLL 31', alg: "R' U' F U R U' R' F' R" },
-      { id: 'ollf:32', name: 'OLL 32', alg: "L U F' U' L' U L F L'" },
-      { id: 'ollf:43', name: 'OLL 43', alg: "F' U' L' U L F" },
+      { id: 'ollf:32', name: 'OLL 32', alg: "R U B' U' R' U R B R'" },
+      { id: 'ollf:43', name: 'OLL 43', alg: "R' U' F' U F R" },
       { id: 'ollf:44', name: 'OLL 44', alg: "F U R U' R' F'" },
     ] },
     { group: "T shape", items: [
@@ -3256,7 +3256,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       { id: 'ollf:46', name: 'OLL 46', alg: "R' U' R' F R F' U R" },
     ] },
     { group: "W shape", items: [
-      { id: 'ollf:36', name: 'OLL 36', alg: "L' U' L U' L' U L U L F' L' F" },
+      { id: 'ollf:36', name: 'OLL 36', alg: "R' U' R U' R' U R U l U' R' U x" },
       { id: 'ollf:38', name: 'OLL 38', alg: "R U R' U R U' R' U' R' F R F'" },
     ] },
     { group: "Big lightning", items: [
@@ -3264,7 +3264,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       { id: 'ollf:40', name: 'OLL 40', alg: "R' F R U R' U' F' U R" },
     ] },
     { group: "Small L", items: [
-      { id: 'ollf:47', name: 'OLL 47', alg: "R' U' R' F R F' R' F R F' U R" },
+      { id: 'ollf:47', name: 'OLL 47', alg: "F' L' U' L U L' U' L U F" },
       { id: 'ollf:48', name: 'OLL 48', alg: "F R U R' U' R U R' U' F'" },
       { id: 'ollf:49', name: 'OLL 49', alg: "r U' r2 U r2 U r2 U' r" },
       { id: 'ollf:50', name: 'OLL 50', alg: "r' U r2 U' r2 U' r2 U r'" },
@@ -3272,9 +3272,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       { id: 'ollf:54', name: 'OLL 54', alg: "r U R' U R U' R' U R U2 r'" },
     ] },
     { group: "Line", items: [
-      { id: 'ollf:51', name: 'OLL 51', alg: "F U R U' R' U R U' R' F'" },
-      { id: 'ollf:52', name: 'OLL 52', alg: "R U R' U R U' B U' B' R'" },
-      { id: 'ollf:55', name: 'OLL 55', alg: "R U2 R2 U' R U' R' U2 F R F'" },
+      { id: 'ollf:51', name: 'OLL 51', alg: "f R U R' U' R U R' U' f'" },
+      { id: 'ollf:52', name: 'OLL 52', alg: "R' U' R U' R' U F' U F R" },
+      { id: 'ollf:55', name: 'OLL 55', alg: "R' F R U R U' R2 F' R2 U' R' U R U R'" },
       { id: 'ollf:56', name: 'OLL 56', alg: "r' U' r U' R' U R U' R' U R r' U r" },
     ] },
   ];
