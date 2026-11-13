@@ -100,8 +100,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   .bar > .bar-toggle { padding: 0 8px; letter-spacing: .02em; }
   .bar-toggle::after { margin-left: 4px; }
   :root[data-skin] .bar > .bar-toggle { letter-spacing: .02em; padding: 0 8px; }
-  /* looks with wider type: the button says just "Settings", so the bar still fits one row */
-  :root[data-skin]:not([data-skin="speed"]) .bar-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* phones: the button says just "Settings", so the bar fits one row */
+  .bar-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 .ctl { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .ctl select, .ctl input[type=number], .field {
@@ -281,6 +281,20 @@ body.running .bar, body.running .top { opacity: 0; }
 body.running .hint, body.running .last-actions { visibility: hidden; }
 /* ---- stats: the numbers strip under the clock, and the stats panels beside it (in the Stats tab on phones) ---- */
 .tabs a.tab-phone { display: none; }
+.streak .s-short { display: none; }
+@media (max-width: 520px) {
+  .top { gap: 8px 10px; }
+  .tabs a { padding: 6px 9px; font-size: 14px; letter-spacing: .03em; }
+  .streak .s-long { display: none; } .streak .s-short { display: inline; }
+  .kpis .kpi { padding: 8px; } .kpis .kpi small { font-size: 11px; } .kpis .kpi .delta { font-family: var(--font-body); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* after the base rules by specificity */
+  .d-long { display: none; }
+}
+@media (min-width: 521px) { .d-short { display: none; } }
+@media (max-width: 360px) { .d-short { display: none; } }   /* the smallest phones: just the number */
+.kpis[data-ex]::before { content: attr(data-ex); grid-column: 1 / -1; padding: 8px 14px; font-size: 13px; color: var(--muted); background: var(--sunk); border-radius: 11px 11px 0 0; border-bottom: 1px solid var(--line); }
+.add-time { display: flex; gap: 8px; margin: 0 0 10px; }
+.add-time .field { flex: 1 1 auto; width: auto; min-width: 0; font-family: var(--font-mono); }
+body.running .add-time { visibility: hidden; }
 @media (max-width: 860px) {
   .tabs a.tab-phone { display: block; }
   .stage-stats { display: none; }   /* the numbers strip just below says it */
@@ -339,7 +353,7 @@ body.running .kpis { opacity: .12; transition: opacity .2s; }
 .heat-scale { display: inline-flex; gap: 3px; align-items: center; }
 /* phones: the timer fills the screen during inspection, a deliberate hold and the solve; a tap anywhere stops it */
 @media (max-width: 860px) {
-  .stage { min-height: clamp(240px, 46vh, 520px); }
+  .stage { min-height: clamp(200px, 30vh, 380px); }   /* idle: short enough that your numbers show below it */
   body.timing { overflow: hidden; }
   body.timing .stage { position: fixed; inset: 0; z-index: 8; margin: 0; min-height: 0; border-radius: 0; background: var(--bg);
     padding: max(28px, env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(28px, env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
@@ -1198,6 +1212,7 @@ body.racing { overflow: hidden; }
       </section>
       <section class="panel">
         <h2>Solves <span class="ex-tag" hidden>· example</span></h2>
+        <form class="add-time" id="addTimeForm" autocomplete="off"><label class="sr-only" for="addTime">Type a time</label><input id="addTime" class="field" type="text" inputmode="decimal" enterkeyhint="done" spellcheck="false" placeholder="Type a time, e.g. 12.34"><button type="submit" class="pill-btn">Add</button></form>
         <div class="list-head"><span>#</span><span>Time</span><span>ao5</span></div>
         <ul class="solves" id="solves"></ul>
         <div class="clear-row" id="clearRow"></div>
@@ -2135,11 +2150,12 @@ body.racing { overflow: hidden; }
       const el = document.querySelector(sel), panel = el && el.closest('.panel'), h = panel && panel.querySelector(':scope > h2');
       if (!h || h.querySelector('[data-fold]')) continue;
       // the title stays on the left; anything else in the heading (counts, buttons) moves right, beside the fold button
-      const right = document.createElement('span'); right.className = 'h2-right';
-      [...h.children].filter(c => !c.classList.contains('ex-tag')).forEach(c => right.append(c));
+      const title = h.firstChild.textContent.trim();
+      const left = document.createElement('span'), right = document.createElement('span'); right.className = 'h2-right';
+      [...h.childNodes].forEach(c => (c.nodeType === 3 || (c.classList && c.classList.contains('ex-tag')) ? left : right).append(c));
       const b = document.createElement('button'); b.type = 'button'; b.className = 'fold'; b.dataset.fold = k; b.setAttribute('data-fold-open', '');
-      b.setAttribute('aria-label', 'Fold the ' + h.firstChild.textContent.trim().toLowerCase() + ' panel');
-      right.append(b); h.append(right);
+      b.setAttribute('aria-label', 'Fold the ' + title.toLowerCase() + ' panel');
+      right.append(b); h.append(left, right);
     }
   }
   function unfold(k) { db.fold = db.fold || {}; if (db.fold[k] !== false) { db.fold[k] = false; save(); foldApply(); } }
@@ -2457,6 +2473,28 @@ body.racing { overflow: hidden; }
     if (matchMedia('(max-width: 860px)').matches) stage.scrollIntoView({ block: 'nearest' });   // phones: the result and its buttons in view
     setTimeout(() => coachCheck(solve), 0);   // after a smart-cube solve has filled in its moves
   }
+  // ---------- typing in a time: a solve timed on something else (a Stackmat without the cable, a friend's timer) ----------
+  // 12.34, 1:02.34, 1234 (= 12.34), 15 (= 15 s); "+2" or "DNF" anywhere adds that penalty. It saves like any other solve.
+  function parseTyped(txt) {
+    const t = String(txt || '').trim().toLowerCase(); if (!t) return null;
+    const pen = /dnf/.test(t) ? 'dnf' : /\+/.test(t) ? '+2' : null;
+    const rest = t.replace(/\+\s*2(?![\d.,:])/g, ' ').replace(/dnf|\+|\(|\)/g, ' ');
+    const m = rest.match(/(\d+):(\d{1,2}(?:[.,]\d+)?)|(\d+(?:[.,]\d+)?)/); if (!m) return null;
+    let ms;
+    if (m[1] !== undefined) ms = (+m[1] * 60 + parseFloat(m[2].replace(',', '.'))) * 1000;
+    else ms = /[.,]/.test(m[3]) ? parseFloat(m[3].replace(',', '.')) * 1000 : m[3].length >= 3 ? +m[3] * 10 : +m[3] * 1000;
+    ms = Math.round(ms);
+    return ms > 0 && ms < 36e5 ? { ms, pen } : null;
+  }
+  $('addTimeForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const inp = $('addTime'), r = parseTyped(inp.value);
+    if (!r) { toast('Type a time like 12.34 or 1:02.34.'); return; }
+    if (drill || compOn() || (typeof RACE !== 'undefined' && RACE.open) || state !== 'idle') { toast('You can type a time when no drill, comp sim round or solve is running.'); return; }
+    lastPen = r.pen; stop(r.ms); ignoreRelease = false;
+    const L = db.solves[db.event], last = L[L.length - 1]; if (last) { last.typed = true; save(); }
+    inp.value = ''; inp.blur();
+  });
   function cancel() {
     clearTimeout(holdTimer); cancelAnimationFrame(raf);
     stage.classList.remove('warn', 'over');
@@ -3262,19 +3300,27 @@ body.racing { overflow: hidden; }
   const defMethod = () => METHODS[db.defMethod] ? db.defMethod : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
   const lastStep = {};
+  let lessonPage = null, lessonFresh = null;   // the lesson shown open because this is your first visit to it
   function lessonHtml(key) {
     const s = LESSON[key], more = SETS[key] && SETS[key].more;
     if (!s) return more ? `<details class="lesson about"><summary>About this page</summary><p>${esc(more)}</p></details>` : '';
     const steps = ROUX_STEPS.includes(s) ? ROUX_STEPS : CFOP_STEPS, id = (steps === ROUX_STEPS ? 'roux' : 'cfop') + steps.indexOf(s);
-    const only = steps === ROUX_STEPS || (!SETS[key].groups && !TRAINERS.includes(key)), shut = !only && !!(db.lessonShut || {})[id];   // Teach pages stay open
+    const only = steps === ROUX_STEPS || (!SETS[key].groups && !TRAINERS.includes(key));   // Teach pages stay open
+    if (lessonPage !== key) { lessonPage = key; lessonFresh = null; }
+    const pref = lessonPref(id);
+    if (!only && pref === undefined && !(db.lessonSeen || {})[id]) { db.lessonSeen = db.lessonSeen || {}; db.lessonSeen[id] = 1; lessonFresh = id; save(); }
+    const shut = !only && (pref !== undefined ? !!pref : lessonFresh !== id);
     const list = (items, tag) => `<${tag}>${items.map(t => `<li>${esc(t)}</li>`).join('')}</${tag}>`;
-    return `<details class="lesson" data-lesson="${id}"${shut ? '' : ' open'}><summary>Step ${steps.indexOf(s) + 1} · ${esc(s.title)}<small>how to do it · ${esc(s.sub)}</small></summary>
+    return `<details class="lesson" data-lesson="${id}" data-shown="${shut ? 0 : 1}"${shut ? '' : ' open'}><summary>Step ${steps.indexOf(s) + 1} · ${esc(s.title)}<small>how to do it · ${esc(s.sub)}</small></summary>
       <p>${esc(s.text)}</p>${list(s.tips, 'ul')}
       ${s.more ? `<h4>${esc(s.more.title)}</h4>${list(s.more.tips, s.more.ol ? 'ol' : 'ul')}` : ''}${more ? `<h4>On this page</h4><p>${esc(more)}</p>` : ''}</details>`;
   }
+  function lessonPref(id) { const p = (db.lessonPref || {})[id]; return p !== undefined ? p : (db.lessonShut || {})[id] === true ? true : undefined; }   // true: keep it closed
   $('learnLesson').addEventListener('toggle', e => {
     const d = e.target; if (!d.dataset || !d.dataset.lesson) return;
-    db.lessonShut = db.lessonShut || {}; db.lessonShut[d.dataset.lesson] = !d.open; save();
+    if (+d.dataset.shown === +d.open) return;   // just drawn this way, not a tap
+    d.dataset.shown = +d.open;
+    db.lessonPref = db.lessonPref || {}; db.lessonPref[d.dataset.lesson] = !d.open; save();
   }, true);
   // ---------- practice clock shared by the cross and F2L trainers ----------
   // Scramble, then "I've scrambled" starts the planning clock, "Start solving" (or the first
@@ -5062,25 +5108,29 @@ body.racing { overflow: hidden; }
   // (this copy has no smart-cube splits section, so the step names live here)
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];
   // ---------- stats: the numbers under the clock, the time spread and the practice calendar ----------
-  function deltaHtml(now, before, what) {
+  function deltaHtml(now, before, what, short) {
     if (now == null || before == null || now === Infinity || before === Infinity) return '<span class="delta">&nbsp;</span>';
     const d = now - before, cls = d < -5 ? 'down' : d > 5 ? 'up' : '';
-    return `<span class="delta ${cls}">${d < 0 ? '−' : '+'}${(Math.abs(d) / 1000).toFixed(2)} ${what}</span>`;
+    const words = short ? `<span class="d-long"> ${what}</span><span class="d-short"> ${short}</span>` : what ? ' ' + what : '';
+    return `<span class="delta ${cls}" title="${d < 0 ? 'Faster' : 'Slower'} than ${what || 'before'}">${d < 0 ? '−' : '+'}${(Math.abs(d) / 1000).toFixed(2)}${words}</span>`;
   }
   function renderKpis(list) {
     const box = $('kpis'), L = list.length; if (!box) return;
     box.hidden = !L; if (!L) return;
+    const ex = showingExamples(), blank = '<span class="delta">&nbsp;</span>';
+    if (ex) box.dataset.ex = 'Example numbers. Your first solve replaces them.'; else delete box.dataset.ex;
     const times = list.map(eff), ok = times.filter(v => v !== Infinity);
     const best = ok.length ? Math.min(...ok) : null, bestBefore = L > 1 ? Math.min(...times.slice(0, -1)) : null;
     const ao = n => L >= n ? avgOf(list, n, L) : null, prevAo = n => L >= 2 * n ? avgOf(list, n, L - n) : null;
     const mean = ok.length ? ok.reduce((a, b) => a + b, 0) / ok.length : null;
     const sd = ok.length > 1 ? Math.sqrt(ok.reduce((a, v) => a + (v - mean) ** 2, 0) / ok.length) : null;
-    const dnf = L - ok.length, isPb = L > 1 && best !== null && best === times[L - 1] && best < bestBefore && !showingExamples();
+    const dnf = L - ok.length, isPb = L > 1 && best !== null && best === times[L - 1] && best < bestBefore && !ex;
     const tile = (k, v, extra, pb) => `<div class="kpi${pb ? ' pb' : ''}"><small>${k}</small><b>${v}</b>${extra}</div>`;
     const pbSolve = best !== null ? list.find(s => eff(s) === best) : null;
-    const pbWhen = pbSolve && pbSolve.t && !pbSolve.ex ? `<span class="delta">${new Date(pbSolve.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>` : '<span class="delta">&nbsp;</span>';
+    const pbWhen = pbSolve && pbSolve.t && !ex ? `<span class="delta">${new Date(pbSolve.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>` : blank;
+    const more = n => ex ? blank : `<span class="delta">${n - L} more solve${n - L === 1 ? '' : 's'}</span>`;   // until this average exists
     box.innerHTML = tile('Best single', fmt(best), isPb ? '<span class="delta down">new PB</span>' : pbWhen, true) +
-      [5, 12, 100].map(n => tile('ao' + n, ao(n) === null ? '–' : fmt(ao(n)), deltaHtml(ao(n), prevAo(n), `vs the ${n} before`))).join('') +
+      [5, 12, 100].map(n => tile('ao' + n, ao(n) === null ? '–' : fmt(ao(n)), ao(n) === null ? more(n) : ex ? blank : deltaHtml(ao(n), prevAo(n), `vs the ${n} before`, 'vs prev'))).join('') +
       tile('Mean', fmt(mean), `<span class="delta">${sd !== null ? 'spread ±' + (sd / 1000).toFixed(2) : '&nbsp;'}</span>`) +
       tile('Solves', String(L), `<span class="delta">${dnf ? dnf + ' DNF' : 'no DNFs'}</span>`);
   }
@@ -5362,7 +5412,7 @@ body.racing { overflow: hidden; }
     if (fresh.length || first) save();
     if (fresh.length && !first) toast(`Achievement: ${fresh[0]}${fresh.length > 1 ? ` (and ${fresh.length - 1} more)` : ''}`);
     $('achCount').textContent = `${ACH.filter(a => db.ach[a[0]]).length} of ${ACH.length}`;
-    $('streak').hidden = S.streak < 2; $('streak').textContent = `${S.streak}-day streak`;
+    $('streak').hidden = S.streak < 2; $('streak').innerHTML = `${S.streak}<span class="s-long">-day streak</span><span class="s-short"> days</span>`;
     $('streak').title = 'Days in a row with at least one timed solve';
     $('achStreak').textContent = S.streak > 1 ? `You've solved on ${S.streak} days in a row. Do a solve each day to keep it going.` : S.streak ? 'Solve again tomorrow to start a streak.' : 'Do a solve each day to build a streak.';
     $('achGrid').innerHTML = ACH.slice().sort((a, b) => !!db.ach[b[0]] - !!db.ach[a[0]]).map(([id, name, how]) => `<div class="ach ${db.ach[id] ? 'got' : 'locked'}"><b>${esc(name)}</b>${esc(how)}${db.ach[id] ? `<br>${shortDate(db.ach[id], false)}` : ''}</div>`).join('');
@@ -5382,7 +5432,7 @@ body.racing { overflow: hidden; }
     ['#scrCard', 'First, scramble your cube with these moves, holding white on top and green in front. The picture shows how it should look.'],
     ['#stage', () => startHow()],
     ['.tabs a[data-view="learn"]', 'Learn starts from zero with the Beginner method, then has every CFOP and Roux case with a 3D player, trainers, and Today: a short practice plan made from your own times.'],
-    ['#barMore, #compBtn', 'Modes and settings: Daily 5 and F2L scrambles, comp sim rounds, racing a friend, inspection, voice calls and the coach.'],
+    ['#barMore, #compBtn', () => `${phoneLayout() ? 'Settings' : 'Modes and settings'}: Daily 5 and F2L scrambles, comp sim rounds, racing a friend, inspection, voice calls and the coach.`],
     ['#skin, .backup-panel', el => el.id === 'skin' ? `Pick a look you like. Your times stay on this device, so save a backup now and then (Backup is ${phoneLayout() ? 'in the Stats tab' : 'at the bottom'}).` : 'Your times stay on this device, so save a backup here now and then.'],
   ];
   // a step's target: the first of its elements that can show (one in the settings drawer counts: the tour opens it)

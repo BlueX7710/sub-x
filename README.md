@@ -7,6 +7,7 @@ A speedcubing timer you can use in the browser, install as an app, or run on And
 ## What it does
 
 - **Timer**: WCA-style scrambles for 2×2 to 7×7, one-handed, blindfolded, Pyraminx, Skewb, Megaminx, Square-1 and Clock (or scramble it yourself and optionally type the scramble), a picture of the scrambled cube, 15-second inspection with +2/DNF and **voice calls** at 8 and 12 seconds (beeps where the device can't speak), and a hold-to-start timer that works with the space bar or by touch.
+- **Type a time**: a box above your solves takes a time timed somewhere else (12.34, 1:02.34, or 1234 for 12.34; add +2 or DNF), and it counts like any other solve.
 - **Fold panels away**: the Smart cube and Stackmat panels have a ▾ button that folds them down to their title (remembered).
 - **Stackmat**: plug a Gen 3 or Gen 4 Stackmat into the microphone jack and press **Connect Stackmat**: each time it stops is saved (website and Android app).
 - **Achievements and streaks**: 52 achievements (first solve to sub-8, ao5 and ao12 milestones, the beginner method, all of PLL, Daily 5 and 100-day streaks, comp sim, every event, a blindfolded success, races, smart cube and Stackmat solves, night owl and early bird) and a day streak in the header.
