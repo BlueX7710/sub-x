@@ -279,6 +279,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 body.running .side, body.running .scramble-card, body.running .bar, body.running .top { opacity: .12; pointer-events: none; transition: opacity .2s; }
 body.running .bar, body.running .top { opacity: 0; }
 body.running .hint, body.running .last-actions { visibility: hidden; }
+.phase-now { font-family: var(--font-display); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.phase-now b { color: var(--ink); font-weight: 600; }
+.phase-now span { font-family: var(--font-mono); text-transform: none; letter-spacing: 0; margin-left: 4px; }
 /* ---- stats: the numbers strip under the clock, and the stats panels beside it (in the Stats tab on phones) ---- */
 .tabs a.tab-phone { display: none; }
 .streak .s-short { display: none; }
@@ -1141,6 +1144,7 @@ body.racing { overflow: hidden; }
         </label>
         <label class="ctl toggle" for="insp"><input id="insp" type="checkbox" checked> 15s inspection</label>
         <label class="ctl toggle" for="voice" title="Calls out 8 and 12 seconds in inspection, like a judge"><input id="voice" type="checkbox" checked> Voice calls</label>
+        <label class="ctl toggle" for="stepTap" title="3×3: tap (or press space) when the cross, F2L and OLL are done, then once more to stop. You get each step's time without a smart cube."><input id="stepTap" type="checkbox"> Tap at each step</label>
         <label class="ctl" for="coachMode" title="After a slow step, Sub-X shows what to practise">Coach
           <select id="coachMode"><option value="suggest">Suggest</option><option value="force">Must practise</option><option value="off">Off</option></select>
         </label>
@@ -1176,6 +1180,7 @@ body.racing { overflow: hidden; }
         <div class="insp-bar" aria-hidden="true"><i id="inspBar"></i></div>
         <div class="lights" aria-hidden="true"><i class="l-red"></i><i class="l-green"></i></div>
         <div class="clock" id="clock">0<span class="dp">.</span>00</div>
+        <div class="phase-now" id="phaseNow" hidden></div>
         <span class="pb-tag" id="pbTag" hidden>New PB</span>
         <div class="stage-stats" id="stageStats"></div>
         <div class="last-actions" id="lastActions"></div>
@@ -1201,7 +1206,7 @@ body.racing { overflow: hidden; }
         <h2>Goal splits <b id="goalName"></b></h2>
         <table class="phase-table goal-table" id="goalTable"></table>
         <p class="lead" id="goalTip" style="margin:10px 0 0"></p>
-        <details class="disc"><summary>How it works</summary><p class="lead">The targets split your goal the usual CFOP way: about 13% cross, 50% F2L, 17% OLL and 20% PLL, with inspection not counted. Change your goal in Settings → Goal sub. With a smart cube, your own time for each step shows here too.</p></details>
+        <details class="disc"><summary>How it works</summary><p class="lead">The targets split your goal the usual CFOP way: about 13% cross, 50% F2L, 17% OLL and 20% PLL, with inspection not counted. Change your goal in Settings → Goal sub. With a smart cube, or with Tap at each step turned on, your own time for each step shows here too.</p></details>
       </section>
       <section class="panel">
         <h2>Trend <span class="ex-tag" hidden>· example</span> <span class="trend-range" id="trendRange"></span></h2>
@@ -2242,7 +2247,7 @@ body.racing { overflow: hidden; }
       html += `<li><button type="button" class="${cls}" data-row="${i}" aria-expanded="${openIdx === i}"><span class="n">${i + 1}</span><span class="t">${s.review ? '<span class="rv">AI</span>' : ''}${fmtList(s)}</span><span class="a">${fmt(avgOf(list, 5, i + 1))}</span></button>`;
       if (openIdx === i) {
         const solBtn = solvable(s) ? `<button type="button" class="pill-btn" data-sol="${i}" aria-pressed="${solIdx === i}">${solIdx === i ? 'Hide solution' : 'Solution'}</button>` : '', tt = turnsText(s);
-        html += `<div class="solve-detail"><p>${esc(s.scr)}</p><p class="meta">${shortDate(s.t)}${s.ex ? ' · example' : ''}</p>${tt ? `<p class="meta">${tt}</p>` : ''}` +
+        html += `<div class="solve-detail"><p>${esc(s.scr)}</p><p class="meta">${shortDate(s.t)}${s.ex ? ' · example' : ''}</p>${s.splits ? `<p class="meta">${splitsText(s)}</p>` : tt ? `<p class="meta">${tt}</p>` : ''}` +
           (ex ? (solBtn ? `<div class="row">${solBtn}</div>` : '') : `<div class="row">${penButtons(s, i)}${saveBtn(s, i)}<button type="button" class="pill-btn" data-review="${i}">${s.review ? 'See AI review' : 'Review with AI'}</button>${solBtn}${delButton(i)}</div>`) +
           (solIdx === i && solBtn ? solutionHtml(s, i, ex) : '') + '</div>';
       }
@@ -2416,8 +2421,25 @@ body.racing { overflow: hidden; }
   }
   function tickRun() { if (state !== 'running') return; showTime(fmt(performance.now() - runStart)); raf = requestAnimationFrame(tickRun); }
 
+  // ---------- tap at each step: cross, F2L and OLL end with a tap, the fourth tap stops (3×3 without a smart cube or Stackmat) ----------
+  let phaseMarks = [];
+  const PHASE_NAMES = ['Cross', 'F2L', 'OLL', 'PLL'];
+  const stepTapOn = () => !!db.stepTap && !drill && ['333', 'oh'].includes(EV()) && !(typeof SM !== 'undefined' && SM.conn) && !(typeof STK !== 'undefined' && STK.on);
+  function phaseShow() {
+    const el = $('phaseNow'); if (!el) return;
+    const on = state === 'running' && stepTapOn();
+    el.hidden = !on; if (!on) return;
+    const done = phaseMarks.map((t, i) => `${PHASE_NAMES[i]}<span>${fmt(t - (i ? phaseMarks[i - 1] : 0))}</span>`).join(' · ');
+    el.innerHTML = (done ? done + ' · ' : '') + `<b>${PHASE_NAMES[phaseMarks.length]}</b>`;
+  }
+  function runTap() {
+    if (!stepTapOn() || phaseMarks.length >= 3) { stop(); return; }
+    const t = Math.round(performance.now() - runStart);
+    if (t - (phaseMarks[phaseMarks.length - 1] || 0) < 150) return;   // one tap, not a double
+    phaseMarks.push(t); phaseShow(); say(PHASE_NAMES[phaseMarks.length - 1] + ' done');
+  }
   function press() {
-    if (state === 'running') { stop(); return; }
+    if (state === 'running') { runTap(); return; }
     if (ignoreRelease) return;
     keepAwake();
     if (state === 'idle') {
@@ -2446,7 +2468,7 @@ body.racing { overflow: hidden; }
     if (holdFrom === 'inspecting') { const el = performance.now() - inspStart; lastPen = el > 17000 ? 'dnf' : el > 15000 ? '+2' : null; }
     if (lastPen) say(lastPen === 'dnf' ? 'Inspection over 17 seconds: DNF' : 'Inspection over 15 seconds: plus 2');
     stage.classList.remove('warn', 'over'); cancelAnimationFrame(raf);
-    runStart = performance.now(); setState('running'); tickRun();
+    runStart = performance.now(); phaseMarks = []; setState('running'); tickRun(); phaseShow();
     // comp sim time limit: the judge stops the solve and it's a DNF
     clearTimeout(limTimer);
     if (compOn() && db.comp.lim && !compDone(compSolves())) limTimer = setTimeout(() => { if (state === 'running') { stop(); ignoreRelease = false; toast(`Time limit (${fmt(db.comp.lim)}) reached: DNF`); } }, db.comp.lim);
@@ -2461,6 +2483,8 @@ body.racing { overflow: hidden; }
       setState('idle'); if (drill.coach) coachDrillDone(); return;
     }
     const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now() };
+    if (fixedMs === undefined && phaseMarks.length === 3 && phaseMarks[2] < ms) { const m = phaseMarks; solve.splits = { face: null, cross: m[0], pairs: [m[1], m[1], m[1], m[1]], oll: m[2], total: ms, moves: 0, manual: true }; }
+    phaseMarks = []; $('phaseNow').hidden = true;
     keepData();
     const inComp = compOn() && !compDone(compSolves());
     if (compOn() && !inComp) delete db.comp;   // the first solve after a finished round is a normal one
@@ -2502,7 +2526,7 @@ body.racing { overflow: hidden; }
     inp.value = ''; inp.blur();
   });
   function cancel() {
-    clearTimeout(holdTimer); cancelAnimationFrame(raf);
+    clearTimeout(holdTimer); cancelAnimationFrame(raf); phaseMarks = []; $('phaseNow').hidden = true;
     stage.classList.remove('warn', 'over');
     if (state !== 'idle') { setState('idle'); idleClock(); }
   }
@@ -2518,7 +2542,7 @@ body.racing { overflow: hidden; }
     if (!$('welcome').hidden || tourHasFocus()) return;   // first-visit card, or the tour's buttons: keys work them
     if (typing(e.target) && state !== 'running') return;
     if (e.repeat) { if (e.code === 'Space') e.preventDefault(); return; }
-    if (state === 'running') { e.preventDefault(); stop(); return; }
+    if (state === 'running') { e.preventDefault(); runTap(); return; }
     if (overTimer()) return;
     if (e.code === 'Escape') { cancel(); return; }
     const f = document.activeElement;
@@ -2930,6 +2954,7 @@ body.racing { overflow: hidden; }
     switchSession(s.event); $('sessNote').textContent = '';
     toast(`Deleted session "${s.name}"`, () => { db.sessions[key] = s; db.solves[key] = solves; switchSession(key); });
   });
+  $('stepTap').addEventListener('change', e => { db.stepTap = e.target.checked; save(); unfocus(e.target); if (db.stepTap) toast('Tap (or press space) at the end of the cross, F2L and OLL, then once more to stop.'); });
   $('voice').addEventListener('change', e => { db.voice = e.target.checked; save(); if (db.voice) { audioWarm(); inspCall(8); } unfocus(e.target); });
   $('insp').addEventListener('change', e => { db.inspection = e.target.checked; save(); cancel(); setState('idle'); unfocus(e.target); });
   $('goal').addEventListener('change', e => { const v = Math.max(1, Math.min(600, Math.round(+e.target.value || 20))); db.goal = v; e.target.value = v; save(); renderStats(); });
@@ -4578,7 +4603,7 @@ body.racing { overflow: hidden; }
       if (sp.length) {
         const avg = [0, 1, 2, 3].map(i => sp.reduce((a, x) => a + phaseTimes(x.splits)[i], 0) / sp.length), tot = avg.reduce((a, b) => a + b, 0) || 1;
         const r = avg.map((v, i) => v / (tot * TYPICAL[i])), i = r.indexOf(Math.max(...r));
-        items.push({ kind: 'train', page: PHASE_PAGE[i], n: 8, why: `${PHASES[i]} takes more of your solve than usual: ${fmt(avg[i])} on average in your last ${sp.length} smart-cube solve${sp.length === 1 ? '' : 's'}.` });
+        items.push({ kind: 'train', page: PHASE_PAGE[i], n: 8, why: `${PHASES[i]} takes more of your solve than usual: ${fmt(avg[i])} on average in your last ${sp.length} solve${sp.length === 1 ? '' : 's'} with step times.` });
       } else items.push({ kind: 'train', page: 'cross', n: 5, why: 'Plan the whole cross in inspection.' });
       // 2. the trainer with your slowest case
       const worst = [['f2lt', F2L], ['ollt', OLL_FULL], ['pllt', PLL], ['collt', COLL]].map(([page, groups]) => ({ page, w: slowest(groups.flatMap(g => g.items), 1)[0] })).filter(x => x.w && !items.some(it => it.page === x.page)).sort((a, b) => b.w.a.tot - a.w.a.tot)[0];
@@ -5105,7 +5130,7 @@ body.racing { overflow: hidden; }
   $('ownScr').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
   $('scrMode').addEventListener('change', e => { db.scrMode = e.target.value; save(); cancel(); newScramble(); unfocus(e.target); drawerDone(); });
   $('scrMode').value = ['own', 'daily'].includes(db.scrMode) || F2L_HANDS[db.scrMode] ? db.scrMode : 'gen';
-  $('event').value = EV(); fillSessions(); $('insp').checked = db.inspection; $('voice').checked = db.voice; $('goal').value = db.goal;
+  $('event').value = EV(); fillSessions(); $('insp').checked = db.inspection; $('voice').checked = db.voice; $('stepTap').checked = !!db.stepTap; $('goal').value = db.goal;
   setState('idle'); newScramble(); renderStats();
   // ---------- coach: after a slow step, practise that exact thing ----------
   // With a smart cube Sub-X knows each step's time and which OLL and PLL case came up. When a step is much slower
@@ -5113,6 +5138,9 @@ body.racing { overflow: hidden; }
   // Without a smart cube it can only tell the whole solve was slow, so it asks where you got stuck.
   // (this copy has no smart-cube splits section, so the step names live here)
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];
+  // step times from tapping at each step (this copy has no smart cube)
+  const phaseTimes = p => [p.cross, p.pairs[3] - p.cross, p.oll - p.pairs[3], p.total - p.oll].map(v => Math.max(0, v));
+  function splitsText(s) { const t = phaseTimes(s.splits); return PHASES.map((n, i) => `${n} ${fmt(t[i])}`).join(' · ') + ' · tapped'; }
   // ---------- stats: the numbers under the clock, the time spread and the practice calendar ----------
   function deltaHtml(now, before, what, short) {
     if (now == null || before == null || now === Infinity || before === Infinity) return '<span class="delta">&nbsp;</span>';
