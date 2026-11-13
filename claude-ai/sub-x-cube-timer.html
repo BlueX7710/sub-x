@@ -2118,15 +2118,30 @@ body.racing { overflow: hidden; }
   function foldApply() {
     db.fold = db.fold || {};
     document.querySelectorAll('[data-fold]').forEach(b => {
-      const shut = db.fold[b.dataset.fold] !== false;   // folded until you open it (or its device connects)
+      const shut = foldShut(b);
       b.closest('.panel').classList.toggle('shut', shut);
       b.setAttribute('aria-expanded', !shut); b.textContent = shut ? '▸' : '▾';
     });
   }
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-fold]'); if (!b) return;
-    db.fold = db.fold || {}; db.fold[b.dataset.fold] = db.fold[b.dataset.fold] === false; save(); foldApply(); unfocus(b);
+    db.fold = db.fold || {}; db.fold[b.dataset.fold] = !foldShut(b); save(); foldApply(); unfocus(b);
   });
+  // device panels are folded until you open them (or the device connects); the rest are open until you fold them
+  function foldShut(b) { const v = db.fold && db.fold[b.dataset.fold]; return b.hasAttribute('data-fold-open') ? v === true : v !== false; }
+  {
+    const FOLDS = { session: '.session-panel', goal: '#goalPanel', trend: '#trend', spread: '#spreadPanel', steps: '#splitsPanel', cases: '#casesPanel', solves: '#solves', cal: '#calPanel', backup: '.backup-panel' };
+    for (const [k, sel] of Object.entries(FOLDS)) {
+      const el = document.querySelector(sel), panel = el && el.closest('.panel'), h = panel && panel.querySelector(':scope > h2');
+      if (!h || h.querySelector('[data-fold]')) continue;
+      // the title stays on the left; anything else in the heading (counts, buttons) moves right, beside the fold button
+      const right = document.createElement('span'); right.className = 'h2-right';
+      [...h.children].filter(c => !c.classList.contains('ex-tag')).forEach(c => right.append(c));
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'fold'; b.dataset.fold = k; b.setAttribute('data-fold-open', '');
+      b.setAttribute('aria-label', 'Fold the ' + h.firstChild.textContent.trim().toLowerCase() + ' panel');
+      right.append(b); h.append(right);
+    }
+  }
   function unfold(k) { db.fold = db.fold || {}; if (db.fold[k] !== false) { db.fold[k] = false; save(); foldApply(); } }
   foldApply();
   // ---------- goal splits: what each CFOP step should take for your sub-X goal ----------

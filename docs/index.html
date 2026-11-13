@@ -273,6 +273,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .la-break { display: none; flex-basis: 100%; height: 0; }
 @media (max-width: 520px) { .la-break { display: block; } .last-actions .del-btn { margin-left: 0; } .last-actions { gap: 8px; } }
 .solve-detail .del-btn { margin-left: auto; }
+.split-graph { width: calc(100% - 12px); max-width: 520px; height: auto; display: block; margin: 0 6px; }
+.split-graph text { font-family: var(--font-mono); font-size: 10px; fill: var(--muted); }
 .pb-tag { margin-top: -10px; font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-ink); background: var(--accent); border-radius: 999px; padding: 2px 10px; }
 .seg.pen-seg { border-radius: 999px; }
 .seg.pen-seg button { border-radius: 999px; padding: 0 14px; font-size: 14px; }
@@ -2246,15 +2248,30 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   function foldApply() {
     db.fold = db.fold || {};
     document.querySelectorAll('[data-fold]').forEach(b => {
-      const shut = db.fold[b.dataset.fold] !== false;   // folded until you open it (or its device connects)
+      const shut = foldShut(b);
       b.closest('.panel').classList.toggle('shut', shut);
       b.setAttribute('aria-expanded', !shut); b.textContent = shut ? '▸' : '▾';
     });
   }
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-fold]'); if (!b) return;
-    db.fold = db.fold || {}; db.fold[b.dataset.fold] = db.fold[b.dataset.fold] === false; save(); foldApply(); unfocus(b);
+    db.fold = db.fold || {}; db.fold[b.dataset.fold] = !foldShut(b); save(); foldApply(); unfocus(b);
   });
+  // device panels are folded until you open them (or the device connects); the rest are open until you fold them
+  function foldShut(b) { const v = db.fold && db.fold[b.dataset.fold]; return b.hasAttribute('data-fold-open') ? v === true : v !== false; }
+  {
+    const FOLDS = { session: '.session-panel', goal: '#goalPanel', trend: '#trend', spread: '#spreadPanel', steps: '#splitsPanel', cases: '#casesPanel', solves: '#solves', cal: '#calPanel', backup: '.backup-panel' };
+    for (const [k, sel] of Object.entries(FOLDS)) {
+      const el = document.querySelector(sel), panel = el && el.closest('.panel'), h = panel && panel.querySelector(':scope > h2');
+      if (!h || h.querySelector('[data-fold]')) continue;
+      // the title stays on the left; anything else in the heading (counts, buttons) moves right, beside the fold button
+      const right = document.createElement('span'); right.className = 'h2-right';
+      [...h.children].filter(c => !c.classList.contains('ex-tag')).forEach(c => right.append(c));
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'fold'; b.dataset.fold = k; b.setAttribute('data-fold-open', '');
+      b.setAttribute('aria-label', 'Fold the ' + h.firstChild.textContent.trim().toLowerCase() + ' panel');
+      right.append(b); h.append(right);
+    }
+  }
   function unfold(k) { db.fold = db.fold || {}; if (db.fold[k] !== false) { db.fold[k] = false; save(); foldApply(); } }
   foldApply();
   // ---------- goal splits: what each CFOP step should take for your sub-X goal ----------
@@ -2335,7 +2352,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       html += `<li><button type="button" class="${cls}" data-row="${i}" aria-expanded="${openIdx === i}"><span class="n">${i + 1}</span><span class="t">${s.review ? '<span class="rv">AI</span>' : ''}${fmtList(s)}</span><span class="a">${fmt(avgOf(list, 5, i + 1))}</span></button>`;
       if (openIdx === i) {
         const solBtn = solvable(s) ? `<button type="button" class="pill-btn" data-sol="${i}" aria-pressed="${solIdx === i}">${solIdx === i ? 'Hide solution' : 'Solution'}</button>` : '', tt = turnsText(s);
-        html += `<div class="solve-detail"><p>${esc(s.scr)}</p><p class="meta">${shortDate(s.t)}${s.ex ? ' · example' : ''}</p>${s.splits ? `<p class="meta">${splitsText(s)}</p>` : tt ? `<p class="meta">${tt}</p>` : ''}` +
+        html += `<div class="solve-detail"><p>${esc(s.scr)}</p><p class="meta">${shortDate(s.t)}${s.ex ? ' · example' : ''}</p>${s.splits ? `<p class="meta">${splitsText(s)}</p>${splitGraph(s)}` : tt ? `<p class="meta">${tt}</p>` : ''}` +
           (ex ? (solBtn ? `<div class="row">${solBtn}</div>` : '') : `<div class="row">${penButtons(s, i)}${saveBtn(s, i)}${solBtn}${delButton(i)}</div>`) +
           (solIdx === i && solBtn ? solutionHtml(s, i, ex) : '') + '</div>';
       }
@@ -6652,6 +6669,26 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // ---------- splits ----------
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];   // usual share of a CFOP solve
   const phaseTimes = p => [p.cross, p.pairs[3] - p.cross, p.oll - p.pairs[3], p.total - p.oll].map(v => Math.max(0, v));
+  // one solve's steps as a bar: cross, each F2L pair, OLL and PLL, to scale, with a time axis
+  function splitGraph(s) {
+    const p = s.splits; if (!p || !p.total) return '';
+    const W = 320, L = 2, Rr = 2, T = 4, Hb = 26, total = p.total, X = t => L + (W - L - Rr) * Math.min(1, t / total);
+    const ends = [p.cross, p.pairs[3], p.oll, total], starts = [0, p.cross, p.pairs[3], p.oll];
+    let g = '', labels = '';
+    PHASES.forEach((n, i) => {
+      const x = X(starts[i]), w = Math.max(0, X(ends[i]) - x);
+      g += `<rect x="${x.toFixed(1)}" y="${T}" width="${w.toFixed(1)}" height="${Hb}" fill="${['var(--ph-cross)', 'var(--ph-f2l)', 'var(--ph-oll)', 'var(--ph-pll)'][i]}"><title>${n} ${fmt(ends[i] - starts[i])}</title></rect>`;
+      const lab = `${n} ${fmt(ends[i] - starts[i])}`;
+      if (w > lab.length * 5.6 + 6) labels += `<text x="${(x + w / 2).toFixed(1)}" y="${T + Hb / 2 + 4}" text-anchor="middle" style="fill:#fff;font-weight:600">${lab}</text>`;
+      else if (w > 22) labels += `<text x="${(x + w / 2).toFixed(1)}" y="${T + Hb / 2 + 4}" text-anchor="middle" style="fill:#fff;font-weight:600">${fmt(ends[i] - starts[i])}</text>`;
+    });
+    // each F2L pair's end, as a thin line in the F2L block
+    p.pairs.slice(0, 3).forEach(t => { if (t > p.cross) g += `<line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="${T}" y2="${T + Hb}" stroke="var(--sunk)" stroke-width="1.5"/>`; });
+    g += labels;   // the step names go on top of the pair lines
+    const step = total > 30000 ? 10000 : total > 12000 ? 5000 : total > 5000 ? 2000 : 1000;
+    for (let t = 0; t <= total; t += step) g += `<text x="${X(t).toFixed(1)}" y="${T + Hb + 13}" text-anchor="${t === 0 ? 'start' : 'middle'}">${t / 1000}s</text>`;
+    return `<svg class="split-graph" viewBox="0 0 ${W} ${T + Hb + 16}" role="img" aria-label="${PHASES.map((n, i) => n + ' ' + fmt(ends[i] - starts[i])).join(', ')}">${g}</svg>`;
+  }
   function splitsText(s) {
     const p = s.splits, t = phaseTimes(p);
     return PHASES.map((n, i) => `${n} ${fmt(t[i])}`).join(' · ') + ` · ${p.moves} moves, ${(p.moves / Math.max(0.001, p.total / 1000)).toFixed(1)} TPS`;
