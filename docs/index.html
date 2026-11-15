@@ -395,7 +395,8 @@ body.running .kpis { opacity: .12; transition: opacity .2s; }
 .side > .hw.live { order: -4; }
 /* the session stats, then your splits, then the goal splits */
 .side > .session-panel { order: -3; }
-.side > #lastSplitPanel, .side > #splitsPanel { order: -2; }   /* the last solve sits just above CFOP steps */
+.side > #splitsPanel { order: -2; }
+body.running #lastSplitPanel { opacity: .12; transition: opacity .2s; }   /* the last solve sits right under the timer */
 .side > #goalPanel { order: -1; }
 .example-note { font-size: 13px; color: var(--muted); background: var(--sunk); border-radius: 6px; padding: 6px 10px; margin: 0 0 10px; }
 .ex-tag { color: var(--muted); font-weight: 400; }
@@ -1291,6 +1292,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <div class="hint" id="hint"></div>
         <button type="button" class="pill-btn" id="cancelTimer" hidden>Cancel</button>
       </section>
+      <section class="panel" id="lastSplitPanel" hidden>
+        <h2>Last solve <b id="lastSplitTime"></b></h2>
+        <div id="lastSplitGraph"></div>
+        <div class="legend" id="lastSplitLegend"><span><i class="sq" style="background:var(--ph-cross)"></i>cross</span><span><i class="sq" style="background:var(--ph-f2l)"></i>F2L (a notch for each pair)</span><span><i class="sq" style="background:var(--ph-oll)"></i>OLL</span><span><i class="sq" style="background:var(--ph-pll)"></i>PLL</span></div>
+        <p class="lead" id="lastSplitNote" style="margin:6px 0 0"></p>
+      </section>
       <section class="kpis" id="kpis" aria-label="Session numbers" hidden></section>
     </div>
 
@@ -1356,12 +1363,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <h2>Time spread <span class="ex-tag" hidden>· example</span> <b id="spreadSub"></b></h2>
         <svg class="trend" id="spread" viewBox="0 0 320 140" role="img" aria-label="How many solves fell in each time band"></svg>
         <div class="legend"><span><i class="sq" style="background:var(--accent)"></i>solves</span><span><i style="background:var(--ink)"></i>mean</span><span><i style="background:var(--ready)"></i>goal</span></div>
-      </section>
-      <section class="panel" id="lastSplitPanel" hidden>
-        <h2>Last solve <b id="lastSplitTime"></b></h2>
-        <div id="lastSplitGraph"></div>
-        <div class="legend" id="lastSplitLegend"><span><i class="sq" style="background:var(--ph-cross)"></i>cross</span><span><i class="sq" style="background:var(--ph-f2l)"></i>F2L (a notch for each pair)</span><span><i class="sq" style="background:var(--ph-oll)"></i>OLL</span><span><i class="sq" style="background:var(--ph-pll)"></i>PLL</span></div>
-        <p class="lead" id="lastSplitNote" style="margin:6px 0 0"></p>
       </section>
       <section class="panel" id="splitsPanel" hidden>
         <h2>CFOP steps <b id="splitsCount"></b></h2>
@@ -6739,9 +6740,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];   // usual share of a CFOP solve
   const phaseTimes = p => [p.cross, p.pairs[3] - p.cross, p.oll - p.pairs[3], p.total - p.oll].map(v => Math.max(0, v));
   // one solve's steps as a bar: cross, each F2L pair, OLL and PLL, to scale, with a time axis
-  function splitGraph(s) {
+  function splitGraph(s, W = 320) {   // W: drawing width (wider under the timer on a computer, so the text keeps its size)
     const p = s.splits; if (!p || !p.total) return '';
-    const W = 320, L = 2, Rr = 2, T = 4, Hb = 26, total = p.total, X = t => L + (W - L - Rr) * Math.min(1, t / total);
+    const L = 2, Rr = 2, T = 4, Hb = 26, total = p.total, X = t => L + (W - L - Rr) * Math.min(1, t / total);
     const ends = [p.cross, p.pairs[3], p.oll, total], starts = [0, p.cross, p.pairs[3], p.oll];
     let g = '', labels = '';
     PHASES.forEach((n, i) => {
@@ -6840,7 +6841,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     panel.hidden = !s; if (!s) return;
     const p = s.splits, t = phaseTimes(p), pairs = p.pairs.map((v, i) => v - (i ? p.pairs[i - 1] : p.cross));
     $('lastSplitTime').textContent = fmtSolve(s);
-    $('lastSplitGraph').innerHTML = splitGraph(s);
+    const w = $('lastSplitGraph').clientWidth;
+    $('lastSplitGraph').innerHTML = splitGraph(s, w > 400 ? Math.round(w / 1.3) : 320);
     $('lastSplitNote').textContent = p.manual ? `${PHASES.map((n, i) => n + ' ' + fmt(t[i])).join(' · ')}. Timed with your taps.` : `${PHASES.map((n, i) => n + ' ' + fmt(t[i])).join(' · ')}. Pairs ${pairs.map(fmt).join(', ')}. ${p.moves} turns, ${(p.moves / Math.max(0.001, p.total / 1000)).toFixed(1)} TPS.`;
     $('lastSplitLegend').hidden = !!p.manual;
   }
