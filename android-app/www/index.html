@@ -302,8 +302,7 @@ body.running .hint, body.running .last-actions { visibility: hidden; }
 .phase-now { font-family: var(--font-display); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: center; }
 .phase-now b { color: var(--ink); font-weight: 600; }
 .phase-now span { font-family: var(--font-mono); text-transform: none; letter-spacing: 0; margin-left: 4px; }
-/* ---- stats: the numbers strip under the clock, and the stats panels beside it (in the Stats tab on phones) ---- */
-.tabs a.tab-phone { display: none; }
+/* ---- stats: the numbers strip under the clock, and the stats panels beside it (under it on phones) ---- */
 .streak .s-short { display: none; }
 @media (max-width: 520px) {
   .top { gap: 8px 10px; }
@@ -320,9 +319,7 @@ body.running .hint, body.running .last-actions { visibility: hidden; }
 .add-time .field { flex: 1 1 auto; width: auto; min-width: 0; font-family: var(--font-mono); }
 body.running .add-time { visibility: hidden; }
 @media (max-width: 860px) {
-  .tabs a.tab-phone { display: block; }
   .stage-stats { display: none; }   /* the numbers strip just below says it */
-  #view-stats .side { max-width: 640px; margin: 0 auto; }
 }
 .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
 .kpi { padding: 10px 14px; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -1179,7 +1176,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     <span class="streak" id="streak" hidden></span>
     <nav class="tabs" aria-label="Sections">
       <a href="#timer" data-view="timer">Timer</a>
-      <a href="#stats" data-view="stats" class="tab-phone">Stats</a>
       <a href="#learn" data-view="learn">Learn</a>
     </nav>
     <label class="ctl skin-pick" for="skin">Look
@@ -1420,11 +1416,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         </div>
       </section>
     </aside>
-  </main>
-
-  <!-- ================= STATS (phones: the deeper stats move here from beside the timer) ================= -->
-  <main id="view-stats" hidden>
-    <aside class="side" id="statsSide" aria-label="Stats"></aside>
   </main>
 
   <!-- ================= LEARN ================= -->
@@ -2046,13 +2037,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   $('skin').addEventListener('change', e => { db.skin = e.target.value; save(); applySkin(); unfocus(e.target); });
   function phoneLayout() { return matchMedia('(max-width: 860px)').matches; }
   function showView(v) {
-    if (!['timer', 'stats', 'learn'].includes(v) || (v === 'stats' && !phoneLayout())) v = 'timer';   // Stats is a tab on phones only
+    if (!['timer', 'learn'].includes(v)) v = 'timer';   // an old #stats link opens the Timer page, where the stats are
     if (view === 'timer' && v !== 'timer') cancel();
     view = v;
-    for (const k of ['timer', 'stats', 'learn']) $('view-' + k).hidden = k !== v;
+    for (const k of ['timer', 'learn']) $('view-' + k).hidden = k !== v;
     document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.view === v ? 'page' : 'false'));
     if (v === 'learn') renderLearn();
-    if (v === 'stats') renderDeep();
   }
   // a shared scramble arrives as #timer?e=333&s=R%20U...
   function readHash() {
@@ -2252,7 +2242,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     renderTodayLine(); sessCounts();
     renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo(); renderComp(); achCheck(); renderGoal();
     renderKpis(list); renderSpread(list, goal); renderCal();
-    if (!phoneLayout() || view === 'stats') renderDeep();
+    renderDeep();
   }
   // ---------- today: how many solves, how long you spent solving, and about how long you practised ----------
   // Practice time adds up the gaps between your solves and trainer tries today (each solve's own time for the
@@ -2613,17 +2603,23 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (compOn() && db.comp.lim && !compDone(compSolves())) limTimer = setTimeout(() => { if (state === 'running') { stop(); ignoreRelease = false; toast(`Time limit (${fmt(db.comp.lim)}) reached: DNF`); } }, db.comp.lim);
     keepAwake();
   }
-  function stop(fixedMs) {
+  // runs f once the browser has painted what is on screen now (or within 100 ms, if the page is hidden)
+  function afterPaint(f) {
+    let done = false; const go = () => { if (!done) { done = true; f(); } };
+    requestAnimationFrame(() => setTimeout(go, 0)); setTimeout(go, 100);
+  }
+  // fixedMs: a time from elsewhere (typed, Stackmat, the smart cube's turns); extra: more to keep on the solve
+  function stop(fixedMs, extra) {
     const stopAt = performance.now(), ms = fixedMs !== undefined ? fixedMs : Math.round(stopAt - runStart);
     cancelAnimationFrame(raf); clearTimeout(limTimer); ignoreRelease = true; stoppedAt = stopAt;
     keepAwake();
     if (drill) {
-      drill.times.push(ms); if (drill.times.length > 50) drill.times.shift(); save(); showTime(fmt(ms));
-      setState('idle'); if (drill.coach) coachDrillDone();
-      if (drill && SM.conn) smartScramble();   // a smart cube follows the same setup again for the next try
+      drill.times.push(ms); if (drill.times.length > 50) drill.times.shift(); showTime(fmt(ms));
+      setState('idle'); const smart = typeof SM !== 'undefined' && SM.conn; if (smart) SM.T = null;
+      afterPaint(() => { save(); if (drill && drill.coach) coachDrillDone(); if (drill && smart && SM.conn) smartScramble(); });   // a smart cube follows the same setup again for the next try
       return;
     }
-    const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now() };
+    const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now(), ...(extra || {}) };
     if (fixedMs === undefined && phaseMarks.length === 3 && phaseMarks[2] < ms) { const m = phaseMarks; solve.splits = { face: null, cross: m[0], pairs: [m[1], m[1], m[1], m[1]], oll: m[2], total: ms, moves: 0, manual: true }; }
     phaseMarks = []; $('phaseNow').hidden = true;
     keepData();
@@ -2633,14 +2629,19 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (dailyOn) solve.daily = dailyOn;
     if (f2lMode() && !inComp) solve.f2l = db.scrMode;   // an F2L-only solve: no full-solve Solution for it
     if (friendScr && friendScr.scr === scramble) { solve.shared = true; friendScr = null; }
-    db.solves[db.event].push(solve); save();
+    db.solves[db.event].push(solve);
     justSolved = true; openIdx = -1;
-    showResult(solve);
-    setState('idle'); newScramble(); renderStats();
-    { const L = db.solves[db.event], pb = L.length > 1 && eff(solve) !== Infinity && L.every(s => eff(s) >= eff(solve));
-      say(`${fmtSolve(solve)}${pb ? '. New PB' : ''}`); }
-    if (matchMedia('(max-width: 860px)').matches) stage.scrollIntoView({ block: 'nearest' });   // phones: the result and its buttons in view
-    setTimeout(() => { coachCheck(solve); savingsCheck(solve); }, 0);   // after a smart-cube solve has filled in its moves
+    showResult(solve); setState('idle');   // the clock shows the time now; saving and redrawing the stats wait for the screen
+    if (typeof SM !== 'undefined' && SM.conn) SM.T = null;   // turns before the next scramble is shown don't count towards it
+    afterPaint(() => {
+      save();
+      newScramble();
+      renderStats();
+      { const L = db.solves[db.event], pb = L.length > 1 && eff(solve) !== Infinity && L.every(s => eff(s) >= eff(solve));
+        say(`${fmtSolve(solve)}${pb ? '. New PB' : ''}`); }
+      if (matchMedia('(max-width: 860px)').matches) stage.scrollIntoView({ block: 'nearest' });   // phones: the result and its buttons in view
+      coachCheck(solve); savingsCheck(solve);
+    });
   }
   // ---------- typing in a time: a solve timed on something else (a Stackmat without the cable, a friend's timer) ----------
   // 12.34, 1:02.34, and digits only the way csTimer reads them: 15 (= 15 s), 1234 (= 12.34), 10234 (= 1:02.34).
@@ -6122,10 +6123,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (SM.T) { SmartCore.step(SM.T, SM.cur, m); smartShow(); if (SM.T.done) smartReadyGo(); }
   }
   function smartFinish() {
-    const t0 = SM.moves[0].t, moves = SM.moves.map(x => ({ m: x.m, t: Math.round(x.t - t0) })), raw = SM.raw.slice(), wasDrill = !!drill;
-    stop(); ignoreRelease = false;
-    if (wasDrill) return;
-    const list = db.solves[db.event], s = list[list.length - 1]; if (!s) return;
+    const t0 = SM.moves[0].t, moves = SM.moves.map(x => ({ m: x.m, t: Math.round(x.t - t0) })), raw = SM.raw.slice();
     let ms = moves[moves.length - 1].t;              // first turn to solved, on this device's clock
     try {   // the cube's own clock is steadier: fit it to ours (the csTimer method) and use it if it agrees
       if (SM.lib && raw.length > 2 && raw.every(r => r.cubeTimestamp != null && r.localTimestamp != null)) {
@@ -6133,10 +6131,10 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         if (d > 0 && Math.abs(d - ms) < Math.max(300, ms * 0.1)) ms = d;
       }
     } catch (e) {}
-    s.ms = Math.round(ms); s.smart = true;
-    s.mv = moves.map(x => x.m).join(' '); s.mt = moves.map(x => x.t);   // for the Solution view
-    const sp = SmartCore.splits(SM.readySt, moves); if (sp) s.splits = sp;
-    save(); showResult(s); renderStats();
+    if (drill) { stop(Math.round(ms)); ignoreRelease = false; return; }
+    const extra = { smart: true, mv: moves.map(x => x.m).join(' '), mt: moves.map(x => x.t) };   // moves for the Solution view
+    let sp = null; try { sp = SmartCore.splits(SM.readySt, moves); } catch (e) {} if (sp) extra.splits = sp;
+    stop(Math.round(ms), extra); ignoreRelease = false;
   }
   function smartCleanup() {
     try { if (SM.sub) SM.sub.unsubscribe(); } catch (e) {}
@@ -6282,7 +6280,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       }
     } else if (STK.run && (st === 'S' || st === 'I' || (ms === STK.last && ++STK.same >= 3))) {   // stopped (or reset mid-solve)
       STK.run = false;
-      if (state === 'running') { if (st === 'I') cancel(); else { stop(ms); ignoreRelease = false; const L = db.solves[db.event], s = L[L.length - 1]; if (s) { s.stk = true; save(); achCheck(); } } }
+      if (state === 'running') { if (st === 'I') cancel(); else { stop(ms, { stk: true }); ignoreRelease = false; } }   // saved, and the Stackmat achievement checked, once the time is on screen
     } else if (STK.run && state === 'running') runStart = performance.now() - ms;   // keep the page's clock in step
     if (ms !== STK.last) STK.same = 0;
     STK.last = ms; stackUI();
@@ -6434,21 +6432,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       else { const ib = $('installBtn'); ib ? ib.before(look) : document.querySelector('.top').append(look); }
     };
     place(); mq.addEventListener ? mq.addEventListener('change', place) : mq.addListener(place);
-  }
-  // Phones: the Timer page keeps the clock, the numbers strip, your solves and the hardware panels; the deeper stats
-  // (averages, goal splits, trend, spread, steps, cases, calendar, achievements, backup) move to the Stats tab.
-  // The panels themselves move, so their ids and drawing code stay the same; a marker keeps each one's place.
-  {
-    const mq = matchMedia('(max-width: 860px)');
-    const moved = ['.side > .session-panel', '#goalPanel', '#trend', '#spreadPanel', '#lastSplitPanel', '#splitsPanel', '#casesPanel', '#calPanel', '#achPanel', '.side > .backup-panel']
-      .map(sel => { const el = document.querySelector(sel); return el && sel === '#trend' ? el.closest('.panel') : el; }).filter(Boolean)
-      .map(el => { const mark = document.createComment('stats panel'); el.before(mark); return { el, mark }; });
-    const place = () => {
-      if (mq.matches) moved.forEach(({ el }) => $('statsSide').append(el));
-      else { moved.forEach(({ el, mark }) => mark.after(el)); if (view === 'stats') location.hash = 'timer'; }
-    };
-    const changed = () => { place(); if (!mq.matches) renderDeep(); };   // wider now: the panels beside the timer need drawing
-    place(); mq.addEventListener ? mq.addEventListener('change', changed) : mq.addListener(changed);
   }
   $('coachMode').addEventListener('change', e => { db.coach = e.target.value; save(); coachShow(); unfocus(e.target); });
   coachShow();
@@ -7113,7 +7096,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     ['#stage', () => startHow()],
     ['.tabs a[data-view="learn"]', 'Learn starts from zero with the Beginner method, then has every CFOP and Roux case with a 3D player, trainers, and Today: a short practice plan made from your own times.'],
     ['#barMore, #compBtn', () => `${phoneLayout() ? 'Settings' : 'Modes and settings'}: Daily 5 and F2L scrambles, comp sim rounds, racing a friend, inspection, voice calls and the coach.`],
-    ['#skin, .backup-panel', el => el.id === 'skin' ? `Pick a look you like. Your times stay on this device, so save a backup now and then (Backup is ${phoneLayout() ? 'in the Stats tab' : 'at the bottom'}).` :'Your times stay on this device, so save a backup here now and then.'],
+    ['#skin, .backup-panel', el => el.id === 'skin' ? `Pick a look you like. Your times stay on this device, so save a backup now and then (Backup is at the bottom).` :'Your times stay on this device, so save a backup here now and then.'],
   ];
   // a step's target: the first of its elements that can show (one in the settings drawer counts: the tour opens it)
   const tourEl = step => [...document.querySelectorAll(step[0])].find(el => el.closest('#barRest') || el.getClientRects().length);

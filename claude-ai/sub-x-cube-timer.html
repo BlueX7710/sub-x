@@ -282,8 +282,7 @@ body.running .hint, body.running .last-actions { visibility: hidden; }
 .phase-now { font-family: var(--font-display); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: center; }
 .phase-now b { color: var(--ink); font-weight: 600; }
 .phase-now span { font-family: var(--font-mono); text-transform: none; letter-spacing: 0; margin-left: 4px; }
-/* ---- stats: the numbers strip under the clock, and the stats panels beside it (in the Stats tab on phones) ---- */
-.tabs a.tab-phone { display: none; }
+/* ---- stats: the numbers strip under the clock, and the stats panels beside it (under it on phones) ---- */
 .streak .s-short { display: none; }
 @media (max-width: 520px) {
   .top { gap: 8px 10px; }
@@ -300,9 +299,7 @@ body.running .hint, body.running .last-actions { visibility: hidden; }
 .add-time .field { flex: 1 1 auto; width: auto; min-width: 0; font-family: var(--font-mono); }
 body.running .add-time { visibility: hidden; }
 @media (max-width: 860px) {
-  .tabs a.tab-phone { display: block; }
   .stage-stats { display: none; }   /* the numbers strip just below says it */
-  #view-stats .side { max-width: 640px; margin: 0 auto; }
 }
 
 .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
@@ -1075,7 +1072,6 @@ body.racing { overflow: hidden; }
     <span class="streak" id="streak" hidden></span>
     <nav class="tabs" aria-label="Sections">
       <a href="#timer" data-view="timer">Timer</a>
-      <a href="#stats" data-view="stats" class="tab-phone">Stats</a>
       <a href="#learn" data-view="learn">Learn</a>
       <a href="#review" data-view="review">AI Review</a>
     </nav>
@@ -1249,11 +1245,6 @@ body.racing { overflow: hidden; }
         </div>
       </section>
     </aside>
-  </main>
-
-  <!-- ================= STATS (phones: the deeper stats move here from beside the timer) ================= -->
-  <main id="view-stats" hidden>
-    <aside class="side" id="statsSide" aria-label="Stats"></aside>
   </main>
 
   <!-- ================= LEARN ================= -->
@@ -1913,10 +1904,10 @@ body.racing { overflow: hidden; }
   $('skin').addEventListener('change', e => { db.skin = e.target.value; save(); applySkin(); unfocus(e.target); });
   function phoneLayout() { return matchMedia('(max-width: 860px)').matches; }
   function showView(v) {
-    if (!['timer', 'stats', 'learn', 'review'].includes(v) || (v === 'stats' && !phoneLayout())) v = 'timer';   // Stats is a tab on phones only
+    if (!['timer', 'learn', 'review'].includes(v)) v = 'timer';   // an old #stats link opens the Timer page, where the stats are
     if (view === 'timer' && v !== 'timer') cancel();
     view = v;
-    for (const k of ['timer', 'stats', 'learn', 'review']) $('view-' + k).hidden = k !== v;
+    for (const k of ['timer', 'learn', 'review']) $('view-' + k).hidden = k !== v;
     document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.view === v ? 'page' : 'false'));
     if (v === 'learn') renderLearn();
     if (v === 'review') renderReviewSetup();
@@ -2474,15 +2465,23 @@ body.racing { overflow: hidden; }
     if (compOn() && db.comp.lim && !compDone(compSolves())) limTimer = setTimeout(() => { if (state === 'running') { stop(); ignoreRelease = false; toast(`Time limit (${fmt(db.comp.lim)}) reached: DNF`); } }, db.comp.lim);
     keepAwake();
   }
-  function stop(fixedMs) {
+  // runs f once the browser has painted what is on screen now (or within 100 ms, if the page is hidden)
+  function afterPaint(f) {
+    let done = false; const go = () => { if (!done) { done = true; f(); } };
+    requestAnimationFrame(() => setTimeout(go, 0)); setTimeout(go, 100);
+  }
+  // fixedMs: a time from elsewhere (typed, Stackmat, the smart cube's turns); extra: more to keep on the solve
+  function stop(fixedMs, extra) {
     const stopAt = performance.now(), ms = fixedMs !== undefined ? fixedMs : Math.round(stopAt - runStart);
     cancelAnimationFrame(raf); clearTimeout(limTimer); ignoreRelease = true; stoppedAt = stopAt;
     keepAwake();
     if (drill) {
-      drill.times.push(ms); if (drill.times.length > 50) drill.times.shift(); save(); showTime(fmt(ms));
-      setState('idle'); if (drill.coach) coachDrillDone(); return;
+      drill.times.push(ms); if (drill.times.length > 50) drill.times.shift(); showTime(fmt(ms));
+      setState('idle');
+      afterPaint(() => { save(); if (drill && drill.coach) coachDrillDone(); });
+      return;
     }
-    const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now() };
+    const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now(), ...(extra || {}) };
     if (fixedMs === undefined && phaseMarks.length === 3 && phaseMarks[2] < ms) { const m = phaseMarks; solve.splits = { face: null, cross: m[0], pairs: [m[1], m[1], m[1], m[1]], oll: m[2], total: ms, moves: 0, manual: true }; }
     phaseMarks = []; $('phaseNow').hidden = true;
     keepData();
@@ -2492,14 +2491,18 @@ body.racing { overflow: hidden; }
     if (dailyOn) solve.daily = dailyOn;
     if (f2lMode() && !inComp) solve.f2l = db.scrMode;   // an F2L-only solve: no full-solve Solution for it
     if (friendScr && friendScr.scr === scramble) { solve.shared = true; friendScr = null; }
-    db.solves[db.event].push(solve); save();
+    db.solves[db.event].push(solve);
     justSolved = true; openIdx = -1;
-    showResult(solve);
-    setState('idle'); newScramble(); renderStats();
-    { const L = db.solves[db.event], pb = L.length > 1 && eff(solve) !== Infinity && L.every(s => eff(s) >= eff(solve));
-      say(`${fmtSolve(solve)}${pb ? '. New PB' : ''}`); }
-    if (matchMedia('(max-width: 860px)').matches) stage.scrollIntoView({ block: 'nearest' });   // phones: the result and its buttons in view
-    setTimeout(() => coachCheck(solve), 0);   // after a smart-cube solve has filled in its moves
+    showResult(solve); setState('idle');   // the clock shows the time now; saving and redrawing the stats wait for the screen
+    afterPaint(() => {
+      save();
+      newScramble();
+      renderStats();
+      { const L = db.solves[db.event], pb = L.length > 1 && eff(solve) !== Infinity && L.every(s => eff(s) >= eff(solve));
+        say(`${fmtSolve(solve)}${pb ? '. New PB' : ''}`); }
+      if (matchMedia('(max-width: 860px)').matches) stage.scrollIntoView({ block: 'nearest' });   // phones: the result and its buttons in view
+      coachCheck(solve);
+    });
   }
   // ---------- typing in a time: a solve timed on something else (a Stackmat without the cable, a friend's timer) ----------
   // 12.34, 1:02.34, and digits only the way csTimer reads them: 15 (= 15 s), 1234 (= 12.34), 10234 (= 1:02.34).
@@ -5328,20 +5331,6 @@ body.racing { overflow: hidden; }
     };
     place(); mq.addEventListener ? mq.addEventListener('change', place) : mq.addListener(place);
   }
-  // Phones: the Timer page keeps the clock, the numbers strip, your solves and the hardware panels; the deeper stats
-  // (averages, goal splits, trend, spread, steps, cases, calendar, achievements, backup) move to the Stats tab.
-  // The panels themselves move, so their ids and drawing code stay the same; a marker keeps each one's place.
-  {
-    const mq = matchMedia('(max-width: 860px)');
-    const moved = ['.side > .session-panel', '#goalPanel', '#trend', '#spreadPanel', '#splitsPanel', '#casesPanel', '#calPanel', '#achPanel', '.side > .backup-panel']
-      .map(sel => { const el = document.querySelector(sel); return el && sel === '#trend' ? el.closest('.panel') : el; }).filter(Boolean)
-      .map(el => { const mark = document.createComment('stats panel'); el.before(mark); return { el, mark }; });
-    const place = () => {
-      if (mq.matches) moved.forEach(({ el }) => $('statsSide').append(el));
-      else { moved.forEach(({ el, mark }) => mark.after(el)); if (view === 'stats') location.hash = 'timer'; }
-    };
-    place(); mq.addEventListener ? mq.addEventListener('change', place) : mq.addListener(place);
-  }
   $('coachMode').addEventListener('change', e => { db.coach = e.target.value; save(); coachShow(); unfocus(e.target); });
   coachShow();
 
@@ -5468,7 +5457,7 @@ body.racing { overflow: hidden; }
     ['#stage', () => startHow()],
     ['.tabs a[data-view="learn"]', 'Learn starts from zero with the Beginner method, then has every CFOP and Roux case with a 3D player, trainers, and Today: a short practice plan made from your own times.'],
     ['#barMore, #compBtn', () => `${phoneLayout() ? 'Settings' : 'Modes and settings'}: Daily 5 and F2L scrambles, comp sim rounds, racing a friend, inspection, voice calls and the coach.`],
-    ['#skin, .backup-panel', el => el.id === 'skin' ? `Pick a look you like. Your times stay on this device, so save a backup now and then (Backup is ${phoneLayout() ? 'in the Stats tab' : 'at the bottom'}).` : 'Your times stay on this device, so save a backup here now and then.'],
+    ['#skin, .backup-panel', el => el.id === 'skin' ? `Pick a look you like. Your times stay on this device, so save a backup now and then (Backup is at the bottom).` : 'Your times stay on this device, so save a backup here now and then.'],
   ];
   // a step's target: the first of its elements that can show (one in the settings drawer counts: the tour opens it)
   const tourEl = step => [...document.querySelectorAll(step[0])].find(el => el.closest('#barRest') || el.getClientRects().length);
