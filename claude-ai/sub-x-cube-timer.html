@@ -2675,6 +2675,7 @@ body.racing { overflow: hidden; }
     else if (b.dataset.p3d) { const c = caseById(b.dataset.p3d); if (c) openPlayer(c); }
     else if (b.dataset.drill !== undefined) { const c = caseById(b.dataset.drill); if (c) startDrill(c); }
     else if (b.dataset.learn !== undefined) { const id = b.dataset.learn; db.learned[id] = !db.learned[id]; if (db.learned[id]) (db.learnedAt = db.learnedAt || {})[id] = Date.now(); save(); renderLearn(); }
+    else if (b.dataset.memo) { quiz.set = db.quizSet = b.dataset.memo; quiz.which = db.quizWhich = 'all'; quiz.cur = null; save(); goLearn('quiz'); }
     else if (b.dataset.lset) goLearn(pageOf(b.dataset.lset));
     else if (b.dataset.method) { learnMethod = b.dataset.method; learnSet = pageOf(stepOf(lastStep[learnMethod] || METHODS[learnMethod].steps[0][0])); renderLearn(); }
     else if (b.dataset.lmode) { db.learnMode = b.dataset.lmode; save(); learnSet = lastStep[learnMethod] = pageOf(stepOf(learnSet)); renderLearn(); }
@@ -3302,7 +3303,7 @@ body.racing { overflow: hidden; }
     cross: { title: 'Cross', lead: 'Plan the cross, then compare it with the shortest one Sub-X finds.' },
     today: { title: 'Today', lead: 'A short plan made from your own times, new each day. Each part ticks off as you do it.' },
     saved: { title: 'My solves', lead: 'Solves you saved from the Timer. Try the same scramble again, or watch your solve in 3D.', more: 'Saved solves stay here when you delete a session\'s solves, and are in backups.' },
-    quiz: { title: 'Flashcards', lead: 'Name the case, then reveal it. Ones you miss come back soon, ones you know later.', more: 'This is spaced repetition: cases you miss come back within minutes, and cases you know after 1, 3, 7, 16 and then 35 days. Your schedule is saved and included in backups.' },
+    quiz: { title: 'Memorize', lead: 'See a case, recall its algorithm, then check. Ones you miss come back in a minute, ones you know come back later.', more: 'This is spaced repetition: cases you miss come back within minutes, and cases you know after 1, 3, 7, 16 and then 35 days. A case counts as memorized once its next review is 3 days or more away. Your schedule is saved and included in backups.' },
   };
   const NOTATION = [
     ['R  U  F  L  D  B', 'Right, Up, Front, Left, Down, Back. A plain letter is a quarter turn clockwise when you look at that face.'],
@@ -3319,7 +3320,7 @@ body.racing { overflow: hidden; }
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
     beginner: { name: 'Beginner', steps: [['bgn', 'Learn to solve'], ['notation', 'Notation'], ['words', 'Words']] },
-    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['f2lbf', 'Blind F2L'], ['oll', '2-look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['pllr', 'PLL recognition'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['yw', 'Yiheng Wang'], ['tps', 'TPS'], ['quiz', 'Flashcards'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
+    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['quiz', 'Memorize'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['f2lbf', 'Blind F2L'], ['oll', '2-look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['pllr', 'PLL recognition'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['yw', 'Yiheng Wang'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
     roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
@@ -3330,7 +3331,7 @@ body.racing { overflow: hidden; }
   const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], f2lbf: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
   // the Learn buttons, grouped by the step they belong to
   const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', f2lbf: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', pllr: 'PLL', coll: 'COLL', collt: 'COLL', yw: 'Pros',
-    fb: 'Steps', sb: 'Steps', cmll: 'Steps', lse: 'Steps', tps: 'Practice', quiz: 'Practice', saved: 'Practice', notation: 'Help', words: 'Help' };
+    fb: 'Steps', sb: 'Steps', cmll: 'Steps', lse: 'Steps', tps: 'Practice', saved: 'Practice', notation: 'Help', words: 'Help' };
   const defMethod = () => METHODS[db.defMethod] ? db.defMethod : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
   const lastStep = {};
@@ -4185,7 +4186,7 @@ body.racing { overflow: hidden; }
     r.due = now + (r.box ? SRS_DAYS[r.box] * 864e5 : 60e3); r.seen = now;
     db.srs[id] = r; save();
   }
-  const quizPool = () => ALL_CASES.filter(c => !c.id.startsWith('yw:') && (quiz.pool === 'all' || c.mode === quiz.pool));
+  const quizPool = () => { const S = QSETS.find(s => s[0] === quiz.set) || QSETS[0]; return ALL_CASES.filter(c => S[2].includes(c.id.split(':')[0]) && (quiz.which === 'all' || (quiz.which === 'learned') === !!db.learned[c.id])); };
   const fmtWhen = ms => ms < 36e5 ? `in ${Math.max(1, Math.round(ms / 6e4))} min` : ms < 864e5 ? `in ${Math.round(ms / 36e5)} h` : Math.round(ms / 864e5) === 1 ? 'tomorrow' : `in ${Math.round(ms / 864e5)} days`;
   function srsLine() {
     const pool = quizPool(), now = Date.now(), srs = db.srs || {};
@@ -4761,6 +4762,7 @@ body.racing { overflow: hidden; }
     const all = count(learnSet), pct = all ? Math.round(done(learnSet) / all * 100) : null;
     let html = pct === null ? '' : `<div class="set-sum"><span><b>${done(learnSet)}</b> of ${all} learned</span><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${pct}% learned"><i style="width:${pct}%"></i></div></div>` + (done(learnSet) ? '' : '<p class="set-hint">Tap the ✓ on a card once you know it by heart.</p>');
     html += '<p class="set-hint">To get a case on your cube, hold a solved cube with yellow on top and green in front and do its scramble.</p>';
+    if (QSETS.some(s => s[0] === learnSet)) html += `<p style="margin:-8px 0 18px"><button type="button" class="pill-btn" data-memo="${learnSet}">Memorize these</button></p>`;
     let shown = set.groups;
     for (const g of shown) {
       const mode = g.mode || set.mode, coll = g.coll && COLL.flatMap(x => x.items).find(x => x.id === g.coll);
@@ -4862,36 +4864,53 @@ body.racing { overflow: hidden; }
     ['Cutoff and time limit', 'Competition rules: miss the cutoff in your first solves and the round ends early; reach the time limit and the solve is a DNF.'],
   ];
 
-  let quiz = { pool: 'all', cur: null, shown: false, right: 0, total: 0 };
-  // Next card: the most overdue reviews first, then new cases (ones you marked learned
-  // before the rest), and if nothing is due, the case whose review comes up soonest.
+  // ---------- Memorize: a case at a time, you recall its algorithm, then check ----------
+  // Sets go by case id. All CFOP is F2L, full OLL and PLL (2-look OLL's corner cases are OLL 21 to 27, so it is its own set).
+  const QSETS = [['cfop', 'All CFOP', ['f2l', 'ollf', 'pll']], ['f2l', 'F2L', ['f2l']], ['oll', '2-look OLL', ['oll']], ['ollf', 'Full OLL', ['ollf']], ['pll', 'PLL', ['pll']], ['coll', 'COLL', ['coll']], ['zbll', 'ZBLL', ['zbll']]]
+    .filter(s => s[2].every(p => ALL_CASES.some(c => c.id.startsWith(p + ':'))));
+  const QWHICH = [['all', 'Every case'], ['learned', 'Ones I ticked'], ['new', 'Not ticked yet']];
+  let quiz = { set: QSETS.some(s => s[0] === db.quizSet) ? db.quizSet : 'cfop', which: QWHICH.some(w => w[0] === db.quizWhich) ? db.quizWhich : 'all', cur: null, shown: false, hint: false, right: 0, total: 0 };
+  // Next card: the most overdue reviews first, then new cases (ones you ticked before the rest),
+  // and if nothing is due, the case whose review comes up soonest.
   function pickQuiz() {
     const pool = quizPool(), now = Date.now(), srs = db.srs || {}, rand = a => a[Math.floor(Math.random() * a.length)];
     const notCur = c => pool.length === 1 || !quiz.cur || c.id !== quiz.cur.id;
     const due = pool.filter(c => srs[c.id] && srs[c.id].due <= now && notCur(c)).sort((a, b) => srs[a.id].due - srs[b.id].due);
     const fresh = pool.filter(c => !srs[c.id] && notCur(c)), freshLearned = fresh.filter(c => db.learned[c.id]);
     quiz.cur = due.length ? rand(due.slice(0, 3)) : fresh.length ? rand(freshLearned.length ? freshLearned : fresh)
-      : pool.filter(notCur).sort((a, b) => srs[a.id].due - srs[b.id].due)[0] || pool[0];
-    quiz.shown = false;
+      : pool.filter(notCur).sort((a, b) => srs[a.id].due - srs[b.id].due)[0] || pool[0] || null;
+    quiz.shown = false; quiz.hint = false;
   }
   function renderQuiz() {
+    const pool = quizPool();
+    if (quiz.cur && !pool.some(c => c.id === quiz.cur.id)) quiz.cur = null;
+    const chips = `<div class="chips" role="group" aria-label="Cases" style="margin-bottom:8px">${QSETS.map(([k, l]) => `<button type="button" class="chip" data-quiz="set:${k}" aria-pressed="${quiz.set === k}">${l}</button>`).join('')}</div>
+      <div class="chips" role="group" aria-label="Which ones" style="margin-bottom:16px">${QWHICH.map(([k, l]) => `<button type="button" class="chip" data-quiz="which:${k}" aria-pressed="${quiz.which === k}">${l}</button>`).join('')}</div>`;
+    if (!pool.length) {
+      $('learnBody').innerHTML = chips + `<p class="empty">${quiz.which === 'learned' ? "You haven't ticked any of these yet. Tick the ✓ on a case's card once you know it, or pick Every case." : 'You have ticked every one of these. Pick Every case to keep reviewing them.'}</p>`;
+      return;
+    }
     if (!quiz.cur) pickQuiz();
-    const c = quiz.cur;
-    $('learnBody').innerHTML = `<div class="chips" style="margin-bottom:16px">${[['all', 'All cases'], ['f2l', 'F2L only'], ['oll', 'OLL only'], ['pll', 'PLL only'], ['coll', 'COLL only']].map(([k, l]) => `<button type="button" class="chip" data-quiz="pool:${k}" aria-pressed="${quiz.pool === k}">${l}</button>`).join('')}</div>
+    const c = quiz.cur, srs = db.srs || {}, memo = pool.filter(x => srs[x.id] && srs[x.id].box >= 2).length, pct = Math.round(memo / pool.length * 100);
+    const toks = Cube.tokens(c.alg), hintN = Math.min(toks.length - 1, Math.max(2, Math.ceil(toks.length / 3)));
+    $('learnBody').innerHTML = chips + `<div class="set-sum"><span><b>${memo}</b> of ${pool.length} memorized</span><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${pct}% memorized"><i style="width:${pct}%"></i></div></div>
       <div class="panel"><div class="drill-box">${caseDiagram(c)}<div>
-        <h3>${quiz.shown ? esc(c.name) + (c.mode === 'pll' ? ' perm' : '') : 'Which case is this?'}</h3>
-        <p class="alg">${quiz.shown ? esc(c.alg) : ''}</p>
+        <h3>${esc(c.name)}${c.mode === 'pll' ? ' perm' : ''}</h3>
+        ${quiz.shown ? `<p class="alg">${esc(c.alg)}</p>`
+          : `<p class="lead" style="margin:0 0 6px">What's its algorithm? Do it on your cube or say it in your head, then check.</p>${quiz.hint ? `<p class="alg">${esc(toks.slice(0, hintN).join(' '))} …</p>` : ''}`}
         <div class="row">${quiz.shown
-          ? `<button type="button" class="btn" data-quiz="got">I knew it</button><button type="button" class="btn ghost" data-quiz="miss">Not yet</button><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn" data-drill="${c.id}">Drill on timer</button>`
-          : `<button type="button" class="btn" data-quiz="reveal">Reveal</button><button type="button" class="btn ghost" data-quiz="skip">Skip</button>`}</div>
+          ? `<button type="button" class="btn" data-quiz="got">I knew it</button><button type="button" class="btn ghost" data-quiz="miss">Didn't know it</button><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn" data-drill="${c.id}">Drill on timer</button>`
+          : `<button type="button" class="btn" data-quiz="reveal">Show the algorithm</button>${quiz.hint ? '' : '<button type="button" class="btn ghost" data-quiz="hint">First moves</button>'}<button type="button" class="text-btn" data-quiz="skip">Skip</button>`}</div>
         <div class="drill-stats">${srsLine()}</div>
       </div></div></div>`;
   }
   function quizAction(a) {
-    if (a.startsWith('pool:')) { quiz.pool = a.slice(5); quiz.cur = null; }
+    if (a.startsWith('set:')) { quiz.set = db.quizSet = a.slice(4); quiz.cur = null; save(); }
+    else if (a.startsWith('which:')) { quiz.which = db.quizWhich = a.slice(6); quiz.cur = null; save(); }
     else if (a === 'reveal') quiz.shown = true;
+    else if (a === 'hint') quiz.hint = true;
     else if (a === 'skip') pickQuiz();
-    else if (a === 'got' || a === 'miss') { quiz.total++; if (a === 'got') quiz.right++; srsGrade(quiz.cur.id, a === 'got'); pickQuiz(); }
+    else if ((a === 'got' || a === 'miss') && quiz.cur) { quiz.total++; if (a === 'got') quiz.right++; srsGrade(quiz.cur.id, a === 'got'); pickQuiz(); }
     renderQuiz();
   }
 
