@@ -251,6 +251,11 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .stats tr.slow th, .stats tr.slow td { color: var(--hold); }
 .smart-pick { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .smart-pick p { flex-basis: 100%; }
+.smart-setup { margin-top: 10px; padding: 10px 12px; background: var(--sunk); border-radius: 8px; font-size: 14px; }
+.smart-setup p { margin: 0 0 6px; }
+.smart-setup ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.smart-setup code { font-family: var(--font-mono); font-size: 13px; overflow-wrap: anywhere; background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+.smart-setup .mini-btn { vertical-align: 1px; }
 
 .stage[data-s="inspecting"] .clock, .stage[data-s="arming"] .clock { color: var(--accent); }
 .stage[data-s="inspecting"].warn .clock { color: var(--warn); }
@@ -1311,6 +1316,20 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <button type="button" class="pill-btn" id="smartDisc" hidden>Disconnect</button>
         </div>
         <div id="smartPick" class="smart-pick" hidden></div>
+        <div id="smartSetup" class="smart-setup" hidden>
+          <p><b>First time?</b> Your GAN cube needs Chrome to read its address. Turn this on once (about a minute) and Sub-X reads it by itself:</p>
+          <ol>
+            <li>Copy <code>chrome://flags/#enable-experimental-web-platform-features</code> <button type="button" class="mini-btn" data-copy="chrome://flags/#enable-experimental-web-platform-features">Copy</button> and paste it into Chrome's address bar.</li>
+            <li>Set <b>Experimental Web Platform features</b> to <b>Enabled</b>, then tap <b>Relaunch</b>.</li>
+            <li>Come back here and tap <b>Connect smart cube</b>.</li>
+          </ol>
+          <p id="smartSetupApp" hidden style="margin:8px 0 0">Or use the Sub-X Android app: it reads the address by itself.</p>
+        </div>
+        <div id="smartMac" hidden style="margin-top:10px">
+          <p class="lead" style="margin:0 0 6px">Chrome couldn't read your cube's address. The easiest fix is the setting above: turn it on and connect again. Or find the address in Chrome itself, no other app needed: open <code>chrome://bluetooth-internals/#devices</code> <button type="button" class="mini-btn" data-copy="chrome://bluetooth-internals/#devices">Copy</button> in a new tab, tap <b>Start scan</b>, and copy the address shown under your cube's name (it starts with GAN or MG).</p>
+          <label class="lead" for="smartMacInput" style="display:block;margin-bottom:6px">Your cube's address (Sub-X remembers it):</label>
+          <div class="cross-try"><input id="smartMacInput" class="own-scr" type="text" autocomplete="off" spellcheck="false" placeholder="AB:12:CD:34:EF:56"><button type="button" class="btn ghost" id="smartMacOk">Continue</button><button type="button" class="pill-btn" id="smartMacNo">Cancel</button></div>
+        </div>
         <details class="l3-set disc">
           <summary>3D cube</summary>
           <label class="toggle" for="l3On"><input id="l3On" type="checkbox"> Show a 3D cube on the timer that turns with yours</label>
@@ -1324,10 +1343,6 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           </div>
           <div class="l3-custom" id="l3Custom" hidden></div>
         </details>
-        <div id="smartMac" hidden style="margin-top:10px">
-          <label class="lead" for="smartMacInput" style="display:block;margin-bottom:6px">Your cube's MAC address. Find it in the GAN app, or in your phone's Bluetooth settings for the cube:</label>
-          <div class="cross-try"><input id="smartMacInput" class="own-scr" type="text" autocomplete="off" spellcheck="false" placeholder="AB:12:CD:34:EF:56"><button type="button" class="btn ghost" id="smartMacOk">Continue</button><button type="button" class="pill-btn" id="smartMacNo">Cancel</button></div>
-        </div>
       </section>
       <section class="panel hw" id="stackPanel">
         <h2>Stackmat <span class="h2-right"><b id="stackState">not connected</b><button type="button" class="fold" data-fold="stack" aria-expanded="true" aria-label="Fold the Stackmat panel">▾</button></span></h2>
@@ -5966,6 +5981,19 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const NATIVE_BT = nativeBluetooth();
   const smartOk = () => NATIVE ? !!NATIVE_BT : !!navigator.bluetooth;
   const smartInfo = msg => { $('smartInfo').textContent = msg; };
+  // GAN cubes need their address; Chrome reads it only with Experimental Web Platform features on (the app reads it itself)
+  const canReadMac = () => typeof BluetoothDevice !== 'undefined' && 'watchAdvertisements' in BluetoothDevice.prototype;
+  const savedMacs = () => { try { return Object.keys(JSON.parse(localStorage.getItem('subx-macs') || '{}')).length; } catch (e) { return 0; } };
+  function smartSetupShow(force) {
+    const box = $('smartSetup'); if (!box) return;
+    box.hidden = NATIVE || !navigator.bluetooth || canReadMac() || SM.conn || (!force && savedMacs() > 0);
+    $('smartSetupApp').hidden = !/Android/i.test(navigator.userAgent);
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-copy]'); if (!b) return;
+    const t = b.dataset.copy;
+    try { navigator.clipboard.writeText(t).then(() => toast('Copied. Paste it into Chrome\'s address bar.'), () => toast('Could not copy: type it in instead')); } catch (err) { toast('Could not copy: type it in instead'); }
+  });
   // what a connection is doing right now, shown while it connects and named if it fails
   var smartStepNow = '';
   function smartStep(s) { smartStepNow = s; if (!SM.conn) $('smartState').textContent = 'connecting… ' + s; }
@@ -5974,6 +6002,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     $('smartState').textContent = c ? (c.deviceName || 'connected') + (SM.battery != null ? ` · ${SM.battery}%` : '') : 'not connected';
     $('smartConnect').hidden = !!c; $('smartReset').hidden = $('smartDisc').hidden = !c;
     $('smartPanel').classList.toggle('live', !!c); if (c) unfold('smart');
+    smartSetupShow();
     live3dShow();
   }
 
@@ -6168,11 +6197,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (NATIVE && /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(device.id || '')) return Promise.resolve(device.id.toUpperCase());
     if (saved || !isFallback) return Promise.resolve(saved);
     return new Promise(resolve => {
-      $('smartMac').hidden = false; $('smartMacInput').focus();
+      $('smartMac').hidden = false; smartSetupShow(true); $('smartMacInput').focus();
       $('smartMacNo').onclick = () => { $('smartMac').hidden = true; resolve(null); };
-      smartInfo('One more step: Chrome could not read the cube\'s address, so type it below.');
+      smartInfo('One more step: Sub-X needs your cube\'s address. See below for how to get it without another app.');
       $('smartMacOk').onclick = () => {
-        const v = $('smartMacInput').value.trim().toUpperCase().replace(/-/g, ':');
+        const hex = $('smartMacInput').value.toUpperCase().replace(/[^0-9A-F]/g, '');   // with or without colons, dashes or spaces
+        const v = hex.length === 12 ? hex.match(/../g).join(':') : $('smartMacInput').value.trim().toUpperCase();
         if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(v)) { smartInfo("That doesn't look like a MAC address. It is 6 pairs of characters, like AB:12:CD:34:EF:56."); return; }
         try { const m = JSON.parse(localStorage.getItem('subx-macs') || '{}'); m[device.name] = v; localStorage.setItem('subx-macs', JSON.stringify(m)); } catch (e) {}
         $('smartMac').hidden = true; resolve(v);
@@ -6227,6 +6257,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (TR.track) SmartCore.step(TR.track, SM.cur, null);
     for (const E of Object.values(workedExamples)) if (E.track) SmartCore.step(E.track, SM.cur, null);
   });
+  smartSetupShow();   // first time on the website: how to let Chrome read the cube's address
   if (!smartOk()) smartInfo(NATIVE
     ? 'This version of the app has no Bluetooth. Install the latest Sub-X.apk from github.com/BlueX7710/sub-x/releases to use a smart cube here.'
     : "Smart cubes need Chrome or Edge on Android, Windows, Mac or ChromeOS (iPhone and iPad browsers don't support Bluetooth).");
