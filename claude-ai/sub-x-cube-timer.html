@@ -1622,6 +1622,34 @@ body.racing { overflow: hidden; }
   // ---------- 3D cube: case pictures and the step-by-step player ----------
   // Each cubie is drawn as a dark box plus its stickers. Faces are back-face culled; while a
   // layer turns, the cube splits into convex blocks along the turn axis, drawn far to near.
+  // ---------- quaternions [x, y, z, w]: a smart cube's gyroscope, and whole-cube rotations ----------
+  function qMul(a, b) {
+    return [a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+      a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3], a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]];
+  }
+  function qConj(a) { return [-a[0], -a[1], -a[2], a[3]]; }
+  function qNorm(a) { const l = Math.hypot(a[0], a[1], a[2], a[3]) || 1; return a.map(v => v / l); }
+  function qRot(q, v) { const p = qMul(qMul(q, [v[0], v[1], v[2], 0]), qConj(q)); return [p[0], p[1], p[2]]; }
+  function qAxis(ax, ang) { const v = [0, 0, 0, Math.cos(ang / 2)]; v[ax] = Math.sin(ang / 2); return v; }
+  function qAngle(a, b) { return 2 * Math.acos(Math.min(1, Math.abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]))); }
+  function qSlerp(a, b, t) {
+    let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    if (d < 0) { b = b.map(v => -v); d = -d; }
+    if (d > 0.9995) return qNorm(a.map((v, i) => v + (b[i] - v) * t));
+    const th = Math.acos(d), s = Math.sin(th);
+    return a.map((v, i) => (v * Math.sin((1 - t) * th) + b[i] * Math.sin(t * th)) / s);
+  }
+  // the 24 ways a cube can sit, each with its shortest name: x turns the whole cube like R, y like U, z like F.
+  // Rotations are about your own axes, so "x y" is x, then y about the vertical: its quaternion is y·x.
+  const ROT_Q = { x: qAxis(0, -Math.PI / 2), y: qAxis(1, -Math.PI / 2), z: qAxis(2, -Math.PI / 2) };
+  const ROTS = (() => {
+    const one = []; for (const a of 'xyz') { const q = ROT_Q[a]; one.push([a, q], [a + '2', qMul(q, q)], [a + "'", qConj(q)]); }
+    const out = [['', [0, 0, 0, 1]]], add = (n, q) => { if (!out.some(r => qAngle(r[1], q) < 0.1)) out.push([n, q]); };
+    for (const [n, q] of one) add(n, q);
+    for (const [n1, q1] of one) for (const [n2, q2] of one) add(n1 + ' ' + n2, qMul(q2, q1));
+    return out;
+  })();
+  const rotNearest = q => ROTS.reduce((b, r) => qAngle(r[1], q) < qAngle(b[1], q) ? r : b);
   const Cube3D = (() => {
     const FACES = [[0, 1], [0, -1], [1, 1], [1, -1], [2, 1], [2, -1]];
     function rotA(v, ax, a) {
@@ -1636,6 +1664,7 @@ body.racing { overflow: hidden; }
       return [[-h, -h], [h, -h], [h, h], [-h, h]].map(([a, b]) => { const p = c.slice(); p[u] += a; p[w] += b; return p; });
     }
     function frame(st, o) {
+      const V = v => view(o.q ? qRot(o.q, v) : v, o.yaw, o.pitch);   // o.q: the cube turned as a whole (a gyroscope cube)
       const T = o.turning, moving = p => !!(T && T.pick(p));
       const cubies = new Map([['0,0,0', [0, 0, 0]]]);
       for (const k of st) cubies.set(k.p.join(), k.p);
@@ -1663,18 +1692,18 @@ body.racing { overflow: hidden; }
         group(k.p).stickers.push({ pts: quad(c, ax, 0.84).map(v => tf(k.p, v)), n: tf(k.p, k.n), fill: o.colorOf(k) });
       }
       // blocks are separated by planes across the turn axis: draw the far side first
-      const toward = T ? view([0, 0, 0].map((_, i) => i === T.ax ? 1 : 0), o.yaw, o.pitch)[2] : 0;
+      const toward = T ? V([0, 0, 0].map((_, i) => i === T.ax ? 1 : 0))[2] : 0;
       const order = [...groups.values()].sort((a, b) => (a.n ? a.ax / a.n : 0) * toward - (b.n ? b.ax / b.n : 0) * toward);
-      const flat = v => { const w = view(v, o.yaw, o.pitch); return [w[0], -w[1]]; };
+      const flat = v => { const w = V(v); return [w[0], -w[1]]; };
       const polys = [];
       // o.pop floats the hidden sides of the top layer out behind the cube, that far from its centre, so all four show
       if (o.pop) for (const k of st) {
-        if (k.p[1] !== 2 || k.n[1] || view(k.n, o.yaw, o.pitch)[2] > 0) continue;
+        if (k.p[1] !== 2 || k.n[1] || V(k.n)[2] > 0) continue;
         const ax = k.n.findIndex(v => v !== 0), c = k.p.map((v, i) => i === ax ? k.n[i] * o.pop : v);
         polys.push({ pts: quad(c, ax, 1).map(flat), fill: o.body }, { pts: quad(c, ax, 0.84).map(flat), fill: o.colorOf(k) });
       }
       for (const G of order) for (const f of G.faces.concat(G.stickers)) {
-        if (view(f.n, o.yaw, o.pitch)[2] <= 1e-6) continue;
+        if (V(f.n)[2] <= 1e-6) continue;
         polys.push({ pts: f.pts.map(flat), fill: f.fill });
       }
       return polys;

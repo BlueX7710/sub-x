@@ -1346,6 +1346,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <details class="l3-set disc">
           <summary>3D cube</summary>
           <label class="toggle" for="l3On"><input id="l3On" type="checkbox"> Show a 3D cube on the timer that turns with yours</label>
+          <label class="toggle" for="l3Gyro"><input id="l3Gyro" type="checkbox"> Follow my hands: it tilts and turns with your cube (cubes with a gyroscope)</label>
+          <p class="lead" id="l3GyroNote" hidden style="margin:4px 0"></p>
+          <button type="button" class="pill-btn" id="l3GyroReset" hidden>Reset orientation</button>
           <div class="l3-grid">
             <canvas id="l3Preview" width="120" height="120" role="img" aria-label="Preview of the 3D cube's colours"></canvas>
             <div class="l3-opts">
@@ -1771,6 +1774,34 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // ---------- 3D cube: case pictures and the step-by-step player ----------
   // Each cubie is drawn as a dark box plus its stickers. Faces are back-face culled; while a
   // layer turns, the cube splits into convex blocks along the turn axis, drawn far to near.
+  // ---------- quaternions [x, y, z, w]: a smart cube's gyroscope, and whole-cube rotations ----------
+  function qMul(a, b) {
+    return [a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+      a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3], a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]];
+  }
+  function qConj(a) { return [-a[0], -a[1], -a[2], a[3]]; }
+  function qNorm(a) { const l = Math.hypot(a[0], a[1], a[2], a[3]) || 1; return a.map(v => v / l); }
+  function qRot(q, v) { const p = qMul(qMul(q, [v[0], v[1], v[2], 0]), qConj(q)); return [p[0], p[1], p[2]]; }
+  function qAxis(ax, ang) { const v = [0, 0, 0, Math.cos(ang / 2)]; v[ax] = Math.sin(ang / 2); return v; }
+  function qAngle(a, b) { return 2 * Math.acos(Math.min(1, Math.abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]))); }
+  function qSlerp(a, b, t) {
+    let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    if (d < 0) { b = b.map(v => -v); d = -d; }
+    if (d > 0.9995) return qNorm(a.map((v, i) => v + (b[i] - v) * t));
+    const th = Math.acos(d), s = Math.sin(th);
+    return a.map((v, i) => (v * Math.sin((1 - t) * th) + b[i] * Math.sin(t * th)) / s);
+  }
+  // the 24 ways a cube can sit, each with its shortest name: x turns the whole cube like R, y like U, z like F.
+  // Rotations are about your own axes, so "x y" is x, then y about the vertical: its quaternion is y·x.
+  const ROT_Q = { x: qAxis(0, -Math.PI / 2), y: qAxis(1, -Math.PI / 2), z: qAxis(2, -Math.PI / 2) };
+  const ROTS = (() => {
+    const one = []; for (const a of 'xyz') { const q = ROT_Q[a]; one.push([a, q], [a + '2', qMul(q, q)], [a + "'", qConj(q)]); }
+    const out = [['', [0, 0, 0, 1]]], add = (n, q) => { if (!out.some(r => qAngle(r[1], q) < 0.1)) out.push([n, q]); };
+    for (const [n, q] of one) add(n, q);
+    for (const [n1, q1] of one) for (const [n2, q2] of one) add(n1 + ' ' + n2, qMul(q2, q1));
+    return out;
+  })();
+  const rotNearest = q => ROTS.reduce((b, r) => qAngle(r[1], q) < qAngle(b[1], q) ? r : b);
   const Cube3D = (() => {
     const FACES = [[0, 1], [0, -1], [1, 1], [1, -1], [2, 1], [2, -1]];
     function rotA(v, ax, a) {
@@ -1785,6 +1816,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       return [[-h, -h], [h, -h], [h, h], [-h, h]].map(([a, b]) => { const p = c.slice(); p[u] += a; p[w] += b; return p; });
     }
     function frame(st, o) {
+      const V = v => view(o.q ? qRot(o.q, v) : v, o.yaw, o.pitch);   // o.q: the cube turned as a whole (a gyroscope cube)
       const T = o.turning, moving = p => !!(T && T.pick(p));
       const cubies = new Map([['0,0,0', [0, 0, 0]]]);
       for (const k of st) cubies.set(k.p.join(), k.p);
@@ -1812,18 +1844,18 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         group(k.p).stickers.push({ pts: quad(c, ax, 0.84).map(v => tf(k.p, v)), n: tf(k.p, k.n), fill: o.colorOf(k) });
       }
       // blocks are separated by planes across the turn axis: draw the far side first
-      const toward = T ? view([0, 0, 0].map((_, i) => i === T.ax ? 1 : 0), o.yaw, o.pitch)[2] : 0;
+      const toward = T ? V([0, 0, 0].map((_, i) => i === T.ax ? 1 : 0))[2] : 0;
       const order = [...groups.values()].sort((a, b) => (a.n ? a.ax / a.n : 0) * toward - (b.n ? b.ax / b.n : 0) * toward);
-      const flat = v => { const w = view(v, o.yaw, o.pitch); return [w[0], -w[1]]; };
+      const flat = v => { const w = V(v); return [w[0], -w[1]]; };
       const polys = [];
       // o.pop floats the hidden sides of the top layer out behind the cube, that far from its centre, so all four show
       if (o.pop) for (const k of st) {
-        if (k.p[1] !== 2 || k.n[1] || view(k.n, o.yaw, o.pitch)[2] > 0) continue;
+        if (k.p[1] !== 2 || k.n[1] || V(k.n)[2] > 0) continue;
         const ax = k.n.findIndex(v => v !== 0), c = k.p.map((v, i) => i === ax ? k.n[i] * o.pop : v);
         polys.push({ pts: quad(c, ax, 1).map(flat), fill: o.body }, { pts: quad(c, ax, 0.84).map(flat), fill: o.colorOf(k) });
       }
       for (const G of order) for (const f of G.faces.concat(G.stickers)) {
-        if (view(f.n, o.yaw, o.pitch)[2] <= 1e-6) continue;
+        if (V(f.n)[2] <= 1e-6) continue;
         polys.push({ pts: f.pts.map(flat), fill: f.fill });
       }
       return polys;
@@ -2461,6 +2493,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       const pause = timed && steps.length ? steps.reduce((a, c) => (c.pause || 0) > (a.pause || 0) ? c : a) : null;
       const bestN = st => { const m = b && b.steps.find(x => x.stage === st.stage); return m ? m.n : '–'; };
       h += `<p class="meta">${mine.total} turns${s.ms ? ` · ${timed ? '' : 'about '}${tpsOf(mine.total, s.ms)} TPS over ${fmt(s.ms)}` : ''}${b ? ` · the best way above takes ${b.total}` : ''}</p>`;
+      if (s.rot) h += `<p class="meta">${esc(rotText(s))}${s.rot.length ? ' (' + s.rot.map(([t, n]) => n + ' at ' + fmt(t)).join(', ') + ')' : ''}.</p>`;
       if (!mine.solved) h += `<p class="meta warn">These moves don't solve this scramble. Sub-X followed them as far as: ${esc(mine.reached)}.</p>`;
       h += `<table class="phase-table sol-table"><thead><tr><th>Step</th><th>Your moves</th><th class="num">Turns</th>${timed ? '<th class="num">Time</th><th class="num">TPS</th>' : ''}<th class="num">Best</th></tr></thead><tbody>` +
         steps.map(st => `<tr${st === slow ? ' class="slow"' : ''}><td>${esc(st.stage)}<small>${esc(st.note || '')}</small></td><td class="alg">${esc(st.moves.join(' '))}</td><td class="num">${st.n}</td>` +
@@ -2619,7 +2652,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (state === 'ready') start();
   }
   function start() {
-    if (SM && SM.conn) { SM.moves = []; SM.raw = []; SM.readySt = SmartCore.clone(SM.cur); }
+    if (SM && SM.conn) { SM.moves = []; SM.raw = []; SM.readySt = SmartCore.clone(SM.cur); SM.rot = SM.gyroSeen ? { q0: SM.gq || null, at: [0, 0, 0, 1], list: [] } : null; }
     justSolved = false; renderLastActions();   // the last solve's buttons (and its Undo) go when the next solve starts
     if (toastOff) toastHide();
     lastPen = null;
@@ -2837,8 +2870,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (b.dataset.plan) planAction(b.dataset.plan);
     else if (b.dataset.sol3d) {
       const [w, i] = b.dataset.sol3d.split(':'), s = solvesFor(db.event)[+i]; if (!s) return;
-      const alg = w === 'best' ? (bestFor(s.scr) || { steps: [] }).steps.map(x => x.alg).filter(Boolean).join(' ') : (yourMoves(s) || []).join(' ');
-      if (alg) openPlayer({ id: 'sol', name: w === 'best' ? 'Best way' : 'Your solve', alg, mode: 'solve', setup: s.scr + ' z2', times: w === 'best' ? null : s.mt });
+      const alg = w === 'best' ? (bestFor(s.scr) || { steps: [] }).steps.map(x => x.alg).filter(Boolean).join(' ') : replayOf(s).alg;
+      if (alg) openPlayer({ id: 'sol', name: w === 'best' ? 'Best way' : 'Your solve', alg, mode: 'solve', setup: s.scr + ' z2', times: w === 'best' ? null : replayOf(s).times });
     }
     else if (b.dataset.cross) crossAction(b.dataset.cross);
     else if (b.dataset.p3d) { const c = caseById(b.dataset.p3d); if (c) openPlayer(c); }
@@ -5439,8 +5472,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (EV() !== s.ev) { const last = db.lastSess[s.ev]; switchSession(last && (last === s.ev || db.sessions[last]) ? last : s.ev); } else newScramble();
       location.hash = 'timer';
     } else if (w === 'mine' || w === 'best') {
-      const alg = w === 'best' ? (bestFor(s.scr) || { steps: [] }).steps.map(x => x.alg).filter(Boolean).join(' ') : (yourMoves(s) || []).join(' ');
-      if (alg) openPlayer({ id: 'sol', name: w === 'best' ? 'Best way' : `Your ${fmtSolve(s)} solve`, alg, mode: 'solve', setup: s.scr + ' z2', times: w === 'best' ? null : s.mt });
+      const alg = w === 'best' ? (bestFor(s.scr) || { steps: [] }).steps.map(x => x.alg).filter(Boolean).join(' ') : replayOf(s).alg;
+      if (alg) openPlayer({ id: 'sol', name: w === 'best' ? 'Best way' : `Your ${fmtSolve(s)} solve`, alg, mode: 'solve', setup: s.scr + ' z2', times: w === 'best' ? null : replayOf(s).times });
     } else if (w === 'del') {
       const at = db.saved.indexOf(s); db.saved.splice(at, 1); save(); renderSaved();
       toast('Removed from My solves', () => { db.saved.splice(at, 0, s); save(); if (view === 'learn' && learnSet === 'saved') renderSaved(); });
@@ -6096,7 +6129,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   function smartStep(s) { smartStepNow = s; if (!SM.conn) $('smartState').textContent = 'connecting… ' + s; }
   function smartUI() {
     const c = SM.conn;
-    $('smartState').textContent = c ? (c.deviceName || 'connected') + (SM.battery != null ? ` · ${SM.battery}%` : '') : 'not connected';
+    $('smartState').textContent = c ? (c.deviceName || 'connected') + (SM.battery != null ? ` · ${SM.battery}%` : '') + (SM.gyroSeen ? ' · gyro' : '') : 'not connected';
+    l3GyroNote();
     $('smartConnect').hidden = !!c; $('smartReset').hidden = $('smartDisc').hidden = !c;
     $('smartPanel').classList.toggle('live', !!c); if (c) unfold('smart');
     if (typeof quiz !== 'undefined' && quiz.conn !== !!c) { quiz.conn = !!c; quiz.T = null; if (quiz.phase !== 'done') quiz.phase = 'setup'; if (memoActive()) renderMemo(); }
@@ -6115,7 +6149,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     custom: { name: 'My own' },
   };
   const L3_FACES = [['U', 'White'], ['D', 'Yellow'], ['F', 'Green'], ['B', 'Blue'], ['R', 'Red'], ['L', 'Orange']];
-  db.l3 = Object.assign({ on: true, hold: 'up', scheme: 'standard', body: 'black', custom: { ...L3_SCHEMES.standard } }, db.l3 || {});
+  db.l3 = Object.assign({ on: true, gyro: true, hold: 'up', scheme: 'standard', body: 'black', custom: { ...L3_SCHEMES.standard } }, db.l3 || {});
   const l3Colors = () => db.l3.scheme === 'custom' ? db.l3.custom : L3_SCHEMES[db.l3.scheme] || L3_SCHEMES.standard;
   const l3Body = () => db.l3.body === 'white' ? '#E9ECF1' : db.l3.body === 'black' ? '#16181C' : null;   // null: stickerless
   const L3 = { st: null, q: [], anim: null, raf: 0, yaw: -0.62, pitch: 0.5, drag: null };
@@ -6141,8 +6175,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (t >= 1) { Cube.apply(L3.st, 3, A.m); L3.anim = null; }
       else turning = { pick: A.mv.pick, ax: A.mv.ax, angle: A.mv.q * A.mv.times * (Math.PI / 2) * t };
     }
+    if (L3.gt) L3.gq = L3.gq ? qSlerp(L3.gq, L3.gt, 0.3) : L3.gt;   // a gyroscope cube: ease towards how you hold it
     drawCube3D($('live3d'), L3.st, turning, L3);
-    if (L3.anim || L3.q.length) live3dKick();
+    if (L3.anim || L3.q.length || (L3.gt && qAngle(L3.gq, L3.gt) > 0.01)) live3dKick();
   }
   // draws a cube state on a canvas in the chosen colours; `turning` is a layer part-way through a turn
   function drawCube3D(cv, st, turning, viewAt) {
@@ -6154,7 +6189,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (turning) { const T = turning; turning = { pick: p => T.pick([-p[0], -p[1], p[2]]), ax: T.ax, angle: T.ax === 2 ? T.angle : -T.angle }; }
     }
     const C = l3Colors(), body = l3Body();
-    const polys = Cube3D.frame(st, { yaw: viewAt.yaw, pitch: viewAt.pitch, turning, body: body || '#2A2E35', colorOf: k => C[k.col] });
+    const polys = Cube3D.frame(st, { yaw: viewAt.yaw, pitch: viewAt.pitch, q: viewAt.gq || null, turning, body: body || '#2A2E35', colorOf: k => C[k.col] });
     const ctx = cv.getContext('2d'), s = w / 10.8;
     ctx.clearRect(0, 0, w, w); ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, w / 400);
     for (const p of polys) {
@@ -6168,7 +6203,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const L3P = { yaw: -0.62, pitch: 0.5, st: Cube.apply(Cube.solved(3), 3, "R U R' U'") };
   function l3Preview() { drawCube3D($('l3Preview'), L3P.st, null, L3P); if (live3dOn()) live3dKick(); }
   function l3Settings() {
-    $('l3On').checked = db.l3.on; $('l3Hold').value = db.l3.hold; $('l3Body').value = db.l3.body;
+    $('l3On').checked = db.l3.on; $('l3Gyro').checked = db.l3.gyro; $('l3Hold').value = db.l3.hold; $('l3Body').value = db.l3.body;
     $('l3Scheme').innerHTML = Object.entries(L3_SCHEMES).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
     $('l3Scheme').value = db.l3.scheme;
     $('l3Custom').hidden = db.l3.scheme !== 'custom';
@@ -6176,6 +6211,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     l3Preview();
   }
   $('l3On').addEventListener('change', e => { db.l3.on = e.target.checked; save(); live3dShow(); });
+  $('l3Gyro').addEventListener('change', e => { db.l3.gyro = e.target.checked; save(); if (!db.l3.gyro) L3.gt = L3.gq = null; live3dKick(); });
+  $('l3GyroReset').addEventListener('click', () => { if (!SM.gq) return; SM.gbase = qConj(SM.gq); L3.gq = null; toast('Orientation reset: the 3D cube now sits the way you hold yours'); });
   $('l3Hold').addEventListener('change', e => { db.l3.hold = e.target.value; save(); l3Preview(); });
   $('l3Body').addEventListener('change', e => { db.l3.body = e.target.value; save(); l3Preview(); });
   $('l3Scheme').addEventListener('change', e => {
@@ -6263,9 +6300,43 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (drill) { stop(Math.round(ms)); ignoreRelease = false; return; }
     const extra = { smart: true, mv: moves.map(x => x.m).join(' '), mt: moves.map(x => x.t) };   // moves for the Solution view
     let sp = null; try { sp = SmartCore.splits(SM.readySt, moves); } catch (e) {} if (sp) extra.splits = sp;
+    if (SM.rot) extra.rot = SM.rot.list.map(([t, n]) => [Math.max(0, Math.round(t - t0)), n]);   // a gyroscope cube: [ms since the first turn, rotation]
     stop(Math.round(ms), extra); ignoreRelease = false;
   }
+  // ---------- smart cube: the gyroscope (some GAN cubes have one; the GAN356 i Carry 2 doesn't) ----------
+  // The cube sends its orientation as a quaternion with +X red, +Y blue, +Z white; as (x, z, -y, w) it is in this page's
+  // cube axes (x = R, y = U, z = F), as GAN's own sample app does. It is measured from a basis: how you held the cube
+  // when it connected, or when you last tapped Reset orientation (basis · q, also as in GAN's sample).
+  const HOLD_Q = () => db.l3.hold === 'down' ? [0, 0, 1, 0] : [0, 0, 0, 1];   // z2 for white on the bottom
+  function smartGyro(ev) {
+    const g = ev.quaternion; if (!g) return;
+    const q = qNorm([g.x, g.z, -g.y, g.w]);
+    SM.gq = q; if (!SM.gbase) SM.gbase = qConj(q);
+    if (!SM.gyroSeen) { SM.gyroSeen = true; smartUI(); }
+    if (db.l3.gyro && live3dOn()) { const H = HOLD_Q(); L3.gt = qMul(qMul(H, qMul(SM.gbase, q)), qConj(H)); live3dKick(); }
+    if (state === 'running' && SM.rot) rotTrack(q, performance.now());
+  }
+  // Whole-cube rotations in a solve: the cube's orientation since the first turn, seen white on the bottom (as the
+  // replay shows it), settles on the nearest of the 24 ways a cube can sit. Within 30° of a new one counts as a rotation.
+  const Z2 = [0, 0, 1, 0];
+  function rotTrack(q, t) {
+    const Rr = SM.rot; if (!Rr.q0) { Rr.q0 = q; return; }
+    const D = qMul(qMul(Z2, qMul(qConj(Rr.q0), q)), qConj(Z2)), best = rotNearest(D);
+    if (qAngle(best[1], D) > 0.52 || qAngle(best[1], Rr.at) < 0.1) return;
+    const W = qMul(best[1], qConj(Rr.at)), last = Rr.list[Rr.list.length - 1];
+    // two quick turns about the same axis are one rotation (a y2 passes a y on the way)
+    const both = last && t - last[0] < 450 && !last[1].includes(' ') ? rotNearest(qMul(W, ROTS.find(r => r[0] === last[1])[1]))[0] : null;
+    if (both !== null && both.length && !both.includes(' ') && both[0] === last[1][0]) last[1] = both; else if (both === '') Rr.list.pop(); else Rr.list.push([t, rotNearest(W)[0]]);
+    Rr.at = best[1];
+  }
+  function l3GyroNote() {
+    const n = $('l3GyroNote'), b = $('l3GyroReset'); if (!n) return;
+    const msg = !SM.conn ? '' : SM.gyroSeen ? 'Gyroscope on. Hold your cube the way you solve and tap Reset orientation, so the 3D cube sits the same way. Each solve also counts your cube rotations.'
+      : SM.gyroOk === false ? 'Your cube has no gyroscope, so the 3D cube shows your turns only (and rotations are not counted).' : '';
+    n.hidden = !msg; n.textContent = msg; b.hidden = !SM.gyroSeen;
+  }
   function smartCleanup() {
+    SM.gq = SM.gbase = SM.rot = null; SM.gyroSeen = false; SM.gyroOk = null; L3.gt = L3.gq = null;
     try { if (SM.sub) SM.sub.unsubscribe(); } catch (e) {}
     SM.sub = null; SM.conn = null; SM.T = null; SM.battery = null; smartUI();
     $('smartNote').hidden = true;
@@ -6282,6 +6353,8 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       else if (exampleActive() && workedExamples[learnSet].track) { SmartCore.step(workedExamples[learnSet].track, SM.cur, null); renderExample(learnSet); }
     }
     else if (ev.type === 'BATTERY') { SM.battery = ev.batteryLevel; smartUI(); }
+    else if (ev.type === 'GYRO') smartGyro(ev);
+    else if (ev.type === 'HARDWARE') { SM.gyroOk = !!ev.gyroSupported; smartUI(); }
     else if (ev.type === 'DISCONNECT') { smartCleanup(); toast('Smart cube disconnected'); }
   }
   // GAN cubes need their MAC address for encryption. Chrome can often read it; otherwise ask once.
@@ -6329,6 +6402,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       // some cubes don't answer these: that's fine, the connection stays
       try { await conn.sendCubeCommand({ type: 'REQUEST_FACELETS' }); } catch (e) {}
       try { await conn.sendCubeCommand({ type: 'REQUEST_BATTERY' }); } catch (e) {}
+      try { await conn.sendCubeCommand({ type: 'REQUEST_HARDWARE' }); } catch (e) {}   // says whether it has a gyroscope
       smartScramble();
       for (const E of Object.values(workedExamples)) E.track = null;
       if (trainerActive()) { trNew(); renderTrainer(); }
@@ -6965,6 +7039,30 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     } catch (e) { out = null; }
     stepCache.set(s, out); return out;
   }
+  // "3 cube rotations: F2L 2, OLL 1", from a gyroscope cube's solve
+  function rotText(s) {
+    if (!s.rot) return '';
+    const n = s.rot.length; if (!n) return 'No cube rotations';
+    const p = s.splits, ends = p && p.pairs ? [p.cross, p.pairs[3], p.oll, Infinity] : null;
+    const per = ends ? PHASES.map((name, i) => [name, s.rot.filter(([t]) => t > (i ? ends[i - 1] : -1) && t <= ends[i]).length]).filter(x => x[1]) : [];
+    return `${n} cube rotation${n === 1 ? '' : 's'}${per.length ? ': ' + per.map(([a, b]) => a + ' ' + b).join(', ') : ''}`;
+  }
+  // A solve's moves for the 3D replay, white on the bottom. With a gyroscope cube its rotations go in where they
+  // happened, and the turns after them are named as you saw them (after a y, the cube's F face is your R).
+  const FACE_N = { U: [0, 1, 0], D: [0, -1, 0], R: [1, 0, 0], L: [-1, 0, 0], F: [0, 0, 1], B: [0, 0, -1] };
+  function replayOf(s) {
+    const mv = yourMoves(s) || [], mt = s.mt && s.mt.length === mv.length ? s.mt : null;
+    if (!s.rot || !s.rot.length || !mt) return { alg: mv.join(' '), times: mt };
+    const out = [], times = []; let A = [0, 0, 0, 1], r = 0;
+    const addRot = () => { const [t, name] = s.rot[r++]; for (const tok of name.split(' ')) { out.push(tok); times.push(t); A = qMul(ROTS.find(x => x[0] === tok)[1], A); } };
+    mv.forEach((m, i) => {
+      while (r < s.rot.length && s.rot[r][0] <= mt[i]) addRot();
+      const n = qRot(A, FACE_N[m[0]] || [0, 0, 0]).map(Math.round), face = Object.keys(FACE_N).find(k => FACE_N[k].every((v, j) => v === n[j]));
+      out.push(face ? face + m.slice(1) : m); times.push(mt[i]);
+    });
+    while (r < s.rot.length) addRot();
+    return { alg: out.join(' '), times };
+  }
   function renderLastSplit() {
     const panel = $('lastSplitPanel'); if (!panel) return;
     const s = solvesFor(db.event).slice().reverse().find(x => x.splits && !x.ex);
@@ -6974,6 +7072,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const w = $('lastSplitGraph').clientWidth;
     $('lastSplitGraph').innerHTML = splitGraph(s, w > 400 ? Math.round(w / 1.3) : 320);
     $('lastSplitNote').textContent = p.manual ? `${PHASES.map((n, i) => n + ' ' + fmt(t[i])).join(' · ')}. Timed with your taps.` : `${PHASES.map((n, i) => n + ' ' + fmt(t[i])).join(' · ')}. Pairs ${pairs.map(fmt).join(', ')}. ${p.moves} turns, ${(p.moves / Math.max(0.001, p.total / 1000)).toFixed(1)} TPS.`;
+    if (s.rot) $('lastSplitNote').textContent += ' ' + rotText(s) + '.';
     $('lastSplitLegend').hidden = !!p.manual;
   }
   function renderSplits() {
