@@ -3269,22 +3269,6 @@ body.racing { overflow: hidden; }
       { id: 'coll:as6', name: 'Antisune 6', alg: "R' U' R U' L U' R' U L' U2 R" },
     ] },
   ];
-  // Yiheng Wang: last-layer algorithms from reconstructions of world-record solves (ruwix.com/blog), only those that
-  // differ from the ones in OLL and PLL here. Each was checked in the cube model: it keeps the first two layers and its
-  // case matches the OLL or PLL case it is named after.
-  const YIHENG = [
-    { group: 'OLL', mode: 'oll', items: [
-      { id: 'yw:oll26', name: 'OLL 26', mode: 'oll', alg: "L' U R U' L U R'", tip: 'From the 3.96 in the 4.25 average.' },
-      { id: 'yw:oll44', name: 'OLL 44', mode: 'oll', alg: "f R U R' U' f'", tip: 'From the 3.81 in the 3.91 average.' },
-      { id: 'yw:oll53', name: 'OLL 53', mode: 'oll', alg: "r' U2 R U R' U' R U R' U r", tip: 'From the 4.93 in the 3.91 average.' },
-    ] },
-    { group: 'PLL', mode: 'pll', items: [
-      { id: 'yw:aa', name: 'Aa', mode: 'pll', alg: "x' R2 D2 R' U' R D2 R' U R' x", tip: 'From the 4.17 in the 3.91 average.' },
-      { id: 'yw:ua', name: 'Ua', mode: 'pll', alg: "R U R' U R' U' R2 U' R' U R' U R", tip: 'From the 3.81 in the 3.91 average.' },
-      { id: 'yw:gc', name: 'Gc', mode: 'pll', alg: "R2 F2 R U2 R U2 R' F R U R' U' R' F R2", tip: 'From the 6.11 in the 4.36 average.' },
-      { id: 'yw:ja', name: 'Ja', mode: 'pll', alg: "L' U' L F L' U' L U L F' L2 U L", tip: 'From the 4.00 in the 4.25 average.' },
-    ] },
-  ];
   // How to do each step. Every step page in Learn opens with its lesson, then the practice for it.
   const CFOP_STEPS = [
     { title: 'Cross', sub: 'no algorithms', text: 'Solve the four white edges so they form a cross on the bottom, each one matching the centre next to it.',
@@ -3326,7 +3310,6 @@ body.racing { overflow: hidden; }
     pll: { title: 'PLL', lead: 'All 21 cases. New to PLL? Start with 2-look PLL in the lesson below.', groups: PLL, mode: 'pll' },
     coll: { title: 'COLL', lead: '40 cases, grouped by the shape of the yellow corners. Grey edges do not matter yet.', groups: COLL, mode: 'coll' },
     collt: { title: 'COLL trainer', lead: 'One COLL case at a time: see how long you take to recognise it and to solve it.', more: 'Recognise each case from the corners, then solve them. Turn on random edges to practise all 472 ZBLL cases the 2-look way: COLL, then an edge PLL.' },
-    yw: { title: 'Yiheng Wang', lead: 'Other ways to do a few OLL and PLL cases, from world-record solves by Yiheng Wang.', more: 'They are taken from reconstructions. Each one is from a single solve, so it may not be the usual algorithm for that case.', groups: YIHENG },
     ollt: { title: 'OLL trainer', lead: 'One OLL case at a time: see how long you take to recognise it and to solve it.' },
     pllr: { title: 'PLL recognition', lead: 'Name each PLL case before the next one replaces it. Say it in your head, or turn it on your cube.' },
     pllt: { title: 'PLL trainer', lead: 'One PLL case at a time, from any angle: see how long you take to recognise it and to solve it.' },
@@ -3355,12 +3338,12 @@ body.racing { overflow: hidden; }
     ['x  y  z', 'Rotate the whole cube: x like R, y like U, z like F. No pieces move relative to each other.'],
     ["(R U R' U')", 'The "sexy move". Brackets group a trigger you learn as one motion. Six in a row returns the cube to where it started.'],
   ];
-  const ALL_CASES = [...F2L, ...F2L_BACK, ...OLL, ...OLL_FULL, ...PLL, ...COLL, ...YIHENG].flatMap(g => g.items.map(c => ({ ...c, mode: c.mode || (c.id.startsWith('ollf:') ? 'oll' : c.id.startsWith('f2lb:') ? 'f2l' : c.id.split(':')[0]) })));
+  const ALL_CASES = [...F2L, ...F2L_BACK, ...OLL, ...OLL_FULL, ...PLL, ...COLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.mode || (c.id.startsWith('ollf:') ? 'oll' : c.id.startsWith('f2lb:') ? 'f2l' : c.id.split(':')[0]) })));
   const caseById = id => ALL_CASES.find(c => c.id === id);
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
     beginner: { name: 'Beginner', steps: [['bgn', 'Learn to solve'], ['notation', 'Notation'], ['words', 'Words']] },
-    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['f2lbf', 'Blind F2L'], ['oll', '2-look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['pllr', 'PLL recognition'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['yw', 'Yiheng Wang'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
+    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['f2lbf', 'Blind F2L'], ['oll', '2-look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['pllr', 'PLL recognition'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
     roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
@@ -3370,7 +3353,7 @@ body.racing { overflow: hidden; }
   const pageOf = step => ROUX_PAGES[step] ? ROUX_PAGES[step][learnMode()] : step;
   const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], f2lbf: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
   // the Learn buttons, grouped by the step they belong to
-  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', f2lbf: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', pllr: 'PLL', coll: 'COLL', collt: 'COLL', yw: 'Pros',
+  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', f2lbf: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', pllr: 'PLL', coll: 'COLL', collt: 'COLL',
     fb: 'Steps', sb: 'Steps', cmll: 'Steps', lse: 'Steps', tps: 'Practice', saved: 'Practice', notation: 'Help', words: 'Help' };
   const defMethod = () => METHODS[db.defMethod] ? db.defMethod : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
