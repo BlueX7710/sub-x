@@ -1406,6 +1406,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <div class="f2l-pairs" id="pairsBox"></div>
         <h3 class="dash-h3">Cross <small>how many turns</small></h3>
         <svg class="trend" id="crossBars" viewBox="0 0 320 96" role="img" aria-label="How many turns your crosses took"></svg>
+        <p class="lead" id="xcrossRate" style="margin:6px 0 0"></p>
       </section>
       <section class="panel" id="casesPanel" hidden>
         <h2>Last layer cases <span class="ll-tabs" role="group" aria-label="Case set"><button type="button" class="mini-btn" data-dashll="pll" aria-pressed="true">PLL</button><button type="button" class="mini-btn" data-dashll="oll" aria-pressed="false">OLL</button></span></h2>
@@ -1955,7 +1956,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     $('p3dPlay').textContent = P3.playing ? 'Pause' : end ? 'Replay' : 'Play';
     const cur = P3.anim ? P3.anim.i : P3.idx - 1, pausedHere = P3.real && cur > 0 && gapBefore(cur) >= PAUSE_MS ? ` · you paused ${(gapBefore(cur) / 1000).toFixed(1)} s before this move` : '';
     $('p3dStatus').textContent = P3.idx === 0 && !P3.anim ? (P3.times ? 'This is the scramble with white on the bottom. Press Play to watch it at the speed you solved it; the red marks are your pauses.' : P3.c.setup ? 'This is the scramble with white on the bottom. Press Play, or ▶ for one move at a time.' : P3.c.id === 'tps' ? 'A solved cube. Press Play, or ▶ for one move at a time.' : P3.c.mode === 'cross' ? 'Press Play to watch the cross go in, or ▶ for one move at a time.' : 'This is the case. Press Play, or ▶ for one move at a time.')
-      : end && !P3.anim ? (P3.c.id === 'tps' ? 'Done: the sequence brings the cube back to solved.' : P3.c.mode === 'f2l' ? 'Done: the pair is in its slot.' : P3.c.mode === 'cross' ? 'Done: the white cross is solved (white on top here).' : P3.c.mode === 'solve' ? 'Done: the cube is solved.' : P3.c.mode === 'roux' ? 'Done: the first block is built.' : P3.c.mode === 'sb' ? 'Done: both blocks are built.' : P3.c.mode === 'lse' ? 'Done: the cube is solved.' : 'Done: the case is solved.')
+      : end && !P3.anim ? (P3.c.id === 'tps' ? 'Done: the sequence brings the cube back to solved.' : P3.c.mode === 'f2l' ? 'Done: the pair is in its slot.' : P3.c.id === 'xcross' ? 'Done: the cross and the pair are solved (white on top here).' : P3.c.mode === 'cross' ? 'Done: the white cross is solved (white on top here).' : P3.c.mode === 'solve' ? 'Done: the cube is solved.' : P3.c.mode === 'roux' ? 'Done: the first block is built.' : P3.c.mode === 'sb' ? 'Done: both blocks are built.' : P3.c.mode === 'lse' ? 'Done: the cube is solved.' : 'Done: the case is solved.')
       : `Move ${cur + 1} of ${P3.moves.length}` + (P3.real && cur >= 0 ? ` · ${fmt(P3.times[cur])}` : '') + pausedHere;
   }
   $('p3dPlay').addEventListener('click', () => {
@@ -2874,6 +2875,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       if (alg) openPlayer({ id: 'sol', name: w === 'best' ? 'Best way' : 'Your solve', alg, mode: 'solve', setup: s.scr + ' z2', times: w === 'best' ? null : replayOf(s).times });
     }
     else if (b.dataset.cross) crossAction(b.dataset.cross);
+    else if (b.dataset.xc) xcAction(b.dataset.xc);
     else if (b.dataset.p3d) { const c = caseById(b.dataset.p3d); if (c) openPlayer(c); }
     else if (b.dataset.drill !== undefined) { const c = caseById(b.dataset.drill); if (c) startDrill(c); }
     else if (b.dataset.learn !== undefined) { const id = b.dataset.learn; db.learned[id] = !db.learned[id]; if (db.learned[id]) (db.learnedAt = db.learnedAt || {})[id] = Date.now(); save(); renderLearn(); }
@@ -4056,6 +4058,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     f2lbf: { title: 'Blind F2L', lead: 'Plan your pairs for as long as you like, then insert them with your eyes closed.' },
     tps: { title: 'TPS trainer', lead: 'Repeat a short sequence as fast and cleanly as you can. Each one ends solved.' },
     cross: { title: 'Cross', lead: 'Plan the cross, then compare it with the shortest one Sub-X finds.' },
+    xcross: { title: 'X-cross', lead: 'Plan the cross and one F2L pair together, then compare with the shortest X-cross for each pair.', more: 'An X-cross (extended cross) solves the cross and a pair in one go, planned in inspection. It saves a whole pair of look-ahead. Fast solvers plan one in many of their solves.' },
     today: { title: 'Today', lead: 'A short plan made from your own times, new each day. Each part ticks off as you do it.' },
     saved: { title: 'My solves', lead: 'Solves you saved from the Timer. Try the same scramble again, or watch your solve in 3D.', more: 'Saved solves stay here when you delete a session\'s solves, and are in backups.' },
     algs: { title: 'Progress', lead: 'How far you are with each set of cases, and where your time goes.', more: 'Times come from the trainers, drills on the timer and smart-cube solves, and fill in by themselves.' },
@@ -4075,7 +4078,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // Learn is organised by method; Learn opens on your default one, at its first step
   const METHODS = {
     beginner: { name: 'Beginner', steps: [['bgn', 'Learn to solve'], ['notation', 'Notation'], ['words', 'Words']] },
-    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['algs', 'Progress'], ['cross', 'Cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['f2lbf', 'Blind F2L'], ['oll', '2-look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['pllr', 'PLL recognition'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['zbll', 'ZBLL'], ['zbllt', 'ZBLL trainer'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
+    cfop: { name: 'CFOP', steps: [['today', 'Today'], ['algs', 'Progress'], ['cross', 'Cross'], ['xcross', 'X-cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['f2lbf', 'Blind F2L'], ['oll', '2-look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['pllr', 'PLL recognition'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['zbll', 'ZBLL'], ['zbllt', 'ZBLL trainer'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
     roux: { name: 'Roux', steps: [['today', 'Today'], ['fb', 'First block'], ['sb', 'Second block'], ['cmll', 'CMLL'], ['lse', 'LSE'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
   };
   // each Roux step has a Teach page (the lesson and a worked example) and a Train page (a trainer)
@@ -4083,9 +4086,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const learnMode = () => db.learnMode === 'train' ? 'train' : 'teach';
   const stepOf = page => Object.keys(ROUX_PAGES).find(s => ROUX_PAGES[s].teach === page || ROUX_PAGES[s].train === page) || page;
   const pageOf = step => ROUX_PAGES[step] ? ROUX_PAGES[step][learnMode()] : step;
-  const LESSON = { cross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], f2lbf: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], zbll: CFOP_STEPS[5], zbllt: CFOP_STEPS[5], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
+  const LESSON = { cross: CFOP_STEPS[0], xcross: CFOP_STEPS[0], f2l: CFOP_STEPS[1], f2lb: CFOP_STEPS[1], f2lt: CFOP_STEPS[1], f2lbf: CFOP_STEPS[1], oll: CFOP_STEPS[2], ollf: CFOP_STEPS[2], ollt: CFOP_STEPS[2], pll: CFOP_STEPS[3], pllt: CFOP_STEPS[3], coll: CFOP_STEPS[4], collt: CFOP_STEPS[4], zbll: CFOP_STEPS[5], zbllt: CFOP_STEPS[5], fb: ROUX_STEPS[0], sb: ROUX_STEPS[1], cmll: ROUX_STEPS[2], lse: ROUX_STEPS[3] };
   // the Learn buttons, grouped by the step they belong to
-  const CHIP_GROUP = { cross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', f2lbf: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', pllr: 'PLL', coll: 'COLL', collt: 'COLL', zbll: 'ZBLL', zbllt: 'ZBLL',
+  const CHIP_GROUP = { cross: 'Cross', xcross: 'Cross', f2l: 'F2L', f2lb: 'F2L', f2lt: 'F2L', f2lbf: 'F2L', oll: 'OLL', ollf: 'OLL', ollt: 'OLL', pll: 'PLL', pllt: 'PLL', pllr: 'PLL', coll: 'COLL', collt: 'COLL', zbll: 'ZBLL', zbllt: 'ZBLL',
     fb: 'Steps', sb: 'Steps', cmll: 'Steps', lse: 'Steps', tps: 'Practice', saved: 'Practice', notation: 'Help', words: 'Help' };
   const defMethod = () => METHODS[db.defMethod] ? db.defMethod : 'cfop';
   let learnMethod = defMethod(), learnSet = pageOf(METHODS[learnMethod].steps[0][0]);
@@ -4118,12 +4121,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // stops it. Space does the next step as well.
   const TR = { phase: 'scramble', t0: 0, t1: 0, t2: 0, moves: 0, track: null, timer: 0 };
   const trSmartOn = () => typeof SM !== 'undefined' && !!SM && !!SM.conn && typeof SmartCore !== 'undefined';
-  const TRAINERS = ['cross', 'f2lt', 'f2lbf', 'ollt', 'pllt', 'collt', 'zbllt', 'fbt', 'sbt', 'cmllt', 'lset'];
+  const TRAINERS = ['cross', 'xcross', 'f2lt', 'f2lbf', 'ollt', 'pllt', 'collt', 'zbllt', 'fbt', 'sbt', 'cmllt', 'lset'];
   const trainerActive = () => view === 'learn' && TRAINERS.includes(learnSet);
-  const trData = () => ({ cross, f2lt, f2lbf, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
-  const trNew = () => ({ cross: newCross, f2lt: newF2L, f2lbf: newBF, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), zbllt: () => newLL('zbll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
+  const trData = () => ({ cross, xcross: xc, f2lt, f2lbf, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
+  const trNew = () => ({ cross: newCross, xcross: newXCross, f2lt: newF2L, f2lbf: newBF, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), zbllt: () => newLL('zbll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
   // what "done" means for each trainer, on a smart cube's state (white on top)
-  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), f2lt: st => SmartCore.f2lSolvedTop(st), f2lbf: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), zbllt: st => SmartCore.isSolved(st), cmllt: st => SmartCore.solvedUpToAuf(st),
+  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), xcross: st => XCross.done(st), f2lt: st => SmartCore.f2lSolvedTop(st), f2lbf: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), zbllt: st => SmartCore.isSolved(st), cmllt: st => SmartCore.solvedUpToAuf(st),
     fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.solvedAnyWay(st) };
   // the last-layer corners are solved, up to a turn of that layer (on the bottom: the smart cube holds white on top)
   const faceOfN = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
@@ -4144,7 +4147,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   // cube connected after the case appeared has nothing to follow yet.
   function trSync(setup) {
     if (!setup) return;
-    if (TR.setup !== setup) { trStart(setup, !['cross', 'fbt'].includes(learnSet)); return; }
+    if (TR.setup !== setup) { trStart(setup, !['cross', 'xcross', 'fbt'].includes(learnSet)); return; }
     if (!trSmartOn()) TR.track = null;
     else if (!TR.track && TR.phase === 'scramble') { TR.track = SmartCore.track(setup, TR.yellow ? toCube : null, trMask()); SmartCore.step(TR.track, SM.cur, null); }
   }
@@ -4156,7 +4159,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const fix = SmartCore.fixMoves(T, SM.cur); if (!fix) return null;
     return (yellow ? Solver.heldAs(CrossSolver.flip(fix), T.toks.slice(0, T.k).join(' ')) : fix).join(' ');
   }
-  function renderTrainer() { const D = trData(); if (D) trSync(D.scr); ({ cross: renderCross, f2lt: renderF2LT, f2lbf: renderBF, ollt: renderLLT, pllt: renderLLT, collt: renderLLT, zbllt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
+  function renderTrainer() { const D = trData(); if (D) trSync(D.scr); ({ cross: renderCross, xcross: renderXCross, f2lt: renderF2LT, f2lbf: renderBF, ollt: renderLLT, pllt: renderLLT, collt: renderLLT, zbllt: renderLLT, cmllt: renderLLT, fbt: renderFB, sbt: renderRx, lset: renderRx })[learnSet](); }
   function trNext(at) {   // at: when a finger touched down, to stop the solve clock then rather than on lift
     const now = TR.phase === 'solve' && at ? at : performance.now(); keepAwake();
     if (TR.phase === 'scramble') { TR.phase = 'plan'; TR.t0 = now; }
@@ -4223,7 +4226,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   }
   function trClockHtml(goal, rec) {   // rec: a case trainer, where the first phase is recognising the case
     const blind = f2lBlind();
-    const scr = ['cross', 'fbt'].includes(learnSet);   // the others are set up on a solved cube
+    const scr = ['cross', 'xcross', 'fbt'].includes(learnSet);   // the others are set up on a solved cube
     const label = { scramble: scr ? 'Scramble first' : 'Set it up first', plan: blind ? 'Inspecting' : rec ? 'Recognising' : 'Planning', solve: `Solving the ${goal}`, done: 'Finished' }[TR.phase];
     const btn = { scramble: scr ? "I've scrambled: start the clock" : "It's set up: start the clock", plan: blind ? 'Close your eyes and start' : 'Start solving', solve: 'Done', done: 'Next' }[TR.phase];
     const done = TR.phase === 'done' ? `${rec ? 'Recognised in' : 'Planned for'} ${((TR.t1 - TR.t0) / 1000).toFixed(1)} s, then ${blind ? 'turned without looking for' : `solved the ${goal} in`} ${fmt(TR.t2 - TR.t1)}${TR.moves ? ` with ${TR.moves} turns (${tpsOf(TR.moves, TR.t2 - TR.t1)} TPS)` : ''}.` : '';
@@ -4363,6 +4366,83 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     else if (a === 'check') crossCheck();
     else if (a === '3d') { if (cross.sol.length) openPlayer({ id: 'cross', name: 'Shortest cross', alg: cross.sol.join(' '), mode: 'cross' }); return; }
     renderCross();
+  }
+
+  // ---------- X-cross trainer ----------
+  // Like the cross trainer, with one F2L pair as well. The slots are named as you hold the cube, white on the bottom:
+  // after z2 the front-right pair (white on top) sits front-left.
+  const XC_PAIRS = [['green', 'red', 'front-left'], ['green', 'orange', 'front-right'], ['blue', 'orange', 'back-right'], ['blue', 'red', 'back-left']];
+  const xc = { scr: '', sols: null, shown: false, level: 'any', check: '', checkClass: '', try: '', hist: [] };
+  const xcBest = () => xc.sols ? Math.min(...xc.sols.map(s => s.moves ? s.moves.length : 99)) : null;
+  function newXCross() {
+    for (let i = 0; i < 30; i++) {
+      xc.scr = genScramble('333'); xc.sols = XCross.ready() ? XCross.solve(xc.scr) : null;
+      const n = xcBest();
+      if (xc.level === 'any' || n === null || (xc.level === 'easy' && n <= 6) || (xc.level === 'hard' && n >= 8)) break;
+    }
+    xc.shown = false; xc.check = ''; xc.try = '';
+    trStart(xc.scr);   // scrambled white-on-top, the smart cube's own frame
+  }
+  function withXC(then) {
+    if (XCross.ready()) { then(); return; }
+    const el = $('xcWork'); if (el) el.hidden = false;
+    setTimeout(() => { XCross.warm(); then(); }, 40);
+  }
+  function renderXCross() {
+    if (!xc.scr) newXCross();
+    if (!xc.sols && XCross.ready()) xc.sols = XCross.solve(xc.scr);
+    const levels = [['any', 'Any X-cross'], ['easy', 'Easier (6 moves or fewer)'], ['hard', 'Harder (8 or more)']], H = xc.hist, best = xcBest();
+    const list = xc.sols ? xc.sols.map(s => ({ ...s, n: s.moves ? s.moves.length : 99 })).sort((a, b) => a.n - b.n) : [];
+    $('learnBody').innerHTML = `<div class="cross-grid">
+      <section class="panel">
+        <div class="label"><span>Scramble · white on top, green in front</span><button type="button" class="mini-btn" data-xc="new">New scramble</button></div>
+        <p class="scramble">${trScr(xc.scr)}</p>
+        <svg class="net" id="xcNet" role="img" aria-label="The cube after the scramble"></svg>
+        <div class="chips" style="margin-top:12px">${levels.map(([k, l]) => `<button type="button" class="chip" data-xc="lvl:${k}" aria-pressed="${xc.level === k}">${l}</button>`).join('')}</div>
+      </section>
+      <section class="panel">
+        ${trClockHtml('X-cross')}
+        <p class="lead">After scrambling, turn the cube over so white is on the bottom (z2: green stays in front). Plan the cross and one F2L pair together, as you would in inspection, then solve both. Pick the pair that is easiest to bring along with the cross.</p>
+        <label class="lead" for="xcTry" style="display:block;margin-bottom:6px">Your X-cross with white on the bottom (optional, to check it):</label>
+        <div class="cross-try"><input id="xcTry" class="own-scr" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. R' D F2 L U' L'"><button type="button" class="btn ghost" data-xc="check">Check</button></div>
+        <p class="drill-note ${xc.checkClass}" id="xcCheck">${esc(xc.check)}</p>
+        <div class="row-btns" style="margin-top:12px"><button type="button" class="btn ghost" data-xc="reveal">${xc.shown ? 'Hide shortest X-cross' : 'Show shortest X-cross'}</button></div>
+        <p class="drill-note" id="xcWork" hidden>Working out the shortest X-cross. This takes a few seconds the first time.</p>
+        ${xc.shown && xc.sols ? `<div class="cross-sol">
+          <p><b>Best X-cross: ${best} move${best === 1 ? '' : 's'}</b> · white on the bottom, after z2</p>
+          <table class="phase-table sol-table"><thead><tr><th>Pair</th><th>Moves</th><th class="num">Turns</th></tr></thead><tbody>${list.map(s => `<tr><td>${XC_PAIRS[s.slot][0]}-${XC_PAIRS[s.slot][1]}<small>${XC_PAIRS[s.slot][2]} slot</small></td><td class="alg">${esc(s.moves ? CrossSolver.flip(s.moves).join(' ') || 'Already solved' : '–')}</td><td class="num">${s.moves ? s.n : '–'}</td></tr>`).join('')}</tbody></table>
+          ${best ? `<button type="button" class="pill-btn" data-xc="3d">Watch the best in 3D</button>` : ''}
+        </div>` : ''}
+        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} X-cross${H.length === 1 ? '' : 'es'} · average planning ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)} s · average X-cross ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The best X-cross is usually 6 to 8 moves, about one more than the cross alone.'}</p>
+      </section></div>`;
+    drawNet(xc.scr, 3, PAL_WCA, 'xcNet');
+    const inp = $('xcTry'); inp.value = xc.try;
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); xcAction('check'); } });
+    trTick();
+  }
+  function xcCheck() {
+    const txt = xc.try.trim().replace(/[’‘]/g, "'");
+    xc.checkClass = 'err';
+    if (!txt) { xc.check = 'Type your moves first.'; return; }
+    const toks = Cube.tokens(txt), bad = toks.filter(t => !MOVE_RE.test(t));
+    if (bad.length) { xc.check = 'Not recognised: ' + bad.join(' ') + ". Use moves like R U' F2."; return; }
+    // the moves are done with white on the bottom: replay them after z2, then turn back to check
+    const st = Cube.apply(Cube.solved(3), 3, xc.scr + ' z2 ' + txt + ' z2');
+    const n = toks.filter(t => !/^[xyz]/.test(t)).length, best = xcBest();
+    if (!CrossSolver.crossSolvedTop(st)) { xc.check = "That doesn't solve the cross. Check the moves, or show the shortest X-cross."; return; }
+    const pairs = XCross.pairsDone(st);
+    if (!pairs) { xc.check = `That solves the cross in ${n} turns, but no pair yet. An X-cross brings a pair in with it.`; return; }
+    xc.checkClass = 'ok';
+    xc.check = (n <= best ? `Yes: an X-cross in ${n} turns, as short as it gets.` : `Yes: an X-cross in ${n} turns. The shortest is ${best}.`) + (pairs > 1 ? ` That's ${pairs} pairs with the cross!` : '') + trTyped(xc, n);
+  }
+  function xcAction(a) {
+    if ($('xcTry')) xc.try = $('xcTry').value;
+    if (a === 'new') newXCross();
+    else if (a.startsWith('lvl:')) { xc.level = a.slice(4); if (xc.level === 'any') newXCross(); else { withXC(() => { newXCross(); renderXCross(); }); return; } }
+    else if (a === 'reveal') { if (!xc.shown) { withXC(() => { xc.sols = xc.sols || XCross.solve(xc.scr); xc.shown = true; renderXCross(); }); return; } xc.shown = false; }
+    else if (a === 'check') { withXC(() => { xc.sols = xc.sols || XCross.solve(xc.scr); xcCheck(); renderXCross(); }); return; }
+    else if (a === '3d') { const b = xc.sols && xc.sols.filter(s => s.moves).sort((x, y) => x.moves.length - y.moves.length)[0]; if (b) openPlayer({ id: 'xcross', name: 'Shortest X-cross', alg: b.moves.join(' '), mode: 'cross', setup: xc.scr }); return; }
+    renderXCross();
   }
 
   // ---------- TPS trainer ----------
@@ -4887,7 +4967,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const rx = Object.fromEntries(['sb', 'lse'].map(k => [k, { scr: '', sol: null, shown: false, check: '', checkClass: '', try: '', hist: [] }]));
   // every trainer's timed tries (last 200) are kept on this device and in backups, so its stats survive a reload
   db.trHist = db.trHist || {};
-  for (const [k, D] of Object.entries({ cross, f2lt, f2lbf, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })) if (Array.isArray(db.trHist[k])) D.hist = db.trHist[k];
+  for (const [k, D] of Object.entries({ cross, xcross: xc, f2lt, f2lbf, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })) if (Array.isArray(db.trHist[k])) D.hist = db.trHist[k];
   const rxKind = () => learnSet === 'sbt' ? 'sb' : 'lse';
   function newRx(kind) { const T = rx[kind]; T.scr = rxSetup(kind); T.sol = null; T.shown = false; T.check = ''; T.try = ''; trStart(T.scr, true); }
   function renderRx() {
@@ -5017,6 +5097,92 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     return { solveTop, flip, crossSolvedTop, distance: scramble => solveTop(scramble).length };
   })();
 
+
+  // ---------- X-cross: the cross and one F2L pair together, the shortest way for each pair ----------
+  // White on top (the cube's own frame), like CrossSolver. Iterative deepening, guided by two lookup tables that are
+  // each exact for the cross plus half the pair: the cross with the pair's corner, and the cross with its edge. They
+  // are built once (16 MB, a few seconds). The front-right pair is solved directly; the others by turning the
+  // problem about the white axis, so the same tables serve all four.
+  const XCross = (() => {
+    const MOVES = ['U', 'D', 'R', 'L', 'F', 'B'].flatMap(f => [f, f + "'", f + '2']);
+    const SOLVED = Cube.solved(3), zeros = p => p.filter(v => v === 0).length, fkey = (p, n) => p.join() + '|' + n.join();
+    const ES = SOLVED.filter(k => zeros(k.p) === 1), CS = SOLVED.filter(k => zeros(k.p) === 0);
+    const EI = new Map(ES.map((k, i) => [fkey(k.p, k.n), i])), CI = new Map(CS.map((k, i) => [fkey(k.p, k.n), i]));
+    const CROSS_HOME = ES.filter(k => k.col === 'U').map(k => [k.p, k.n]);   // the white stickers of the four cross edges
+    const CORNER_HOME = [[2, 2, 2], [0, 1, 0]], EDGE_HOME = [[2, 0, 2], [0, 0, 1]];   // the front-right pair (white on top)
+    const enc = (a, b, c, d, e) => (((a * 24 + b) * 24 + c) * 24 + d) * 24 + e;
+    let T = null;
+    function build() {
+      const TE = new Uint8Array(18 * 24), TC = new Uint8Array(18 * 24);
+      MOVES.forEach((m, j) => {
+        ES.forEach((k, i) => { const x = [{ p: k.p.slice(), n: k.n.slice() }]; Cube.apply(x, 3, m); TE[j * 24 + i] = EI.get(fkey(x[0].p, x[0].n)); });
+        CS.forEach((k, i) => { const x = [{ p: k.p.slice(), n: k.n.slice() }]; Cube.apply(x, 3, m); TC[j * 24 + i] = CI.get(fkey(x[0].p, x[0].n)); });
+      });
+      const cross = CROSS_HOME.map(([p, n]) => EI.get(fkey(p, n)));
+      const queue = new Int32Array(24 * 22 * 20 * 18 * 24);
+      const bfs = (fifth, home5) => {   // fifth: the corner's table or the edge's
+        const dist = new Int8Array(24 ** 5).fill(-1);
+        let head = 0, tail = 0; queue[tail++] = enc(...cross, home5); dist[queue[0]] = 0;
+        while (head < tail) {
+          let e = queue[head++]; const d = dist[e] + 1;
+          const s4 = e % 24; e = (e - s4) / 24; const s3 = e % 24; e = (e - s3) / 24; const s2 = e % 24; e = (e - s2) / 24; const s1 = e % 24, s0 = (e - s1) / 24;
+          for (let o = 0; o < 18 * 24; o += 24) {
+            const n = (((TE[o + s0] * 24 + TE[o + s1]) * 24 + TE[o + s2]) * 24 + TE[o + s3]) * 24 + fifth[o + s4];
+            if (dist[n] < 0) { dist[n] = d; queue[tail++] = n; }
+          }
+        }
+        return dist;
+      };
+      T = { TE, TC, PC: bfs(TC, CI.get(fkey(...CORNER_HOME))), PE: bfs(TE, EI.get(fkey(...EDGE_HOME))) };
+    }
+    const ready = () => !!T, warm = () => { if (!T) build(); };
+    // turning about the white axis: the front-left pair goes to front-right, and so on
+    const ry = v => [v[2], v[1], -v[0]], ryInv = v => [-v[2], v[1], v[0]];
+    const rot = (v, k, fn = ry) => { for (let i = 0; i < k; i++) v = fn(v); return v; };
+    const LETTER = { F: 'R', R: 'B', B: 'L', L: 'F', U: 'U', D: 'D' }, BACK = { R: 'F', B: 'R', L: 'B', F: 'L', U: 'U', D: 'D' };
+    const unturn = (m, k) => { let f = m[0]; for (let i = 0; i < k; i++) f = BACK[f]; return f + m.slice(1); };
+    function ida(s0) {
+      const { TE, TC, PC, PE } = T, path = [];
+      const hOf = s => Math.max(PC[enc(s[0], s[1], s[2], s[3], s[4])], PE[enc(s[0], s[1], s[2], s[3], s[5])]);
+      const dfs = (s, g, bound, last) => {
+        const hh = hOf(s); if (hh === 0) return true;
+        if (g + hh > bound) return false;
+        for (let m = 0; m < 18; m++) {
+          const face = (m / 3) | 0;
+          if (face === last || (last >= 0 && (face ^ 1) === last && face < last)) continue;   // no U U, and D U only as U D
+          const o = m * 24, n = [TE[o + s[0]], TE[o + s[1]], TE[o + s[2]], TE[o + s[3]], TC[o + s[4]], TE[o + s[5]]];
+          path.push(MOVES[m]);
+          if (dfs(n, g + 1, bound, face)) return true;
+          path.pop();
+        }
+        return false;
+      };
+      for (let bound = hOf(s0); bound <= 14; bound++) if (dfs(s0, 0, bound, -1)) return path.slice();
+      return null;
+    }
+    // the shortest X-cross for each pair: [{ slot, moves }] for front-right, front-left, back-left, back-right
+    // (white on top; the slot names are white on top too)
+    function solve(scramble) {
+      warm();
+      const st = Cube.apply(SOLVED.map((k, i) => ({ p: k.p.slice(), n: k.n.slice(), col: k.col, id: i })), 3, scramble);
+      const where = new Map(st.map(k => [k.id, k])), idAt = new Map(SOLVED.map((k, i) => [fkey(k.p, k.n), i]));
+      return [0, 1, 2, 3].map(k => {
+        // the piece that belongs at each home (turned back to this pair's slot), where it is now, turned with the problem
+        const look = (index, [p, n]) => { const x = where.get(idAt.get(fkey(rot(p, k, ryInv), rot(n, k, ryInv)))); return index.get(fkey(rot(x.p, k), rot(x.n, k))); };
+        const s = [...CROSS_HOME.map(h => look(EI, h)), look(CI, CORNER_HOME), look(EI, EDGE_HOME)];
+        const moves = ida(s);
+        return { slot: k, moves: moves ? moves.map(m => unturn(m, k)) : null };
+      });
+    }
+    // is the cross solved with at least one pair? (a cube state, white on top)
+    function pairsDone(st) {
+      const at = new Map(st.map(k => [fkey(k.p, k.n), k.col])), home = (p, n) => at.get(fkey(p, n)) === faceOfN(n);
+      const cubie = p => SOLVED.filter(k => k.p.join() === p.join()).every(k => home(k.p, k.n));
+      return [0, 1, 2, 3].filter(k => cubie(rot(CORNER_HOME[0], k, ryInv)) && cubie(rot(EDGE_HOME[0], k, ryInv))).length;
+    }
+    const done = st => CrossSolver.crossSolvedTop(st) && pairsDone(st) > 0;
+    return { ready, warm, solve, done, pairsDone };
+  })();
 
   // ---------- solutions: a suggested CFOP solve, and a breakdown of your own ----------
   // A state lists, for each of the 54 sticker positions, which solved sticker sits there, so a
@@ -7088,6 +7254,10 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       g += `<text x="${(x + (bw - 10) / 2).toFixed(1)}" y="${H - 3}" text-anchor="middle">${c === 10 ? '10+' : c}</text>`;
     }
     $('crossBars').innerHTML = g;
+    // X-cross rate: solves where a pair was in by the time the cross was done (smart-cube splits, not tapped ones)
+    const xs = solvesFor(db.event).filter(s => s.splits && !s.splits.manual && !s.ex && !s.f2l && s.splits.pairs && s.splits.pairs.length).slice(-50);
+    const xn = xs.filter(s => s.splits.pairs[0] <= s.splits.cross).length;
+    $('xcrossRate').innerHTML = xs.length ? `X-cross: <b>${xn}</b> of your last ${xs.length} smart-cube solve${xs.length === 1 ? '' : 's'} (${Math.round(xn / xs.length * 100)}%) had a pair in with the cross. <button type="button" class="mini-btn" data-lset="xcross">Practise X-crosses</button>` : '';
   }
   // every OLL and PLL your smart-cube solves have had, slowest first
   let dashLL = 'pll';
