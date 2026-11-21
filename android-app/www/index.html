@@ -419,6 +419,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 #statsBody tr.pb-now td { color: var(--accent); }   /* the current value is your best right now */
 .stat-link { background: none; border: 0; padding: 0; font: inherit; letter-spacing: inherit; color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; text-decoration-color: var(--muted); }
 .stat-link[aria-expanded="true"] { color: var(--accent); }
+.stat-link { position: relative; }
+.stat-link::before { content: ""; position: absolute; inset: -6px -10px; }   /* a bigger target around the small word, within its own table row (rows are 31 px apart) */
 .avg-box { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; padding: 8px 10px; background: var(--sunk); border-radius: 8px; }
 .avg-box p { margin: 0; flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 .summary { display: flex; gap: 6px 18px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--muted); }
@@ -701,7 +703,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .save-warn { max-width: 820px; margin: 0 auto 12px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; background: var(--surface); color: var(--ink); border: 2px solid var(--warn); border-radius: 10px; padding: 10px 14px; font-size: 14px; line-height: 1.4; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 9px 12px 9px 16px; display: flex; gap: 12px; align-items: center; font-size: 14px; box-shadow: 0 6px 24px rgb(0 0 0 / .25); max-width: calc(100% - 32px); z-index: 20; }
 .streak { font-family: var(--font-body); font-weight: 500; font-size: 12px; border-radius: 999px; padding: 2px 8px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
-.ach-panel summary { cursor: pointer; list-style: none; }
+.ach-panel summary { cursor: pointer; list-style: none; padding: 12px 0; margin: -12px 0; }   /* the whole header row is a finger-sized target */
 .ach-panel summary::-webkit-details-marker { display: none; }
 .ach-panel summary h2 { margin: 0; }
 .ach-panel summary h2 { justify-content: flex-start; }
@@ -1180,7 +1182,7 @@ body.running .acct-btn { visibility: hidden; }
 /* ---- Pink look: pink all over (no plain white), deep pink accents, rounded. Always light. ---- */
 :root[data-skin="pink"] {
   --bg: #F3CFE0; --surface: #FAE3EE; --sunk: #EEC1D5; --ink: #3A1029; --muted: #74405D; --line: #E5A9C4;
-  --accent: #D6337F; --accent-ink: #FFFFFF; --hold: #A11F1F; --ready: #105E35; --warn: #784900; --plastic: #2A1420; --ll-off: #DDA0BC;
+  --accent: #B0225F; --accent-ink: #FFFFFF; --hold: #A11F1F; --ready: #105E35; --warn: #784900; --plastic: #2A1420; --ll-off: #DDA0BC;
   --ph-insp: #B48AA0; --ph-cross: #7B4DDB; --ph-f2l: #0B7466; --ph-oll: #9A6A00; --ph-pll: #D6337F;
   --font-display: "Outfit", system-ui, sans-serif; --font-body: "Outfit", system-ui, sans-serif;
   color-scheme: light;
@@ -6896,7 +6898,7 @@ body.running .acct-btn { visibility: hidden; }
       return;
     }
     // (idle too: inspection was cancelled with Esc, but the cube is still scrambled, as the note says)
-    if ((state === 'inspecting' || state === 'smartReady' || (state === 'idle' && view === 'timer' && !drill)) && SM.T && SM.T.done) {
+    if ((state === 'inspecting' || state === 'smartReady' || (state === 'idle' && view === 'timer' && !drill && !overTimer() && !(typeof RACE !== 'undefined' && RACE.open))) && SM.T && SM.T.done) {
       start(); runStart = ts; SM.kbStart = false;     // the first turn starts the timer
       SM.readySt = before; SM.moves = [{ m, t: ts, lost: !!ev && ev.localTimestamp == null }]; SM.raw = ev ? [ev] : [];
       return;
@@ -6905,19 +6907,20 @@ body.running .acct-btn { visibility: hidden; }
   }
   function smartFinish() {
     // Started by the first turn: first turn to solved. Started with the space bar or a tap: from then, like any timer
-    // (picking the cube up counts), so the turns' times are measured from the start too.
+    // (picking the cube up counts). The turns' times, splits and replay still start at the first turn, as for any smart solve.
     // A turn recovered from the cube's history only has the time its reply arrived (up to seconds late): put it
     // 50 ms before the turn after it, or 50 ms after the one before when it was the last.
     const L = SM.moves;
     for (let i = L.length - 2; i >= 0; i--) if (L[i].lost && L[i].t > L[i + 1].t - 50) L[i].t = L[i + 1].t - 50;
     if (L.length > 1 && L[L.length - 1].lost) L[L.length - 1].t = L[L.length - 2].t + 50;
-    const kb = !!SM.kbStart, first = SM.moves[0].t, t0 = kb ? Math.min(runStart, first) : first;
+    const first = SM.moves[0].t, t0 = first, lead = SM.kbStart ? Math.max(0, Math.round(first - runStart)) : 0;
     const moves = SM.moves.map(x => ({ m: x.m, t: Math.round(x.t - t0) })), raw = SM.raw.slice();
-    let ms = moves[moves.length - 1].t;              // to solved, on this device's clock
+    const span = moves[moves.length - 1].t;
+    let ms = lead + span;                            // to solved, on this device's clock
     try {   // the cube's own clock is steadier: fit it to ours (the csTimer method) and use it if it agrees
       if (SM.lib && raw.length > 2 && raw.every(r => r.cubeTimestamp != null && r.localTimestamp != null)) {
         const fit = SM.lib.cubeTimestampLinearFit(raw), d = fit[fit.length - 1].cubeTimestamp - fit[0].cubeTimestamp;
-        const lead = Math.round(first - t0); if (d > 0 && Math.abs(lead + d - ms) < Math.max(300, ms * 0.1)) ms = lead + d;
+        if (d > 0 && Math.abs(d - span) < Math.max(300, span * 0.1)) ms = lead + d;
       }
     } catch (e) {}
     if (drill) { stop(Math.round(ms)); ignoreRelease = false; return; }
@@ -7615,8 +7618,8 @@ body.running .acct-btn { visibility: hidden; }
       const x = X(starts[i]), w = Math.max(0, X(ends[i]) - x);
       g += `<rect x="${x.toFixed(1)}" y="${T}" width="${w.toFixed(1)}" height="${Hb}" fill="${['var(--ph-cross)', 'var(--ph-f2l)', 'var(--ph-oll)', 'var(--ph-pll)'][i]}"><title>${n} ${fmt(ends[i] - starts[i])}</title></rect>`;
       const lab = `${n} ${fmt(ends[i] - starts[i])}`;
-      if (w > lab.length * 5.6 + 6) labels += `<text x="${(x + w / 2).toFixed(1)}" y="${T + Hb / 2 + 4}" text-anchor="middle" style="fill:#fff;font-weight:600">${lab}</text>`;
-      else if (w > 22) labels += `<text x="${(x + w / 2).toFixed(1)}" y="${T + Hb / 2 + 4}" text-anchor="middle" style="fill:#fff;font-weight:600">${fmt(ends[i] - starts[i])}</text>`;
+      if (w > lab.length * 5.6 + 6) labels += `<text x="${(x + w / 2).toFixed(1)}" y="${T + Hb / 2 + 4}" text-anchor="middle" style="fill:var(--ph-text, #fff);font-weight:600">${lab}</text>`;
+      else if (w > 22) labels += `<text x="${(x + w / 2).toFixed(1)}" y="${T + Hb / 2 + 4}" text-anchor="middle" style="fill:var(--ph-text, #fff);font-weight:600">${fmt(ends[i] - starts[i])}</text>`;
     });
     // each F2L pair's end, as a notch at the top and bottom of the F2L block (the label stays clear)
     if (!p.manual) p.pairs.slice(0, 3).forEach(t => { if (t > p.cross) g += `<line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="${T}" y2="${T + 6}" stroke="var(--sunk)" stroke-width="2"/><line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="${T + Hb - 6}" y2="${T + Hb}" stroke="var(--sunk)" stroke-width="2"/>`; });
