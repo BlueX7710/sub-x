@@ -845,6 +845,65 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
 .top #installBtn { margin-left: auto; }
 .install-hint { margin: 0 0 0 auto; font-size: 13px; color: var(--muted); }
 .skin-pick { margin-left: auto; }
+/* the Account button: last in the top bar, on the right */
+.acct-btn { order: 5; margin-left: auto; width: 44px; height: 44px; flex: none; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: grid; place-items: center; overflow: hidden; }
+.skin-pick ~ .acct-btn { margin-left: 4px; }
+.acct-btn[aria-current="page"] { border: 2px solid var(--accent); color: var(--accent); }
+.acct-btn img { width: 100%; height: 100%; object-fit: cover; }
+body.running .acct-btn { visibility: hidden; }
+.acct { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.acct-title { margin: 4px 0 0; font-family: var(--font-display); font-size: 30px; font-weight: 700; }
+.acct .panel { border-radius: 20px; }
+.acct-plan { border-top: 4px solid var(--ready); }
+.plan-badge { padding: 2px 10px; border-radius: 999px; background: var(--sunk); font-family: var(--font-display); letter-spacing: .06em; text-transform: uppercase; }
+.plan-badge.pro { background: color-mix(in srgb, #E8B923 26%, transparent); }
+.acct-links { margin: 0; text-align: center; font-size: 13px; color: var(--muted); }
+/* the paywall: the same layout as the design, in the colours of the current Look */
+.pw-overlay { position: fixed; inset: 0; z-index: 30; background: rgb(5 8 18 / .55); overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; padding: max(16px, env(safe-area-inset-top, 0px)) 12px 24px; }
+.pw { position: relative; width: min(760px, 100%); background: var(--bg); color: var(--ink); border-radius: 28px; overflow: hidden; padding-bottom: 22px; }
+.pw-band { position: absolute; left: -20%; right: -20%; top: 0; height: 300px; background: var(--accent); border-radius: 0 0 50% 50% / 0 0 130px 130px; }
+.pw-x { position: absolute; top: 10px; right: 10px; z-index: 2; color: var(--accent-ink); }
+.pw-head { position: relative; text-align: center; color: var(--accent-ink); padding: 34px 20px 4px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pw-head h2 { margin: 0; font-family: var(--font-display); font-size: 32px; font-weight: 700; }
+.pw-head p { margin: 0; opacity: .9; }
+.pw-kicker { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
+.pw-toggle { display: flex; gap: 4px; padding: 4px; margin-top: 6px; border-radius: 999px; background: rgb(0 0 0 / .18); }
+.pw-toggle button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: var(--accent-ink); font: 700 14px var(--font-body); }
+.pw-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
+.pw-cards { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding: 18px 20px 0; }
+@media (max-width: 620px) { .pw-cards { grid-template-columns: minmax(0, 1fr); } }
+.pw-card { position: relative; background: var(--surface); border-radius: 24px; border-top: 5px solid var(--ready); box-shadow: 0 12px 32px rgb(0 0 0 / .18); padding: 22px 20px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.pw-pro { border-top-color: #E8B923; }
+.pw-bolt { fill: #E8B923; stroke: #B58A00; }
+.pw-card h3 { margin: 0; font-family: var(--font-display); font-size: 18px; letter-spacing: .08em; }
+.pw-card ul, .pw-list { list-style: none; margin: 0; padding: 0; width: 100%; }
+.pw-card li, .pw-list li { min-height: 38px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; }
+.pw-list li { justify-content: flex-start; text-align: left; font-size: 15px; }
+.pw-list li:last-child { border-bottom: 1px solid var(--line); }
+.pw-card li svg, .pw-list li svg { flex: none; color: var(--ready); }
+.pw-card li.off { color: var(--muted); text-decoration: line-through; }
+.pw-price { margin: 4px 0 0; display: flex; align-items: flex-start; gap: 2px; }
+.pw-price span { font-size: 20px; font-weight: 700; margin-top: 8px; }
+.pw-price b { font-family: var(--font-display); font-size: 50px; line-height: 1; }
+.pw-price i { font-style: normal; color: var(--muted); align-self: flex-end; margin-bottom: 6px; }
+.pw-note { margin: -4px 0 0; font-size: 13px; color: var(--muted); min-height: 18px; }
+.pw-ghost { min-height: 46px; padding: 0 30px; border-radius: 999px; border: 2px solid var(--accent); background: transparent; color: var(--accent); font: 700 14px var(--font-display); letter-spacing: .06em; text-transform: uppercase; }
+.pw-go { min-height: 46px; padding: 0 38px; }
+.pw-badge { position: absolute; top: 12px; right: 12px; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, #E8B923 24%, transparent); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.pw-small { position: relative; margin: 16px 20px 0; font-size: 12px; color: var(--muted); text-align: center; }
+.pw-sheet-wrap { align-items: flex-end; padding: 0; }
+.pw-sheet { width: min(520px, 100%); background: var(--surface); color: var(--ink); border-radius: 28px 28px 0 0; padding: 12px 24px max(24px, env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+@media (min-width: 620px) { .pw-sheet-wrap { align-items: center; } .pw-sheet { border-radius: 28px; } }
+.pw-grip { width: 40px; height: 5px; border-radius: 3px; background: var(--line); }
+.pw-lock { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, #E8B923 22%, transparent); color: #B58A00; }
+.pw-sheet h2 { margin: 0; font-family: var(--font-display); font-size: 26px; }
+.ps-plans { width: 100%; min-height: 50px; }
+/* Pro features while locked: a panel blurred under a cover, a page replaced by a note, a tag on Learn's buttons */
+.pro-lock { position: relative; }
+.pro-lock > :not(h2):not(.pro-cover) { filter: blur(5px); pointer-events: none; user-select: none; }
+.pro-cover { position: absolute; inset: 46px 12px 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+.pro-tag { margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: color-mix(in srgb, #E8B923 26%, transparent); font-size: 10px; font-weight: 800; letter-spacing: .06em; opacity: 1 !important; }
+.locked-page { max-width: 560px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .bar-group .skin-pick { margin-left: 0; }
 /* touch screens: buttons big enough for a thumb */
 @media (pointer: coarse) {
@@ -1202,6 +1261,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     </label>
     <button type="button" class="pill-btn" id="installBtn" hidden>Install app</button>
     <p class="install-hint" id="iosHint" hidden>To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.</p>
+    <button type="button" class="acct-btn" id="acctBtn" aria-label="Account" aria-current="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="4"></circle><path d="M4.5 20c1.4-3.6 4.2-5.4 7.5-5.4s6.1 1.8 7.5 5.4"></path></svg></button>
   </header>
 
   <!-- ================= TIMER ================= -->
@@ -1433,6 +1493,26 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
         <p class="lead" id="achStreak" style="margin:8px 0 0"></p>
         <div class="ach-grid" id="achGrid"></div>
       </details>
+    </aside>
+  </main>
+
+  <!-- ================= ACCOUNT ================= -->
+  <main id="view-account" hidden>
+    <div class="acct">
+      <h2 class="acct-title">Account</h2>
+      <section class="panel" id="acctSign">
+        <h2>Sign-in</h2>
+        <div class="sync-row" id="syncRow" hidden>
+          <p class="lead" id="syncInfo"></p>
+          <div class="row-btns"><button type="button" class="btn" id="syncBtn">Sign in with Google</button><button type="button" class="pill-btn" id="syncNow" hidden>Sync now</button><button type="button" class="pill-btn" id="syncOut" hidden>Sign out</button></div>
+        </div>
+      </section>
+      <section class="panel acct-plan">
+        <h2>Your plan <b class="plan-badge" id="planBadge">Free</b></h2>
+        <p class="lead" id="planText"></p>
+        <div class="row-btns"><button type="button" class="btn" id="goProBtn">See Pro plans</button><button type="button" class="text-btn" id="restoreBtn">Restore purchase</button><button type="button" class="text-btn" id="proFreeBtn" hidden>Back to Free (test)</button></div>
+        <label class="toggle" id="proTestRow" hidden style="margin-top:10px"><input type="checkbox" id="proTest"> Testing: lock the Pro features (payments aren't connected yet)</label>
+      </section>
       <section class="panel backup-panel">
         <h2>Backup</h2>
         <p class="lead" id="backupInfo"></p>
@@ -1443,12 +1523,9 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
           <button type="button" class="pill-btn" id="importBtn">Restore or import</button>
           <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" hidden>
         </div>
-        <div class="sync-row" id="syncRow" hidden>
-          <p class="lead" id="syncInfo"></p>
-          <div class="row-btns"><button type="button" class="btn" id="syncBtn">Sign in with Google</button><button type="button" class="pill-btn" id="syncNow" hidden>Sync now</button><button type="button" class="pill-btn" id="syncOut" hidden>Sign out</button></div>
-        </div>
       </section>
-    </aside>
+      <p class="acct-links"><a href="privacy.html">Privacy</a></p>
+    </div>
   </main>
 
   <!-- ================= LEARN ================= -->
@@ -1491,6 +1568,53 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     </div>
     <div class="row-btns"><button type="button" class="btn" id="raceNext">Next scramble</button><button type="button" class="pill-btn" id="raceReset">Reset score</button></div>
     <p class="drill-note">Both of you scramble with the same moves. Hold your side until it turns green, let go to start, and touch it again to stop. <span class="race-keys">On a keyboard, player 1 uses <b>A</b> and player 2 uses <b>L</b>.</span> Race times are not saved.</p>
+  </div>
+</div>
+<div class="pw-overlay" id="paywall" hidden role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+  <div class="pw">
+    <div class="pw-band" aria-hidden="true"></div>
+    <button type="button" class="p3d-x pw-x" id="pwClose" aria-label="Close">×</button>
+    <div class="pw-head">
+      <span class="pw-kicker">Sub-X</span>
+      <h2 id="pwTitle">Choose your plan</h2>
+      <p>Train smarter with every tool. Change or cancel any time.</p>
+      <div class="pw-toggle" role="group" aria-label="Billing"><button type="button" data-pw="m" aria-pressed="true">Monthly</button><button type="button" data-pw="y" aria-pressed="false" id="pwYearLabel">Yearly</button></div>
+    </div>
+    <div class="pw-cards">
+      <section class="pw-card pw-free" aria-label="Free plan">
+        <svg width="52" height="52" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M32 6 56 19v26L32 58 8 45V19z"></path><path d="M8 19l24 13 24-13M32 32v26"></path><path d="M16 23.4v26M24 27.8v26M40 27.8v26M48 23.4v26"></path><path d="M8 27.7l24 13 24-13M8 36.4l24 13 24-13" stroke-opacity="0.55"></path></svg>
+        <h3>FREE</h3>
+        <ul id="pwFreeList"></ul>
+        <p class="pw-price"><span>$</span><b>0</b><i>/forever</i></p>
+        <button type="button" class="pw-ghost" id="pwFreeBtn">Your plan</button>
+      </section>
+      <section class="pw-card pw-pro" aria-label="Pro plan">
+        <span class="pw-badge">MOST POPULAR</span>
+        <svg width="52" height="52" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M30 10 50 21v24L30 56 10 45V21z"></path><path d="M10 21l20 11 20-11M30 32v24"></path><path d="M17 24.8v24M23.5 28.4v24M36.5 28.4v24M43 24.8v24" stroke-opacity="0.55"></path><path class="pw-bolt" d="M53 3l-7 12h6l-3 10 10-14h-6z"></path></svg>
+        <h3>PRO</h3>
+        <ul id="pwProList"></ul>
+        <p class="pw-price"><span>$</span><b id="pwProPrice">2.99</b><i id="pwProPer">/month</i></p>
+        <p class="pw-note" id="pwProNote"></p>
+        <button type="button" class="btn pw-go" id="pwGo">Go Pro</button>
+      </section>
+    </div>
+    <p class="pw-small" id="pwSmall"></p>
+  </div>
+</div>
+<div class="pw-overlay pw-sheet-wrap" id="proSheet" hidden role="dialog" aria-modal="true" aria-labelledby="psTitle">
+  <div class="pw-sheet">
+    <span class="pw-grip" aria-hidden="true"></span>
+    <span class="pw-lock" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span>
+    <h2 id="psTitle">This is part of Pro</h2>
+    <p class="lead" style="margin:0">It comes with everything else in Pro:</p>
+    <ul class="pw-list">
+      <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>Full OLL, PLL, COLL and ZBLL trainers</li>
+      <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>Memorizing and the X-cross trainer</li>
+      <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>Smart-cube splits and stats</li>
+    </ul>
+    <p class="pw-note" id="psPrice"></p>
+    <button type="button" class="btn ps-plans" id="psPlans">See plans</button>
+    <button type="button" class="text-btn" id="psLater">Not now</button>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -1608,6 +1732,64 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const [d] = DLG.splice(i, 1);
     d.shut.forEach(x => { x.inert = false; });
     if (d.back && d.back !== document.body && d.back.isConnected && !d.back.closest('[inert]')) d.back.focus({ preventScroll: true });
+  }
+  // ---------- Pro: the plan, the paywall, and which features it locks ----------
+  // Payments aren't connected yet (Google Play Billing in the app, a card checkout on the website), so the locks are off
+  // for everyone (PRO_LIVE). To try them, open the site with ?protest=1: the Account page then shows a testing switch,
+  // and Go Pro turns on a pretend Pro on that device. Prices: Pro is $2.99 a month or $29.99 a year.
+  const PRO_LIVE = false, PRICE_M = 2.99, PRICE_Y = 29.99, PRO_SAVE = Math.round((1 - PRICE_Y / (PRICE_M * 12)) * 100);
+  const isPro = () => !!db.pro;
+  const proLocked = () => (PRO_LIVE || !!db.proTest) && !isPro();
+  const PRO_ROWS = [['Timer, inspection and every WCA event', true], ['ao5, ao12 and your trend chart', true], ['Sync your times across devices', true],
+    ['Connect a smart cube by Bluetooth', true], ['Beginner method, 2-look OLL and PLL', true], ['Smart-cube splits and stats', false],
+    ['Full OLL, PLL, COLL and ZBLL trainers', false], ['Memorizing and the X-cross trainer', false]];
+  const PRO_PAGES = { ollf: 'Full OLL', ollt: 'The OLL trainer', pllt: 'The PLL trainer', coll: 'COLL', collt: 'The COLL trainer', zbll: 'ZBLL', zbllt: 'The ZBLL trainer', xcross: 'The X-cross trainer' };
+  const pageLocked = p => !!PRO_PAGES[p] && proLocked();
+  const PW_CHECK = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>';
+  let pwYearly = false;
+  function pwDraw() {
+    $('pwFreeList').innerHTML = PRO_ROWS.map(([l, free]) => free ? `<li>${PW_CHECK}${l}</li>` : `<li class="off">${l}</li>`).join('');
+    $('pwProList').innerHTML = PRO_ROWS.map(([l]) => `<li>${PW_CHECK}${l}</li>`).join('');
+    document.querySelectorAll('[data-pw]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.pw === 'y') === pwYearly)));
+    $('pwYearLabel').textContent = `Yearly · save ${PRO_SAVE}%`;
+    $('pwProPrice').textContent = (pwYearly ? PRICE_Y : PRICE_M).toFixed(2);
+    $('pwProPer').textContent = pwYearly ? '/year' : '/month';
+    $('pwProNote').textContent = pwYearly ? `About $${(PRICE_Y / 12).toFixed(2)} a month, billed once a year` : 'Billed every month';
+    $('pwGo').textContent = isPro() ? 'You have Pro' : 'Go Pro'; $('pwGo').disabled = isPro();
+    $('pwFreeBtn').textContent = isPro() ? 'Free plan' : 'Your plan';
+    $('pwSmall').textContent = PRO_LIVE ? `Pro renews at $${(pwYearly ? PRICE_Y : PRICE_M).toFixed(2)} a ${pwYearly ? 'year' : 'month'} until you cancel.`
+      : db.proTest ? 'Testing: Go Pro turns on a pretend Pro on this device. No payment is made.' : 'Pro is coming soon. Until then every feature is free.';
+  }
+  function openPaywall() { closeSheet(); pwDraw(); $('paywall').hidden = false; dlgOpen($('paywall'), $('pwGo').disabled ? $('pwClose') : $('pwGo')); }
+  function closePaywall() { if ($('paywall').hidden) return; $('paywall').hidden = true; dlgClose($('paywall')); }
+  function proSheet(title) {
+    $('psTitle').textContent = title;
+    $('psPrice').textContent = `$${PRICE_M} a month, or $${PRICE_Y} a year (save ${PRO_SAVE}%)`;
+    $('proSheet').hidden = false; dlgOpen($('proSheet'), $('psPlans'));
+  }
+  function closeSheet() { if ($('proSheet').hidden) return; $('proSheet').hidden = true; dlgClose($('proSheet')); }
+  function planUI() {
+    const pro = isPro();
+    $('planBadge').textContent = pro ? 'Pro' : 'Free'; $('planBadge').classList.toggle('pro', pro);
+    $('planText').textContent = pro ? (PRO_LIVE ? 'Thanks for supporting Sub-X. Every trainer is yours.' : 'Testing: pretend Pro is on. Every Pro feature is open.')
+      : PRO_LIVE || db.proTest ? 'Pro adds the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and your smart-cube splits.'
+      : 'Pro is coming soon, with the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and smart-cube splits. Until then every feature is free.';
+    $('goProBtn').textContent = pro ? 'See plans' : 'See Pro plans';
+    $('proFreeBtn').hidden = !(pro && !PRO_LIVE);
+    $('proTestRow').hidden = !db.proTestOk; $('proTest').checked = !!db.proTest;
+  }
+  function proChanged() {
+    planUI(); proSheetFor = null;
+    if (proLocked()) { quiz.open = null; quiz.cur = null; }   // an open memorize card closes when the locks come back
+    if (view === 'learn') renderLearn(); renderStats();
+  }
+  let proSheetFor = null;   // the locked Learn page the sheet was last shown for, so it shows once per visit
+  // a panel of Pro stats while locked: blurred, under a cover with the way to Pro
+  function proCover(panel, on, text) {
+    panel.classList.toggle('pro-lock', on);
+    let c = panel.querySelector(':scope > .pro-cover');
+    if (on && !c) { c = document.createElement('div'); c.className = 'pro-cover'; c.innerHTML = `<b>${text}</b><button type="button" class="btn" data-pro="plans">See Pro plans</button>`; panel.append(c); }
+    if (!on && c) c.remove();
   }
   const calmMQ = matchMedia('(prefers-reduced-motion: reduce)'), calm = () => calmMQ.matches;
   // a short message for screen readers (results, PBs, trainer steps)
@@ -2099,10 +2281,12 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   $('skin').addEventListener('change', e => { db.skin = e.target.value; save(); applySkin(); unfocus(e.target); });
   function phoneLayout() { return matchMedia('(max-width: 860px)').matches; }
   function showView(v) {
-    if (!['timer', 'learn'].includes(v)) v = 'timer';   // an old #stats link opens the Timer page, where the stats are
+    if (!['timer', 'learn', 'account'].includes(v)) v = 'timer';   // an old #stats link opens the Timer page, where the stats are
     if (view === 'timer' && v !== 'timer') cancel();
     view = v;
-    for (const k of ['timer', 'learn']) $('view-' + k).hidden = k !== v;
+    for (const k of ['timer', 'learn', 'account']) $('view-' + k).hidden = k !== v;
+    $('acctBtn').setAttribute('aria-current', v === 'account' ? 'page' : 'false');
+    if (v === 'account') planUI();
     document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.view === v ? 'page' : 'false'));
     if (v === 'learn') renderLearn();
   }
@@ -4122,7 +4306,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   const TR = { phase: 'scramble', t0: 0, t1: 0, t2: 0, moves: 0, track: null, timer: 0 };
   const trSmartOn = () => typeof SM !== 'undefined' && !!SM && !!SM.conn && typeof SmartCore !== 'undefined';
   const TRAINERS = ['cross', 'xcross', 'f2lt', 'f2lbf', 'ollt', 'pllt', 'collt', 'zbllt', 'fbt', 'sbt', 'cmllt', 'lset'];
-  const trainerActive = () => view === 'learn' && TRAINERS.includes(learnSet);
+  const trainerActive = () => view === 'learn' && TRAINERS.includes(learnSet) && !pageLocked(learnSet);
   const trData = () => ({ cross, xcross: xc, f2lt, f2lbf, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
   const trNew = () => ({ cross: newCross, xcross: newXCross, f2lt: newF2L, f2lbf: newBF, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), zbllt: () => newLL('zbll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
   // what "done" means for each trainer, on a smart cube's state (white on top)
@@ -5670,13 +5854,20 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
       (learnMethod === 'roux' ? `<div class="seg" role="group" aria-label="Mode">${[['teach', 'Teach'], ['train', 'Train']].map(([k, l]) => `<button type="button" data-lmode="${k}" aria-pressed="${learnMode() === k}">${l}</button>`).join('')}</div>` : '') +
       (defMethod() === learnMethod ? `<span class="def">${M.name} is your default: Learn opens here.</span>` : `<button type="button" class="pill-btn" data-defmethod="${learnMethod}">Make ${M.name} my default</button>`) +
       (learnMethod !== 'beginner' && !db.defMethod && neverSolved() && !Object.values(db.learned).some(Boolean) ? '<p class="callout"><b>Can\'t solve a cube yet?</b> Start with the beginner method: seven steps and six short algorithms. <button type="button" class="pill-btn" data-method="beginner">Learn to solve</button></p>' : '');
-    const chip = ([k, label]) => { const n = SETS[k].groups && count(k) && done(k) ? `${done(k)}/${count(k)}` : ''; return `<button type="button" class="chip" data-lset="${k}" aria-pressed="${stepOf(learnSet) === k}">${label}${n ? `<small>${n}</small>` : ''}</button>`; };
+    const chip = ([k, label]) => { const n = SETS[k].groups && count(k) && done(k) ? `${done(k)}/${count(k)}` : ''; return `<button type="button" class="chip" data-lset="${k}" aria-pressed="${stepOf(learnSet) === k}">${label}${n ? `<small>${n}</small>` : ''}${pageLocked(k) ? '<small class="pro-tag">PRO</small>' : ''}</button>`; };
     const groups = []; for (const st of M.steps) { const g = CHIP_GROUP[st[0]] || ''; if (!groups.length || groups[groups.length - 1].g !== g) groups.push({ g, items: [] }); groups[groups.length - 1].items.push(st); }
     $('learnChips').innerHTML = groups.map(G => G.g ? `<div class="chip-group" role="group" aria-label="${G.g}"><span class="chip-label">${G.g}</span>${G.items.map(chip).join('')}</div>` : G.items.map(chip).join('')).join('');
     learnRail();
     $('learnLesson').innerHTML = lessonHtml(learnSet);
 
     const body = $('learnBody');
+    if (pageLocked(learnSet)) {
+      const t = `${PRO_PAGES[learnSet]} is part of Pro`;
+      body.innerHTML = `<section class="panel locked-page"><h2>Pro</h2><p class="lead" style="margin:0">${t}, with the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and smart-cube splits.</p><button type="button" class="btn" data-pro="plans">See Pro plans</button></section>`;
+      if (proSheetFor !== learnSet) { proSheetFor = learnSet; proSheet(t); }
+      return;
+    }
+    proSheetFor = null;
     if (learnSet === 'bgn') { renderBeginner(); return; }
     if (learnSet === 'words') { body.innerHTML = `<div class="words">${WORDS.map(([h, p]) => `<div class="note-card"><h3>${esc(h)}</h3><p>${esc(p)}</p></div>`).join('')}</div>`; return; }
     if (learnSet === 'notation') {
@@ -5882,6 +6073,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   }
   function renderMemo() { const el = $('memoPanel'); if (el && quiz.cur) el.outerHTML = memoPanelHtml(); else renderLearn(); }
   function memoAction(a, b) {
+    if (a === 'start' && proLocked()) { proSheet('Memorizing is part of Pro'); return; }
     if (a === 'start') { quiz.open = learnSet; pickQuiz(); renderLearn(); const p = $('memoPanel'); if (p) p.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     if (a === 'close') { quiz.open = null; quiz.cur = null; renderLearn(); return; }
     if (a === 'clear') { for (const c of memoPool(learnSet)) delete db.memoPick[c.id]; save(); if (quiz.open === learnSet) { quiz.open = null; quiz.cur = null; } renderLearn(); return; }
@@ -6002,12 +6194,19 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     }
     // update tracking after the cube moved (m = the move just made, st = cube state now)
     function step(T, st, m) {
-      const s = sig(st, T.mask);
-      let j = T.states.indexOf(s, T.k);
+      const s = sig(st, T.mask), S = T.states, onTrack = !!m && !T.off.length;
+      const mid = T.k < T.toks.length && !!T.mids[T.k + 1] && T.mids[T.k + 1].includes(s);
+      let j = S.indexOf(s, T.k);
+      // On the scramble, progress is the next state, or further past turns that move nothing that matters. With a mask
+      // (F2L practice, the Learn trainers) most of the cube is hidden, so a later state can match by chance, even the
+      // last one: jumping there would mark the scramble done half-way and let the next turn start the clock.
+      // Off the scramble (following a fix) or re-syncing (no turn), any later point counts.
+      if (j > T.k && onTrack) { let i = T.k; while (i < j && S[i + 1] === S[T.k]) i++; while (i < j && S[i + 1] === s) i++; if (i !== j) j = -1; }
+      const back = j < 0 ? S.lastIndexOf(s, T.k) : -1;
       // turns that only move pieces that don't matter count as done, or a setup could never finish
-      if (j >= 0) { while (T.states[j + 1] === s) j++; T.k = j; T.off = []; }
-      else if (T.k < T.toks.length && T.mids[T.k + 1] && T.mids[T.k + 1].includes(s) && !T.off.length) { /* half of a half turn */ }
-      else if (T.states.indexOf(s) >= 0) { T.k = T.states.indexOf(s); T.off = []; }
+      if (j >= 0) { while (S[j + 1] === s) j++; T.k = j; T.off = []; }
+      else if (mid) T.off = [];   // half-way through the next half turn (also right after following a fix): on track
+      else if (back >= 0) { T.k = back; T.off = []; }   // turned back: the nearest earlier point
       else if (m) T.off.push(m);
       T.lost = T.off.length > 6;
       T.sync = T.states[T.k] === s || !!(T.mids[T.k + 1] && T.mids[T.k + 1].includes(s));
@@ -7069,12 +7268,18 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
   }
   function syncUI() {
     const row = $('syncRow'); if (!row) return;
-    row.hidden = !syncHere; if (!syncHere) return;
+    row.hidden = !syncHere; $('acctSign').hidden = !syncHere; if (!syncHere) return;
     const u = SY.user, at = syncState().at;
     const ago = at ? (Date.now() - at < 60000 ? 'just now' : new Date(at).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit', day: 'numeric', month: 'short' })) : 'not yet';
     $('syncInfo').innerHTML = u ? `<b>Synced with ${esc(u.email || 'your Google account')}</b> · ${SY.busy ? 'syncing…' : SY.err ? `<span style="color:var(--warn)">${esc(SY.err)}</span>` : 'last sync ' + ago}`
-      : 'Sign in with Google to keep the same times, sessions and learning progress on your phone and computer.';
+      : 'Everything works without an account. Sign in with Google to keep the same times, sessions and learning progress on your phone and computer.';
     $('syncBtn').hidden = !!u; $('syncNow').hidden = $('syncOut').hidden = !u;
+    acctAvatar();
+  }
+  function acctAvatar() {
+    const b = $('acctBtn'), u = SY.user;
+    b.innerHTML = u && u.photoURL ? `<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">` : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="4"></circle><path d="M4.5 20c1.4-3.6 4.2-5.4 7.5-5.4s6.1 1.8 7.5 5.4"></path></svg>';
+    b.setAttribute('aria-label', u ? 'Account: signed in' : 'Account');
   }
   if (syncHere) {
     $('syncBtn').addEventListener('click', e => { unfocus(e.currentTarget); syncSignIn(); });
@@ -7085,6 +7290,28 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     if (syncState().on) fbLoad().catch(() => {});   // signed in before: Firebase remembers who, then syncs
   }
   syncUI();
+
+  // the Account button, the paywall and the Pro sheet
+  $('acctBtn').addEventListener('click', e => { unfocus(e.currentTarget); location.hash = view === 'account' ? 'timer' : 'account'; });
+  $('goProBtn').addEventListener('click', openPaywall);
+  $('restoreBtn').addEventListener('click', () => toast(PRO_LIVE ? 'Looking for your purchase…' : 'Nothing to restore yet: Pro is coming soon.'));
+  $('proFreeBtn').addEventListener('click', () => { db.pro = false; save(); proChanged(); toast('Testing: back to Free'); });
+  $('proTest').addEventListener('change', e => { db.proTest = e.target.checked; if (!db.proTest) db.pro = false; save(); proChanged(); });
+  $('pwClose').addEventListener('click', closePaywall);
+  $('pwFreeBtn').addEventListener('click', closePaywall);
+  $('psPlans').addEventListener('click', openPaywall);
+  $('psLater').addEventListener('click', closeSheet);
+  document.querySelectorAll('[data-pw]').forEach(b => b.addEventListener('click', () => { pwYearly = b.dataset.pw === 'y'; pwDraw(); }));
+  $('pwGo').addEventListener('click', () => {
+    if (!PRO_LIVE && !db.proTest) { toast('Pro is coming soon. Until then every feature is free.'); return; }
+    if (!PRO_LIVE) { db.pro = true; save(); closePaywall(); proChanged(); toast('Testing: pretend Pro is on'); return; }
+    toast('Payments are being set up.');   // Google Play Billing (app) or a card checkout (website) goes here
+  });
+  for (const id of ['paywall', 'proSheet']) $(id).addEventListener('click', e => { if (e.target === e.currentTarget) (id === 'paywall' ? closePaywall : closeSheet)(); });
+  document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!$('proSheet').hidden) closeSheet(); else if (!$('paywall').hidden) closePaywall(); });
+  document.addEventListener('click', e => { if (e.target.closest('[data-pro="plans"]')) openPaywall(); });
+  if (/[?&]protest=1\b/.test(location.search)) { db.proTestOk = true; save(); }   // the testing switch, for trying the locks before payments
+  planUI();
 
   // test hook for simulated cubes; only on a local development server
   if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, savingsCheck, caseTable, mergeData, SY, db, drillDone, startDrill, caseById, SmartCore, getDrill: () => drill };
@@ -7216,6 +7443,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const panel = $('lastSplitPanel'); if (!panel) return;
     const s = solvesFor(db.event).slice().reverse().find(x => x.splits && !x.ex);
     panel.hidden = !s; if (!s) return;
+    proCover(panel, proLocked(), 'Smart-cube splits are part of Pro');
     const p = s.splits, t = phaseTimes(p), pairs = p.pairs.map((v, i) => v - (i ? p.pairs[i - 1] : p.cross));
     $('lastSplitTime').textContent = fmtSolve(s);
     const w = $('lastSplitGraph').clientWidth;
@@ -7229,6 +7457,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     const panel = $('splitsPanel'); if (!panel) return;
     const runs = solvesFor(db.event).filter(s => s.mv && s.mt && !s.ex && !s.f2l).slice(-50).map(stepRun).filter(Boolean);
     panel.hidden = !runs.length; if (!runs.length) return;
+    proCover(panel, proLocked(), 'Your CFOP steps are part of Pro');
     const avgOver = (rs, f) => rs.reduce((a, r) => a + f(r), 0) / rs.length;
     const k = runs.length >= 24 ? 12 : 0, recent = k ? runs.slice(-k) : runs, prev = k ? runs.slice(0, -k) : null;
     const t = [0, 1, 2, 3].map(i => avgOver(runs, r => r.t[i])), total = t.reduce((a, b) => a + b, 0) || 1;
@@ -7271,6 +7500,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     }).filter(Boolean).sort((a, b) => b.avg - a.avg);
     const any = [...table.keys()].some(id => id.startsWith('pll:') || id.startsWith('oll:'));
     panel.hidden = !any; if (!any) return;
+    proCover(panel, proLocked(), 'Your last-layer cases are part of Pro');
     document.querySelectorAll('[data-dashll]').forEach(b => b.setAttribute('aria-pressed', b.dataset.dashll === dashLL));
     const runs = smartSolves().slice(-50).map(stepRun).filter(Boolean), all = dashLL === 'pll' ? 21 : 57;
     const skips = runs.filter(r => dashLL === 'pll' ? r.pllSkip : r.ollSkip).length;
@@ -7480,7 +7710,7 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
     ['#stage', () => startHow()],
     ['.tabs a[data-view="learn"]', 'Learn starts from zero with the Beginner method, then has every CFOP and Roux case with a 3D player, trainers, and Today: a short practice plan made from your own times.'],
     ['#barMore, #compBtn', () => `${phoneLayout() ? 'Settings' : 'Modes and settings'}: Daily 5 and F2L scrambles, comp sim rounds, racing a friend, inspection, voice calls and the coach.`],
-    ['#skin, .backup-panel', el => el.id === 'skin' ? `Pick a look you like. Your times stay on this device, so save a backup now and then (Backup is at the bottom).` :'Your times stay on this device, so save a backup here now and then.'],
+    ['#skin, .backup-panel', el => el.id === 'skin' ? `Pick a look you like. Your times stay on this device, so save a backup now and then (Backup is on the Account page: the round button at the top).` :'Your times stay on this device, so save a backup here now and then.'],
   ];
   // a step's target: the first of its elements that can show (one in the settings drawer counts: the tour opens it)
   const tourEl = step => [...document.querySelectorAll(step[0])].find(el => el.closest('#barRest') || el.getClientRects().length);
