@@ -413,6 +413,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .solve-row.pb .t { color: var(--accent); font-weight: 700; }
 .solve-row.goal .t::before { content: "•"; color: var(--ready); margin-right: 6px; }
 .solve-row .rv { font-family: var(--font-display); font-size: 11px; letter-spacing: .06em; color: var(--accent); margin-right: 6px; }
+#solves .list-more { text-align: center; padding: 6px 0; }
 .solve-detail { padding: 10px 4px 12px; border-bottom: 1px solid var(--line); background: var(--sunk); display: flex; flex-direction: column; gap: 8px; }
 .solve-detail p { margin: 0; font-family: var(--font-mono); font-size: 13px; overflow-wrap: anywhere; padding: 0 6px; }
 .solve-detail .meta { font-family: var(--font-body); color: var(--muted); font-size: 12px; }
@@ -661,6 +662,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .thinking i { width: 10px; height: 10px; border-radius: 2px; background: var(--accent); animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* storage full: stays at the top of the page (in the flow, so it covers nothing) until a save works again */
+.save-warn { max-width: 820px; margin: 0 auto 12px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; background: var(--surface); color: var(--ink); border: 2px solid var(--warn); border-radius: 10px; padding: 10px 14px; font-size: 14px; line-height: 1.4; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 9px 12px 9px 16px; display: flex; gap: 12px; align-items: center; font-size: 14px; box-shadow: 0 6px 24px rgb(0 0 0 / .25); max-width: calc(100% - 32px); z-index: 20; }
 .streak { font-family: var(--font-body); font-weight: 500; font-size: 12px; border-radius: 999px; padding: 2px 8px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
 .ach-panel summary { cursor: pointer; list-style: none; }
@@ -1143,7 +1146,7 @@ body.racing { overflow: hidden; }
             <input id="compLim" type="number" min="1" max="600" step="1" placeholder="none">
           </label>
           <button type="button" class="pill-btn" id="compStart">Start a round</button>
-          <span class="sess-note">Five scrambles with 15-second inspection, then your average the way a competition counts it. Cutoff: if neither of your first two solves beats it, the round ends there. Time limit: a solve that reaches it is a DNF. Leave them empty for none.</span>
+          <span class="sess-note">A round like at a competition, with 15-second inspection: an average of 5, a mean of 3 for 6×6 and 7×7, or the best of 5 for blindfolded (no inspection). Cutoff: if neither of your first two solves beats it (the first one for 6×6 and 7×7), the round ends there. Time limit: a solve that reaches it, +2 included, is a DNF. Leave them empty for none.</span>
         </div>
         </div>
         <div class="bar-group" role="group" aria-labelledby="grpSettings" id="grpSettingsBox">
@@ -1462,8 +1465,35 @@ body.racing { overflow: hidden; }
 
   // ---------- storage (this browser only) ----------
   const KEY = 'subx-cube-timer-v1';
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; } };
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} };
+  let lastSaved = null;   // what this page last read or wrote: a save on leaving the page checks no other tab wrote since
+  const load = () => { try { lastSaved = localStorage.getItem(KEY); return JSON.parse(lastSaved) || null; } catch (e) { return null; } };
+  // Writes everything to this browser's storage: 'ok', 'full' (no room left) or 'err' (storage can't be used here at all,
+  // as in some private windows: nothing to warn about). lastSaved only changes when the write worked, so the next save
+  // (or the one on leaving the page) tries again.
+  const isFull = e => !!e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014);
+  function store() {
+    for (let k = 0; k < 2; k++) {
+      try { const text = JSON.stringify(db); localStorage.setItem(KEY, text); lastSaved = text; return 'ok'; }
+      catch (e) {
+        if (!isFull(e)) return 'err';
+        // full: drop what can be worked out again (step times an older Sub-X kept on each smart solve), then once more
+        if (!k) for (const l of Object.values(db.solves || {})) if (Array.isArray(l)) for (const s of l) { delete s.cr; delete s.ct; }
+      }
+    }
+    return 'full';
+  }
+  const saveLocal = () => { const r = store(); if (r !== 'err') saveWarn(r === 'full'); return r; };
+  const save = () => { const r = saveLocal(); if (typeof syncSoon === 'function') syncSoon(); return r; };
+  // while storage is full a warning stays at the top: new solves only live in this page until there's room again
+  let saveWarnEl = null;
+  function saveWarn(on) {
+    if (!on) { if (saveWarnEl) { saveWarnEl.remove(); saveWarnEl = null; } return; }
+    if (saveWarnEl || !document.body) return;
+    const el = saveWarnEl = document.createElement('div'); el.className = 'save-warn'; el.setAttribute('role', 'alert');
+    el.innerHTML = "<span><b>Storage is full: your newest solves aren't saved.</b> Save a backup now, then delete old solves or sessions to make room.</span><button type=\"button\" class=\"pill-btn\">Save backup</button>";
+    el.querySelector('button').addEventListener('click', () => document.getElementById('exportBtn').click());
+    document.body.prepend(el);
+  }
   const db = load() || {};
   db.event = db.event || '333'; db.goal = db.goal || 20; if (db.inspection === undefined) db.inspection = true; if (db.voice === undefined) db.voice = true;
   db.solves = db.solves || {}; db.learned = db.learned || {};
@@ -1477,7 +1507,7 @@ body.racing { overflow: hidden; }
     'oh': { name: '3×3×3 One-Handed', n: 3, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 20, wide: false },
     'pyram': { name: 'Pyraminx', gen: genPyraminx },
     'skewb': { name: 'Skewb', gen: genSkewb },
-    '666': { name: '6×6×6', n: 6, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 80, wide: true, wideFaces: 'URFDLB', deep: 3 },
+    '666': { name: '6×6×6', n: 6, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 80, wide: true, wideFaces: 'URFDLB', deep: 3, deepFaces: 'RUF' },   // on 6×6, 3Lw is 3Rw turned with the cube: only 3Rw, 3Uw, 3Fw (as WCA scrambles)
     '777': { name: '7×7×7', n: 7, faces: ['U', 'D', 'L', 'R', 'F', 'B'], len: 100, wide: true, wideFaces: 'URFDLB', deep: 3 },
     '333bf': { name: '3×3×3 Blindfolded', n: 3, gen: genBld },
     'minx': { name: 'Megaminx', gen: genMinx },
@@ -1486,6 +1516,50 @@ body.racing { overflow: hidden; }
   };
   const AXIS = Cube.AXIS;
   for (const k of Object.keys(EVENTS).concat(Object.keys(db.sessions))) db.solves[k] = db.solves[k] || [];
+  // ---------- what was saved: checked once at start, so one bad record can't stop the app from opening ----------
+  // full CFOP splits: cross, the four pairs, OLL and the total, in ms
+  const fullSplits = p => !!p && typeof p === 'object' && [p.cross, p.oll, p.total].every(Number.isFinite) && Array.isArray(p.pairs) && p.pairs.length === 4 && p.pairs.every(Number.isFinite);
+  const GONE_KEEP = 90 * 864e5;   // how long a deleted solve or session is remembered, so a sync doesn't bring it back
+  // a deletion from an older Sub-X has no time: it counts as made when deletions got times (it still beats a solve that
+  // was never changed, and loses to one brought back since)
+  const GONE_OLD = Date.UTC(2026, 10, 21);
+  // step times and cases worked out from a smart solve's moves: kept in memory, not stored (they can be worked out again)
+  const stepMemo = new WeakMap(), caseMemo = new WeakMap();
+  // A solve as Sub-X writes it: one with no time is dropped, parts that don't fit are taken off.
+  // deep (data from a file or another device): the move times must also match the moves.
+  function cleanSolve(s, deep) {
+    if (!s || typeof s !== 'object' || !Number.isFinite(s.ms) || !Number.isFinite(s.t)) return false;
+    delete s.cr; delete s.ct;   // step times an older Sub-X kept on the solve
+    if (s.pen != null && s.pen !== '+2' && s.pen !== 'dnf') s.pen = null;
+    if (typeof s.scr !== 'string') s.scr = s.scr == null ? '' : String(s.scr);
+    if (s.note != null && typeof s.note !== 'string') delete s.note;
+    if (s.e != null && !Number.isFinite(s.e)) delete s.e;
+    if (s.splits != null && !fullSplits(s.splits)) delete s.splits;
+    if (s.mv != null && typeof s.mv !== 'string') { delete s.mv; delete s.mt; }
+    if (s.my != null && typeof s.my !== 'string') delete s.my;
+    if (s.mt != null && !(Array.isArray(s.mt) && s.mt.every(Number.isFinite))) delete s.mt;
+    if (s.rot != null && !(Array.isArray(s.rot) && s.rot.every(r => Array.isArray(r) && Number.isFinite(r[0])))) delete s.rot;
+    if (deep && s.mv && s.mt) { let n = -1; try { n = Cube.tokens(s.mv).length; } catch (e) {} if (n !== s.mt.length) delete s.mt; }
+    return true;
+  }
+  const okTry = r => !!r && typeof r === 'object' && Number.isFinite(r.solve) && (r.plan === undefined || Number.isFinite(r.plan));
+  const okStats = v => !!v && typeof v === 'object' && Array.isArray(v.rec) && Array.isArray(v.sol) && v.rec.length === v.sol.length && v.rec.concat(v.sol).every(Number.isFinite);
+  const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+  {
+    for (const k of ['learned', 'learnedAt', 'learnE', 'memoPick', 'bgn', 'lessonSeen', 'lessonPref', 'fold', 'lastSess', 'sessions', 'ach', 'srs', 'trHist', 'caseStats', 'drillTimes']) if (db[k] !== undefined && !isObj(db[k])) db[k] = {};
+    for (const [k, s] of Object.entries(db.sessions)) if (!isObj(s)) { delete db.sessions[k]; delete db.solves[k]; }
+    for (const [k, l] of Object.entries(db.solves)) db.solves[k] = Array.isArray(l) ? l.filter(s => cleanSolve(s)) : [];
+    const now = Date.now();
+    for (const g of ['gone', 'goneSess']) if (db[g] !== undefined) { if (!isObj(db[g])) db[g] = {}; for (const k of Object.keys(db[g])) { const v = db[g][k]; const at = v > 1 ? v : GONE_OLD; if (now - at > GONE_KEEP) delete db[g][k]; else db[g][k] = at; } }
+    for (const [k, l] of Object.entries(db.trHist || {})) { if (Array.isArray(l)) db.trHist[k] = l.filter(okTry); else delete db.trHist[k]; }
+    for (const [k, v] of Object.entries(db.caseStats || {})) if (!okStats(v)) delete db.caseStats[k];
+    for (const [k, l] of Object.entries(db.drillTimes || {})) { if (Array.isArray(l)) db.drillTimes[k] = l.filter(Number.isFinite); else delete db.drillTimes[k]; }
+    for (const [k, v] of Object.entries(db.srs || {})) if (!(isObj(v) && Number.isFinite(v.box) && Number.isFinite(v.due))) delete db.srs[k];
+    db.saved = (Array.isArray(db.saved) ? db.saved : []).filter(s => isObj(s) && Number.isFinite(s.t) && typeof s.scr === 'string');
+    for (const s of db.saved) { delete s.cr; delete s.ct; }
+  }
+  // marks a case learned or not; learnE keeps when, so a sync takes the newer mark from either device
+  function setLearned(id, on) { db.learned[id] = on; (db.learnE = db.learnE || {})[id] = Date.now(); if (on) (db.learnedAt = db.learnedAt || {})[id] = Date.now(); }
   const evOfKey = key => (db.sessions[key] && db.sessions[key].event) || key;
   const EV = () => evOfKey(db.event);
   const sessLabel = key => { const s = db.sessions[key], ev = evOfKey(key); return (EVENTS[ev] ? EVENTS[ev].name : ev) + (s ? ' · ' + s.name : ''); };
@@ -1504,8 +1578,13 @@ body.racing { overflow: hidden; }
   function genSkewb(rnd) { return randomMoves(['R', 'L', 'U', 'B'], 10, rnd).join(' '); }
   // Blindfolded: a 3×3 scramble, then a random way to hold the cube (wide turns), so you can't count on white on top.
   function genBld(rnd) {
-    const a = ['', 'Rw', 'Rw2', "Rw'", 'Fw', "Fw'"][Math.floor(rnd() * 6)], b = ['', 'Uw', 'Uw2', "Uw'"][Math.floor(rnd() * 4)];
-    return [genScramble('333', rnd), a, b].filter(Boolean).join(' ');
+    let s = genScramble('333', rnd);
+    const a = ['', 'Rw', 'Rw2', "Rw'", 'Fw', "Fw'"][Math.floor(rnd() * 6)], b = ['', 'Uw', 'Uw2', "Uw'"][Math.floor(rnd() * 4)], first = (a || b)[0];
+    // the first holding turn can't share an axis with the scramble's last turn (L Rw' is just a wider turn), so then the
+    // 3×3 part is drawn again: every way of holding the cube stays as likely as before
+    const clash = () => first && AXIS[s.slice(s.lastIndexOf(' ') + 1)[0]][0] === AXIS[first][0];
+    for (let k = 0; k < 50 && clash(); k++) s = genScramble('333', rnd);
+    return [s, a, b].filter(Boolean).join(' ');
   }
   // Megaminx (WCA style): 7 lines of R++/R-- and D++/D-- turns, each ending with U or U'.
   function genMinx(rnd) {
@@ -1527,7 +1606,7 @@ body.racing { overflow: hidden; }
     const out = [];
     while (out.length < 12) {
       const x = Math.floor(rnd() * 12) - 5, y = Math.floor(rnd() * 12) - 5;
-      if (!x && !y && out.length) continue;
+      if (!x && !y) continue;   // (0,0) turns nothing: a slash right after a slash undoes it
       const t = turn(top, x), b = turn(bot, -y);   // the bottom turns clockwise as seen from below
       if (!cuts(t) || !cuts(b)) continue;
       top = t.map((v, i) => i < 6 ? b[5 - i] : v); bot = b.map((v, i) => i < 6 ? t[5 - i] : v);
@@ -1551,7 +1630,7 @@ body.racing { overflow: hidden; }
       if (f === last) continue;
       if (last && prev && AXIS[f][0] === AXIS[last][0] && AXIS[f][0] === AXIS[prev][0]) continue;
       const w = e.wide && (e.wideFaces || 'RUF').includes(f) && rnd() < 0.35 ? 'w' : '';
-      const deep = w && e.deep && rnd() < 0.4 ? String(e.deep) : '';   // 6×6 and 7×7 also turn three layers: 3Rw
+      const deep = w && e.deep && rnd() < 0.4 && (e.deepFaces || 'URFDLB').includes(f) ? String(e.deep) : '';   // 6×6 and 7×7 also turn three layers: 3Rw (the draw stays, so other events' daily scrambles don't change)
       out.push(deep + f + w + ['', "'", '2'][Math.floor(rnd() * 3)]);
       prev = last; last = f;
     }
@@ -1721,7 +1800,9 @@ body.racing { overflow: hidden; }
   const F2L_VIEW = { yaw: -0.62, pitch: 0.5 }, LL_VIEW = { yaw: -0.62, pitch: 0.8 };
   // the other slots' F2L cases are shown looking at that slot (a quarter or half turn round)
   const FL_VIEW = { yaw: -0.62 + Math.PI / 2, pitch: 0.5 }, BR_VIEW = { yaw: -0.62 - Math.PI / 2, pitch: 0.5 }, BL_VIEW = { yaw: -0.62 + Math.PI, pitch: 0.5 };
-  function f2l3D(alg, view) { return f2l3DSetup(Cube.invert(alg), view); }
+  // drawn from the algorithm's face turns backwards, like the case's scramble: with d, u or a rotation in it, the
+  // algorithm itself backwards would turn the centres too, and show the case from another side
+  function f2l3D(alg, view) { return f2l3DSetup(Cube.invert(Solver.faceTurns(alg).join(' ')), view); }
   function f2l3DSetup(setup, view = F2L_VIEW) {
     const st = markGrey(Cube.apply(Cube.solved(3), 3, setup));
     return Cube3D.svg(Cube3D.frame(st, { ...view, body: 'var(--plastic)', colorOf: k => k.grey ? 'var(--ll-off)' : PAL_LL[k.col] }), 'F2L case in 3D: yellow on top, green in front');
@@ -1737,6 +1818,7 @@ body.racing { overflow: hidden; }
     P3.idx = 0; P3.anim = null; P3.playing = false; p3dUI();
   }
   function openPlayer(c) {
+    if (!c.setup && c.id && caseById(c.id)) c = { ...c, setup: caseScramble(c) };   // a Learn case: from its scramble, as on its card
     P3.c = c; P3.moves = Cube.tokens(c.alg);
     P3.times = c.times && c.times.length === P3.moves.length ? c.times : null;
     const sp = $('p3dSpeed'), realOpt = sp.querySelector('option[value="real"]');
@@ -1746,7 +1828,7 @@ body.racing { overflow: hidden; }
     Object.assign(P3, c.view || (c.mode === 'f2l' || c.mode === 'sb' ? F2L_VIEW : LL_VIEW));
     $('p3dTitle').textContent = c.name + (c.mode === 'pll' ? ' perm' : '');
     $('p3dAllWrap').hidden = c.mode !== 'f2l' && c.mode !== 'sb';
-    const held = c.mode === 'cross' || c.id === 'tps' ? 'White on top, green in front.' : c.mode === 'solve' || c.mode === 'roux' ? 'White on the bottom, green in front.' : 'Yellow on top, green in front.';
+    const held = c.mode === 'cross' || c.id === 'tps' ? 'White on top, green in front.' : c.mode === 'solve' || c.mode === 'roux' ? 'White on the bottom, green in front.' : c.mode === 'lse' ? 'Set up from yellow on top, green in front (M turns move the centres).' : 'Yellow on top, green in front.';
     $('p3d').querySelector('.p3d-hint').textContent = `Drag to look around the cube. ${held}${matchMedia('(pointer: coarse)').matches ? '' : ' Space plays and pauses.'}`;
     $('p3d').hidden = false; P3.open = true;
     p3dReset(); p3dSize();
@@ -1802,8 +1884,8 @@ body.racing { overflow: hidden; }
     const end = P3.idx >= P3.moves.length;
     $('p3dPlay').textContent = P3.playing ? 'Pause' : end ? 'Replay' : 'Play';
     const cur = P3.anim ? P3.anim.i : P3.idx - 1, pausedHere = P3.real && cur > 0 && gapBefore(cur) >= PAUSE_MS ? ` · you paused ${(gapBefore(cur) / 1000).toFixed(1)} s before this move` : '';
-    $('p3dStatus').textContent = P3.idx === 0 && !P3.anim ? (P3.times ? 'This is the scramble with white on the bottom. Press Play to watch it at the speed you solved it; the red marks are your pauses.' : P3.c.setup ? 'This is the scramble with white on the bottom. Press Play, or ▶ for one move at a time.' : P3.c.id === 'tps' ? 'A solved cube. Press Play, or ▶ for one move at a time.' : P3.c.mode === 'cross' ? 'Press Play to watch the cross go in, or ▶ for one move at a time.' : 'This is the case. Press Play, or ▶ for one move at a time.')
-      : end && !P3.anim ? (P3.c.id === 'tps' ? 'Done: the sequence brings the cube back to solved.' : P3.c.mode === 'f2l' ? 'Done: the pair is in its slot.' : P3.c.id === 'xcross' ? 'Done: the cross and the pair are solved (white on top here).' : P3.c.mode === 'cross' ? 'Done: the white cross is solved (white on top here).' : P3.c.mode === 'solve' ? 'Done: the cube is solved.' : P3.c.mode === 'roux' ? 'Done: the first block is built.' : P3.c.mode === 'sb' ? 'Done: both blocks are built.' : P3.c.mode === 'lse' ? 'Done: the cube is solved.' : 'Done: the case is solved.')
+    $('p3dStatus').textContent = P3.idx === 0 && !P3.anim ? (P3.times ? 'This is the scramble with white on the bottom. Press Play to watch it at the speed you solved it; the red marks are your pauses.' : P3.c.id === 'tps' ? 'A solved cube. Press Play, or ▶ for one move at a time.' : P3.c.mode === 'cross' ? `This is your scramble, with white on top so you can see the ${P3.c.id === 'xcross' ? 'cross and pair' : 'cross'} go in. Press Play, or ▶ for one move at a time.` : P3.c.setup && (P3.c.mode === 'solve' || P3.c.mode === 'roux') ? 'This is the scramble with white on the bottom. Press Play, or ▶ for one move at a time.' : P3.c.id === 'bf' || P3.c.mode === 'sb' || P3.c.mode === 'lse' ? 'This is the setup. Press Play, or ▶ for one move at a time.' : 'This is the case. Press Play, or ▶ for one move at a time.')
+      : end && !P3.anim ? (P3.c.id === 'tps' ? 'Done: the sequence brings the cube back to solved.' : P3.c.mode === 'f2l' ? (P3.c.pairs === 2 ? 'Done: both pairs are in their slots.' : 'Done: the pair is in its slot.') : P3.c.id === 'xcross' ? 'Done: the cross and the pair are solved (white on top here).' : P3.c.mode === 'cross' ? 'Done: the white cross is solved (white on top here).' : P3.c.mode === 'solve' ? 'Done: the cube is solved.' : P3.c.mode === 'roux' ? 'Done: the first block is built.' : P3.c.mode === 'sb' ? 'Done: both blocks are built.' : P3.c.mode === 'lse' ? 'Done: the cube is solved.' : 'Done: the case is solved.')
       : `Move ${cur + 1} of ${P3.moves.length}` + (P3.real && cur >= 0 ? ` · ${fmt(P3.times[cur])}` : '') + pausedHere;
   }
   $('p3dPlay').addEventListener('click', () => {
@@ -1852,7 +1934,7 @@ body.racing { overflow: hidden; }
   }
 
 
-  function llDiagram(alg, mode, arrows) { return llDiagramSetup(Cube.invert(alg), mode, arrows); }
+  function llDiagram(alg, mode, arrows) { return llDiagramSetup(Cube.invert(Solver.faceTurns(alg).join(' ')), mode, arrows); }   // face turns: see f2l3D
   // PLL arrows: each top sticker's home is tracked through the setup, and an arrow goes from where the
   // piece is to where it belongs (one line with two heads when two pieces swap)
   function pllArrows(st, o, c) {
@@ -1897,18 +1979,19 @@ body.racing { overflow: hidden; }
 
   // ---------- stats ----------
   const eff = s => s.pen === 'dnf' ? Infinity : s.ms + (s.pen === '+2' ? 2000 : 0);
+  // WCA 9f1: each time counts in whole hundredths (cut, as shown), and an average or mean is rounded to the nearest hundredth.
+  // Summed in hundredths and divided once, so x.xx5 rounds up like a competition does.
+  const effCs = s => { const v = eff(s); return v === Infinity ? v : Math.floor(v / 10); };
+  const csMean = t => t.some(v => v === Infinity) ? Infinity : Math.round(t.reduce((a, b) => a + b, 0) / t.length) * 10;
   function avgOf(list, n, end) {
     if (end < n) return null;
-    const t = list.slice(end - n, end).map(eff).sort((a, b) => a - b);
-    const trim = n <= 5 ? 1 : Math.ceil(n * 0.05), mid = t.slice(trim, n - trim);
-    if (mid.some(v => v === Infinity)) return Infinity;
-    return mid.reduce((a, b) => a + b, 0) / mid.length;
+    const t = list.slice(end - n, end).map(effCs).sort((a, b) => a - b);
+    const trim = n <= 5 ? 1 : Math.ceil(n * 0.05);
+    return csMean(t.slice(trim, n - trim));
   }
   function meanOf(list, n, end) {
     if (end < n) return null;
-    const t = list.slice(end - n, end).map(eff);
-    if (t.some(v => v === Infinity)) return Infinity;
-    return t.reduce((a, b) => a + b, 0) / n;
+    return csMean(list.slice(end - n, end).map(effCs));
   }
   function fmt(ms) {
     if (ms === null || ms === undefined) return '–';
@@ -1917,7 +2000,7 @@ body.racing { overflow: hidden; }
     return (m ? m + ':' + String(s).padStart(2, '0') : s) + '.' + String(c).padStart(2, '0');
   }
   const fmtSolve = s => s.pen === 'dnf' ? 'DNF' : fmt(eff(s)) + (s.pen === '+2' ? '+' : '');
-  const fmtList = s => s.pen === 'dnf' ? `DNF(${fmt(s.ms)})` : fmtSolve(s);   // the solve list keeps a DNF's time
+  const fmtList = s => s.pen === 'dnf' ? (s.ms ? `DNF(${fmt(s.ms)})` : 'DNF') : fmtSolve(s);   // the solve list keeps a DNF's time (a typed "DNF" has none)
 
   function exampleSolves() {
     const base = [23.41, 21.87, 24.95, 19.62, 22.30, 20.74, 25.88, 21.05, 18.97, 22.66, 20.12, 23.09, 19.84, 21.53, 20.38, 24.21, 19.11, 22.02, 20.89, 18.63];
@@ -1948,6 +2031,7 @@ body.racing { overflow: hidden; }
   function showView(v) {
     if (!['timer', 'learn', 'review'].includes(v)) v = 'timer';   // an old #stats link opens the Timer page, where the stats are
     if (view === 'timer' && v !== 'timer') cancel();
+    if (view === 'learn' && v !== 'learn') { trLeave(); learnShown = null; }
     view = v;
     for (const k of ['timer', 'learn', 'review']) $('view-' + k).hidden = k !== v;
     document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.view === v ? 'page' : 'false'));
@@ -1976,10 +2060,15 @@ body.racing { overflow: hidden; }
   // the round's solves carry comp: id, so penalties and deletes change the result too.
   const compOn = () => !drill && !!db.comp && db.comp.ev === db.event;
   const compSolves = () => db.solves[db.event].filter(s => s.comp === db.comp.id);
-  const compCutMissed = r => !!db.comp.cut && r.length >= 2 && r.slice(0, 2).every(s => eff(s) >= db.comp.cut);
-  const compDone = r => r.length >= 5 || compCutMissed(r);
-  function compTimes(r) {   // a full round puts the best and worst (the two that don't count) in brackets
-    if (r.length < 5) return r.map(fmtSolve).join('  ');
+  // the round format (WCA 9b): an average of 5 with a best-of-2 cutoff phase; 6×6 and 7×7 a mean of 3 with a best-of-1
+  // cutoff phase; 3×3 blindfolded a best of 5, ranked by the single, with no cutoff phase
+  const compFmt = ev => ev === '666' || ev === '777' ? { n: 3, kind: 'mean', cutN: 1 } : ev === '333bf' ? { n: 5, kind: 'best', cutN: 0 } : { n: 5, kind: 'avg', cutN: 2 };
+  const CF = () => compFmt(evOfKey(db.comp.ev));   // db.comp.ev is the session, not the event
+  const compResult = (r, f) => f.kind === 'mean' ? meanOf(r, 3, 3) : f.kind === 'best' ? Math.min(...r.slice(0, f.n).map(eff)) : avgOf(r, 5, 5);
+  const compCutMissed = r => { const f = CF(); return !!db.comp.cut && f.cutN > 0 && r.length >= f.cutN && r.slice(0, f.cutN).every(s => eff(s) >= db.comp.cut); };
+  const compDone = r => r.length >= CF().n || compCutMissed(r);
+  function compTimes(r) {   // a full average of 5 puts the best and worst (the two that don't count) in brackets
+    if (r.length < 5 || CF().kind !== 'avg') return r.map(fmtSolve).join('  ');
     const v = r.map(eff), lo = v.indexOf(Math.min(...v));
     let hi = -1; v.forEach((x, i) => { if (i !== lo && (hi < 0 || x >= v[hi])) hi = i; });
     return r.map((s, i) => i === lo || i === hi ? `(${fmtSolve(s)})` : fmtSolve(s)).join('  ');
@@ -1987,26 +2076,28 @@ body.racing { overflow: hidden; }
   function compStart() {
     const sec = id => { const v = parseFloat($(id).value); return v > 0 ? Math.round(v * 1000) : 0; };
     db.compCut = $('compCut').value; db.compLim = $('compLim').value;
-    db.comp = { id: Date.now(), ev: db.event, scrs: Array.from({ length: 5 }, () => genScramble(EV())), cut: sec('compCut'), lim: sec('compLim') };
+    db.comp = { id: Date.now(), ev: db.event, scrs: Array.from({ length: compFmt(EV()).n }, () => genScramble(EV())), cut: sec('compCut'), lim: sec('compLim') };
     save(); $('compPanel').hidden = true; drawerDone();
     cancel(); justSolved = false; renderLastActions(); newScramble(); setState('idle'); showTime('0.00');
   }
   function compEnd() { delete db.comp; save(); newScramble(); if (state === 'idle') setState('idle'); }
   function renderComp() {
     if (!compOn()) return;
-    const C = db.comp, r = compSolves(), note = $('drillNote');
+    const C = db.comp, r = compSolves(), note = $('drillNote'), F = CF(), bld = F.kind === 'best';
     let t;
     if (!compDone(r)) {
-      t = (r.length ? `This round: ${compTimes(r)}.` : 'Scramble with the moves below, then start inspection.') + ' Inspection is always on.';
-      if (C.cut) t += ` Cutoff ${fmt(C.cut)}: one of your first two solves must beat it.`;
+      t = (r.length ? `This round: ${compTimes(r)}.` : `Scramble with the moves below, then start${bld ? '' : ' inspection'}.`) + (bld ? ' Best of 5: your best single counts. Blindfolded has no inspection: memorizing is part of your time.' : F.kind === 'mean' ? ' Mean of 3. Inspection is always on.' : ' Inspection is always on.');
+      if (C.cut && F.cutN) t += ` Cutoff ${fmt(C.cut)}: ${F.cutN === 1 ? 'your first solve' : 'one of your first two solves'} must beat it.`;
+      else if (C.cut) t += ' No cutoff: a best of 5 has none.';
       if (C.lim) t += ` Time limit ${fmt(C.lim)}.`;
     } else if (compCutMissed(r)) {
       t = `Round over: you didn't make the ${fmt(C.cut)} cutoff (${compTimes(r)}). Your next solve is a normal one.`;
     } else {
-      const avg = avgOf(r, 5, 5), rounds = new Map();
+      const avg = compResult(r, F), rounds = new Map();   // the round's result: ao5, mo3 or the best single
       for (const s of db.solves[db.event]) if (s.comp && s.comp !== C.id) (rounds.get(s.comp) || rounds.set(s.comp, []).get(s.comp)).push(s);
-      const prev = [...rounds.values()].filter(x => x.length >= 5).map(x => avgOf(x, 5, 5)).filter(v => v !== Infinity);
-      t = `Round over. Average ${fmt(avg)}, best single ${fmt(Math.min(...r.map(eff)))}: ${compTimes(r)}.`;
+      const prev = [...rounds.values()].filter(x => x.length >= F.n).map(x => compResult(x, F)).filter(v => v !== Infinity);
+      t = bld ? `Round over. Best ${fmt(avg)}, average of 5 ${fmt(avgOf(r, 5, 5))}: ${compTimes(r)}.`
+        : `Round over. ${F.kind === 'mean' ? 'Mean' : 'Average'} ${fmt(avg)}, best single ${fmt(Math.min(...r.map(eff)))}: ${compTimes(r)}.`;
       if (avg !== Infinity && prev.length) t += avg < Math.min(...prev) ? ` Your best round in this session (was ${fmt(Math.min(...prev))}).` : ` Your best round here is ${fmt(Math.min(...prev))}.`;
       if (avg < db.goal * 1000) t += ` Under your sub-${db.goal} goal.`;
       t += ' Your next solve is a normal one.';
@@ -2014,7 +2105,7 @@ body.racing { overflow: hidden; }
     note.hidden = false; note.textContent = t;
   }
   // the daily scrambles: five per event, the same for everyone on the same date
-  let friendScr = null, dailyOn = null;   // friendScr = {ev, scr} from a shared link; dailyOn = the date of the daily being shown
+  let friendScr = null, dailyOn = null, dailyIdx = 0;   // friendScr = {ev, scr} from a shared link; dailyOn = the date of the daily being shown
   const today = () => { const d = new Date(), p2 = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
   const dailyDone = () => db.solves[db.event].filter(s => s.daily === today());
   const SHARE_BASE = 'https://bluex7710.github.io/sub-x/';
@@ -2028,7 +2119,7 @@ body.racing { overflow: hidden; }
   function newScramble() {
     dailyOn = null;
     if (drill) {
-      scramble = (Cube.invert(drill.alg) + ' ' + ['', 'U', "U'", 'U2'][Math.floor(Math.random() * 4)]).trim();
+      scramble = (Cube.invert(Solver.faceTurns(drill.alg).join(' ')) + ' ' + ['', 'U', "U'", 'U2'][Math.floor(Math.random() * 4)]).trim();
       $('scrLabel').innerHTML = `<strong>Drill: ${esc(drill.name)}</strong><span>Setup moves</span><button class="mini-btn" id="exitDrill" type="button">Back to scrambles</button>`;
       $('drillNote').hidden = false;
       $('drillNote').textContent = 'Hold a solved cube with yellow on top and green in front, do these setup moves, then solve the case. You may need to turn the top layer first so the case lines up. Drill times stay out of your session: each case keeps its own, shown on its card in Learn.';
@@ -2041,7 +2132,7 @@ body.racing { overflow: hidden; }
         $('scrLabel').innerHTML = '<strong>Comp sim · round over</strong><button class="mini-btn" id="compAgain" type="button">New round</button><button class="mini-btn" id="compEnd" type="button">Back to scrambles</button>';
       } else {
         scramble = db.comp.scrs[r.length];
-        $('scrLabel').innerHTML = `<strong>Comp sim · solve ${r.length + 1} of 5</strong><button class="mini-btn" id="compEnd" type="button">End round</button>`;
+        $('scrLabel').innerHTML = `<strong>Comp sim · solve ${r.length + 1} of ${db.comp.scrs.length}</strong><button class="mini-btn" id="compEnd" type="button">End round</button>`;
       }
       $('scrCard').classList.add('drill');
       drawNetFor(scramble); renderComp();
@@ -2067,8 +2158,11 @@ body.racing { overflow: hidden; }
       $('scrCard').classList.add('drill');
       drawNetFor(scramble);
     } else if (db.scrMode === 'daily' && dailyDone().length < 5) {
-      const done = dailyDone().length, d = today();
-      dailyOn = d; scramble = genScramble(EV(), seeded(`sub-x daily ${d} ${EV()} ${done}`));
+      // the first of the five not done yet (a deleted one comes back); solves from before the number was kept count in order
+      const used = new Set(dailyDone().map((s, k) => s.dn !== undefined ? s.dn : k)), d = today();
+      let done = 0; while (used.has(done)) done++;
+      if (done > 4) done = dailyDone().length;
+      dailyOn = d; dailyIdx = done; scramble = genScramble(EV(), seeded(`sub-x daily ${d} ${EV()} ${done}`));
       $('scrLabel').innerHTML = `<strong>Daily ${done + 1} of 5 · ${d}</strong><button class="mini-btn" id="shareScr" type="button">Share</button><button class="mini-btn" id="copyScr" type="button">Copy</button>`;
       $('drillNote').hidden = false; $('drillNote').textContent = 'Everyone using Sub-X gets the same five scrambles today. Finish all five for your daily ao5, and compare it with friends.';
       $('scrCard').classList.add('drill');
@@ -2130,9 +2224,9 @@ body.racing { overflow: hidden; }
     let html = '', strip = [];
     for (const [name, fn, n] of rows) {
       if (n > 12 && L < n) continue;
-      let best = null;
-      for (let e = n; e <= L; e++) { const v = fn(list, e); if (v !== null && (best === null || v < best)) best = v; }
-      const cur = fn(list, L), now = L > n && !showingExamples() && cur !== null && cur !== Infinity && cur === best;   // the current value is a best right now
+      let best = null, before = null;   // before: the best up to the solve before, so a tie isn't a new best
+      for (let e = n; e <= L; e++) { const v = fn(list, e); if (e === L) before = best; if (v !== null && (best === null || v < best)) best = v; }
+      const cur = fn(list, L), now = L > n && !showingExamples() && cur !== null && cur !== Infinity && (before === null || cur < before);   // the current value beats every earlier one
       const head = n === 5 || n === 12 ? `<button type="button" class="stat-link" data-avg="${n}" aria-expanded="${avgOpen === n}">${name}</button>` : name;
       html += `<tr${now ? ' class="pb-now"' : ''}><th scope="row" title="${esc(STAT_HINT[name] || '')}">${head}</th><td>${fmt(cur)}</td><td>${fmt(best)}</td></tr>`;
       if ((n === 5 || n === 12) && cur !== null) strip.push(`${name} <b>${fmt(cur)}</b>${now ? ' <i>PB</i>' : ''}`);
@@ -2145,9 +2239,8 @@ body.racing { overflow: hidden; }
     const mean = ok.length ? ok.reduce((a, b) => a + b, 0) / ok.length : null;
     const under = ok.filter(v => v < goal).length;
     $('summary').innerHTML = `<span>Solves <b>${ok.length}/${L}</b></span><span>Mean <b>${fmt(mean)}</b></span><span>Sub-${db.goal} <b>${L ? Math.round(under / L * 100) : 0}%</b></span>`;
-    renderTodayLine(); sessCounts();
-    renderTrend(list, goal); renderList(list, goal); renderLastActions(); backupInfo(); renderComp(); achCheck(); renderGoal();
-    renderKpis(list); renderSpread(list, goal); renderCal();
+    // each panel on its own: one bad record can't blank the rest, or the Backup panel you'd need to put it right
+    for (const f of [renderTodayLine, sessCounts, () => renderTrend(list, goal), () => renderList(list, goal), renderLastActions, backupInfo, renderComp, achCheck, renderGoal, () => renderKpis(list), () => renderSpread(list, goal), renderCal]) try { f(); } catch (e) { console.error(e); }
   }
   // ---------- today: how many solves, how long you spent solving, and about how long you practised ----------
   // Practice time adds up the gaps between your solves and trainer tries today (each solve's own time for the
@@ -2219,7 +2312,7 @@ body.racing { overflow: hidden; }
     const on = ['333', 'oh'].includes(EV()); panel.hidden = !on; if (!on) return;
     const g = db.goal, total = g * 1000;
     $('goalName').textContent = `sub-${g}`;
-    const mine = (db.solves[db.event] || []).filter(x => x.splits).slice(-12).map(x => { const q = x.splits; return [q.cross, q.pairs[3] - q.cross, q.oll - q.pairs[3], q.total - q.oll].map(v => Math.max(0, v)); });
+    const mine = (db.solves[db.event] || []).filter(x => fullSplits(x.splits)).slice(-12).map(x => { const q = x.splits; return [q.cross, q.pairs[3] - q.cross, q.oll - q.pairs[3], q.total - q.oll].map(v => Math.max(0, v)); });
     const avg = mine.length ? [0, 1, 2, 3].map(i => mine.reduce((a, t) => a + t[i], 0) / mine.length) : null;
     $('goalTable').innerHTML = `<thead><tr><th>Step</th><th class="num">Target</th><th class="num">Turns</th>${avg ? '<th class="num">You</th>' : ''}</tr></thead><tbody>` +
       GOAL_STEPS.map((n, i) => { const t = total * GOAL_SHARE[i];
@@ -2263,6 +2356,8 @@ body.racing { overflow: hidden; }
   }
 
   let openIdx = -1, confirmClear = false;
+  const LIST_ROWS = 100;   // the solve list shows the newest 100 until you ask for all: a long session's rows took a fifth of a second to draw after every solve
+  let listAll = false;
   // the penalty as a segmented switch (OK is a state, not an action); Delete comes last, apart from the rest
   const penButtons = (s, i) => `<span class="seg pen-seg" role="group" aria-label="Penalty"><button type="button" data-pen="none" data-i="${i}" aria-pressed="${!s.pen}">OK</button><button type="button" data-pen="+2" data-i="${i}" aria-pressed="${s.pen === '+2'}">+2</button><button type="button" data-pen="dnf" data-i="${i}" aria-pressed="${s.pen === 'dnf'}">DNF</button></span>`;
   const delButton = i => `<button type="button" class="text-btn danger del-btn" data-del="${i}">Delete</button>`;
@@ -2274,7 +2369,8 @@ body.racing { overflow: hidden; }
     let best = Infinity, pbIdx = -1;
     list.forEach((s, i) => { if (eff(s) < best) { best = eff(s); pbIdx = i; } });
     let html = '';
-    for (let i = list.length - 1; i >= 0; i--) {
+    const from = listAll || list.length <= LIST_ROWS ? 0 : Math.min(list.length - LIST_ROWS, openIdx >= 0 ? openIdx : Infinity);   // an open row stays in view
+    for (let i = list.length - 1; i >= from; i--) {
       const s = list[i], e = eff(s);
       const cls = ['solve-row', i === pbIdx ? 'pb' : '', e < goal ? 'goal' : ''].join(' ');
       html += `<li><button type="button" class="${cls}" data-row="${i}" aria-expanded="${openIdx === i}"><span class="n">${i + 1}</span><span class="t">${s.review ? '<span class="rv">AI</span>' : ''}${fmtList(s)}</span><span class="a">${fmt(avgOf(list, 5, i + 1))}</span></button>`;
@@ -2286,6 +2382,7 @@ body.racing { overflow: hidden; }
       }
       html += '</li>';
     }
+    if (from > 0) html += `<li class="list-more"><button type="button" class="text-btn" data-listall>Show all ${list.length} solves</button></li>`;
     ul.innerHTML = html;
     $('clearRow').innerHTML = ex ? '' : (confirmClear
       ? `Delete all ${list.length} solve${list.length === 1 ? '' : 's'} in this session? <button type="button" class="pill-btn danger" id="clearYes">Delete all</button><button type="button" class="pill-btn" id="clearNo">Keep</button>`
@@ -2296,7 +2393,7 @@ body.racing { overflow: hidden; }
     $('pbTag').hidden = true;
     if (!list.length || !justSolved) { box.innerHTML = ''; return; }
     const i = list.length - 1;
-    $('pbTag').hidden = !(list.length > 1 && eff(list[i]) !== Infinity && list.every(s => eff(s) >= eff(list[i])));
+    $('pbTag').hidden = !(list.length > 1 && eff(list[i]) !== Infinity && list.every((s, k) => k === i || eff(s) > eff(list[i])));   // a tie isn't a PB
     box.innerHTML = penButtons(list[i], i) + '<span class="la-break"></span>' + saveBtn(list[i], i) + `<button type="button" class="pill-btn" data-review="${i}">Review with AI</button>` + delButton(i);
   }
 
@@ -2380,11 +2477,12 @@ body.racing { overflow: hidden; }
   const stage = $('stage'), clock = $('clock'), hint = $('hint');
   let state = 'idle', holdFrom = 'idle', holdTimer = null, inspStart = 0, runStart = 0, raf = 0, ignoreRelease = false, justSolved = false, lastPen = null, wakeLock = null, limTimer = 0, stoppedAt = 0;
   const HOLD_MS = 300;
-  const useInspection = () => (db.inspection || compOn()) && !drill;
+  // your setting, or a comp sim round still going (not the normal solve after it); never blindfolded (WCA B1a: no inspection)
+  const useInspection = () => (db.inspection || (compOn() && !compDone(compSolves()))) && !drill && EV() !== '333bf';
   // the clock: a tighter decimal point, and a +2 or DNF in small type after the time
   const dp = t => esc(t).replace('.', '<span class="dp">.</span>');
   const showTime = t => { clock.innerHTML = dp(t); };
-  const showResult = s => { clock.innerHTML = s.pen === 'dnf' ? `DNF<span class="pen">(${dp(fmt(s.ms))})</span>` : dp(fmt(eff(s))) + (s.pen === '+2' ? '<span class="pen">+</span>' : ''); };
+  const showResult = s => { clock.innerHTML = s.pen === 'dnf' ? 'DNF' + (s.ms ? `<span class="pen">(${dp(fmt(s.ms))})</span>` : '') : dp(fmt(eff(s))) + (s.pen === '+2' ? '<span class="pen">+</span>' : ''); };
   const neverSolved = () => !Object.values(db.solves).some(l => l.some(x => !x.ex));   // only example times so far
   const fewSolves = () => Object.values(db.solves).reduce((a, l) => a + l.filter(x => !x.ex).length, 0) < 5;
   const idleClock = () => { const l = db.solves[db.event]; if (justSolved && l.length) showResult(l[l.length - 1]); else showTime('0.00'); };
@@ -2445,7 +2543,7 @@ body.racing { overflow: hidden; }
     if (el >= 8000 && calls < 1) { calls = 1; if (el < 9000) inspCall(8); }
     if (el >= 12000 && calls < 2) { calls = 2; if (el < 13000) inspCall(12); }
     $('inspBar').style.transform = `scaleX(${el >= 15000 ? 1 : 1 - el / 15000})`;   // drains over the 15 s, then shows full in red
-    if (state === 'inspecting') {
+    if (state === 'inspecting' || holdFrom === 'inspecting') {   // holding to start: the countdown (and a +2 or DNF) keeps showing
       clock.textContent = el < 15000 ? String(15 - Math.floor(el / 1000)) : el < 17000 ? '+2' : 'DNF';
       stage.classList.toggle('warn', el >= 8000 && el < 15000);
       stage.classList.toggle('over', el >= 15000);
@@ -2498,16 +2596,22 @@ body.racing { overflow: hidden; }
     justSolved = false; renderLastActions();   // the last solve's buttons (and its Undo) go when the next solve starts
     if (toastOff) toastHide();
     lastPen = null;
-    if (holdFrom === 'inspecting') { const el = performance.now() - inspStart; lastPen = el > 17000 ? 'dnf' : el > 15000 ? '+2' : null; }
-    if (lastPen) say(lastPen === 'dnf' ? 'Inspection over 17 seconds: DNF' : 'Inspection over 15 seconds: plus 2');
+    if (holdFrom === 'inspecting') { const el = performance.now() - inspStart; lastPen = el >= 17000 ? 'dnf' : el >= 15000 ? '+2' : null; }   // exactly 15.00 is a +2 and 17.00 a DNF (WCA A4d1+, A4d2+)
+    if (lastPen) say(lastPen === 'dnf' ? 'Inspection reached 17 seconds: DNF' : 'Inspection reached 15 seconds: plus 2');
     stage.classList.remove('warn', 'over'); cancelAnimationFrame(raf);
     runStart = performance.now(); phaseMarks = []; setState('running'); tickRun(); phaseShow();
-    // comp sim time limit: the judge stops the solve and it's a DNF
+    // comp sim time limit: the judge stops the solve and it's a DNF. It counts the result after penalties (WCA A1a5),
+    // so a +2 from inspection stops it 2 s sooner.
     clearTimeout(limTimer);
-    if (compOn() && db.comp.lim && !compDone(compSolves())) limTimer = setTimeout(() => { if (state === 'running') { stop(); ignoreRelease = false; toast(`Time limit (${fmt(db.comp.lim)}) reached: DNF`); } }, db.comp.lim);
+    if (compOn() && db.comp.lim && !compDone(compSolves())) limTimer = setTimeout(() => { if (state === 'running') { const p = lastPen; stop(); ignoreRelease = false; toast(`Time limit (${fmt(db.comp.lim)}) reached${p === '+2' ? ' with the +2' : ''}: DNF`); } }, Math.max(0, db.comp.lim - (lastPen === '+2' ? 2000 : 0)));
     keepAwake();
   }
   // runs f once the browser has painted what is on screen now (or within 100 ms, if the page is hidden)
+  // leaving the page (closing the app, switching away): write anything not saved yet, unless another tab wrote since
+  // (then this tab's copy is the older one)
+  const flushSave = () => { try { const s = JSON.stringify(db); if (s !== lastSaved && localStorage.getItem(KEY) === lastSaved) save(); } catch (e) {} };
+  addEventListener('pagehide', flushSave);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(); });
   function afterPaint(f) {
     let done = false; const go = () => { if (!done) { done = true; f(); } };
     requestAnimationFrame(() => setTimeout(go, 0)); setTimeout(go, 100);
@@ -2520,7 +2624,7 @@ body.racing { overflow: hidden; }
     if (drill) {
       drill.times.push(ms); if (drill.times.length > 50) drill.times.shift(); showTime(fmt(ms));
       setState('idle');
-      afterPaint(() => { save(); if (drill && drill.coach) coachDrillDone(); });
+      save(); afterPaint(() => { if (drill && drill.coach) coachDrillDone(); });
       return;
     }
     const solve = { ms, pen: lastPen, scr: scramble || 'Scrambled by hand', t: Date.now(), ...(extra || {}) };
@@ -2529,42 +2633,44 @@ body.racing { overflow: hidden; }
     keepData();
     const inComp = compOn() && !compDone(compSolves());
     if (compOn() && !inComp) delete db.comp;   // the first solve after a finished round is a normal one
-    if (inComp) { solve.comp = db.comp.id; if (db.comp.lim && ms >= db.comp.lim) solve.pen = 'dnf'; }
-    if (dailyOn) solve.daily = dailyOn;
+    if (inComp) { solve.comp = db.comp.id; if (db.comp.lim && eff(solve) >= db.comp.lim) solve.pen = 'dnf'; }   // +2 included (A1a5)
+    if (dailyOn) { solve.daily = dailyOn; solve.dn = dailyIdx; }
     if (f2lMode() && !inComp) solve.f2l = db.scrMode;   // an F2L-only solve: no full-solve Solution for it
     if (friendScr && friendScr.scr === scramble) { solve.shared = true; friendScr = null; }
     db.solves[db.event].push(solve);
-    justSolved = true; openIdx = -1;
-    showResult(solve); setState('idle');   // the clock shows the time now; saving and redrawing the stats wait for the screen
+    justSolved = true; openIdx = -1; solIdx = -1; listAll = false;
+    showResult(solve); setState('idle');   // the clock shows the time now; redrawing the stats waits for the screen
+    save();   // but saving doesn't (a few ms even with thousands of solves), so closing the page now can't lose the solve
+    const ev = db.event;
     afterPaint(() => {
-      save();
       newScramble();
       renderStats();
-      { const L = db.solves[db.event], pb = L.length > 1 && eff(solve) !== Infinity && L.every(s => eff(s) >= eff(solve));
-        say(`${fmtSolve(solve)}${pb ? '. New PB' : ''}`); }
       if (matchMedia('(max-width: 860px)').matches) stage.scrollIntoView({ block: 'nearest' });   // phones: the result and its buttons in view
+      const L = db.solves[ev] || []; if (!L.includes(solve)) return;   // deleted before the screen caught up: nothing to announce or coach
+      const pb = L.length > 1 && eff(solve) !== Infinity && L.every(s => s === solve || eff(s) > eff(solve));   // better than every other (a tie isn't a PB)
+      say(`${fmtSolve(solve)}${pb ? '. New PB' : ''}`);
       coachCheck(solve);
     });
   }
   // ---------- typing in a time: a solve timed on something else (a Stackmat without the cable, a friend's timer) ----------
   // 12.34, 1:02.34, and digits only the way csTimer reads them: 15 (= 15 s), 1234 (= 12.34), 10234 (= 1:02.34).
-  // "+2" or "DNF" anywhere adds that penalty. It saves like any other solve.
+  // "+2" or "DNF" anywhere adds that penalty, and "DNF" alone is a DNF without a time. It saves like any other solve.
   function parseTyped(txt) {
     const t = String(txt || '').trim().toLowerCase(); if (!t) return null;
     const pen = /dnf/.test(t) ? 'dnf' : /\+/.test(t) ? '+2' : null;
     const rest = t.replace(/\+\s*2(?![\d.,:])/g, ' ').replace(/dnf|\+|\(|\)/g, ' ');
-    const m = rest.match(/(\d+):(\d{1,2}(?:[.,]\d+)?)|(\d+(?:[.,]\d+)?)/); if (!m) return null;
+    const m = rest.match(/(\d+):(\d{1,2}(?:[.,]\d+)?)|(\d+(?:[.,]\d+)?)/); if (!m) return pen === 'dnf' && !/\d/.test(rest) ? { ms: 0, pen } : null;
     let ms;
-    if (m[1] !== undefined) ms = (+m[1] * 60 + parseFloat(m[2].replace(',', '.'))) * 1000;
+    if (m[1] !== undefined) { const s = parseFloat(m[2].replace(',', '.')); if (s >= 60) return null; ms = (+m[1] * 60 + s) * 1000; }   // 1:75 isn't a time
     else if (/[.,]/.test(m[3])) ms = parseFloat(m[3].replace(',', '.')) * 1000;
-    else { const d = m[3]; ms = d.length >= 5 ? (+d.slice(0, -4) * 60 + +d.slice(-4, -2)) * 1000 + +d.slice(-2) * 10 : d.length >= 3 ? +d * 10 : +d * 1000; }
+    else { const d = m[3]; if (d.length >= 5 && +d.slice(-4, -2) >= 60) return null; ms = d.length >= 5 ? (+d.slice(0, -4) * 60 + +d.slice(-4, -2)) * 1000 + +d.slice(-2) * 10 : d.length >= 3 ? +d * 10 : +d * 1000; }
     ms = Math.round(ms);
-    return ms > 0 && ms < 36e5 ? { ms, pen } : null;
+    return ms >= 10 && ms < 36e5 ? { ms, pen } : null;   // under 0.01 would show as 0.00
   }
   $('addTimeForm').addEventListener('submit', e => {
     e.preventDefault();
     const inp = $('addTime'), r = parseTyped(inp.value);
-    if (!r) { toast('Type a time like 12.34 or 1:02.34.'); return; }
+    if (!r) { toast('Type a time like 12.34 or 1:02.34, or DNF.'); return; }
     if (drill || compOn() || (typeof RACE !== 'undefined' && RACE.open) || state !== 'idle') { toast('You can type a time when no drill, comp sim round or solve is running.'); return; }
     lastPen = r.pen; stop(r.ms); ignoreRelease = false; lastPen = null;
     const L = db.solves[db.event], last = L[L.length - 1]; if (last) { last.typed = true; save(); }
@@ -2656,16 +2762,23 @@ body.racing { overflow: hidden; }
 
   function setPen(i, pen) {
     const s = db.solves[db.event][i]; if (!s) return;
-    s.pen = pen === 'none' ? null : pen; save();
+    const inRound = compOn() && s.comp === db.comp.id, wasDone = inRound && compDone(compSolves());
+    s.pen = pen === 'none' ? null : pen; s.e = Date.now();   // when: a sync takes the newer penalty
+    // comp sim: the time limit counts the result after penalties (WCA A1a5), so a +2 can make it a DNF
+    if (inRound && db.comp.lim && s.pen !== 'dnf' && eff(s) >= db.comp.lim) { s.pen = 'dnf'; toast(`Over the ${fmt(db.comp.lim)} time limit: DNF`); }
+    save();
     if (justSolved && i === db.solves[db.event].length - 1) showResult(s);
     renderStats();
+    if (inRound && compDone(compSolves()) !== wasDone) { newScramble(); if (state === 'idle') setState('idle'); }   // the cutoff was made or missed: the next scramble (and inspection) changes
   }
   function del(i) {
     const list = db.solves[db.event], [s] = list.splice(i, 1), ev = db.event;
-    save(); openIdx = -1;
+    save(); openIdx = -1; solIdx = -1;
     if (justSolved && i === list.length) { justSolved = false; showTime('0.00'); if (state === 'idle') setState('idle'); }
-    renderStats(); if (s.comp && compOn()) newScramble();
-    toast(`Deleted solve ${i + 1} (${fmtSolve(s)})`, () => { db.solves[ev].splice(i, 0, s); save(); renderStats(); if (s.comp && compOn()) newScramble(); });
+    const redo = () => (s.comp && compOn()) || (s.daily && db.scrMode === 'daily');   // a comp or daily scramble may come back
+    const again = () => { if (redo()) { newScramble(); if (state === 'idle') setState('idle'); } };
+    renderStats(); again();
+    toast(`Deleted solve ${i + 1} (${fmtSolve(s)})`, () => { db.solves[ev].splice(i, 0, s); save(); renderStats(); again(); });
   }
   function selectScr() { const r = document.createRange(); r.selectNodeContents($('scramble')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast(matchMedia('(pointer: coarse)').matches ? 'Scramble selected. Use Copy in the menu.' : `Scramble selected. Press ${/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'}+C to copy.`); }
 
@@ -2675,10 +2788,11 @@ body.racing { overflow: hidden; }
     else if (b.dataset.del !== undefined) del(+b.dataset.del);
     else if (b.dataset.review !== undefined) { rvPick = `${db.event}:${b.dataset.review}`; location.hash = 'review'; }
     else if (b.dataset.row !== undefined) { const i = +b.dataset.row; openIdx = openIdx === i ? -1 : i; renderList(solvesFor(db.event), db.goal * 1000); }
+    else if (b.dataset.listall !== undefined) { listAll = true; renderList(solvesFor(db.event), db.goal * 1000); }
     else if (b.id === 'clearAsk') { confirmClear = true; renderStats(); }
     else if (b.id === 'clearNo') { confirmClear = false; renderStats(); }
     else if (b.id === 'clearYes') {
-      const ev = db.event, old = db.solves[ev]; db.solves[ev] = []; save(); confirmClear = false; justSolved = false; openIdx = -1; renderStats();
+      const ev = db.event, old = db.solves[ev]; db.solves[ev] = []; save(); confirmClear = false; justSolved = false; openIdx = -1; solIdx = -1; renderStats();
       toast(`Deleted ${old.length} solve${old.length === 1 ? '' : 's'}`, () => { db.solves[ev] = old.concat(db.solves[ev]); save(); renderStats(); });
     }
     else if (b.dataset.trend !== undefined) { db.trendN = +b.dataset.trend; save(); renderTrend(solvesFor(db.event), db.goal * 1000); }
@@ -2717,7 +2831,7 @@ body.racing { overflow: hidden; }
     else if (b.dataset.xc) xcAction(b.dataset.xc);
     else if (b.dataset.p3d) { const c = caseById(b.dataset.p3d); if (c) openPlayer(c); }
     else if (b.dataset.drill !== undefined) { const c = caseById(b.dataset.drill); if (c) startDrill(c); }
-    else if (b.dataset.learn !== undefined) { const id = b.dataset.learn; db.learned[id] = !db.learned[id]; if (db.learned[id]) (db.learnedAt = db.learnedAt || {})[id] = Date.now(); save(); renderLearn(); }
+    else if (b.dataset.learn !== undefined) { const id = b.dataset.learn; setLearned(id, !db.learned[id]); save(); renderLearn(); }
     else if (b.dataset.lset) goLearn(pageOf(b.dataset.lset));
     else if (b.dataset.method) { learnMethod = b.dataset.method; learnSet = pageOf(stepOf(lastStep[learnMethod] || METHODS[learnMethod].steps[0][0])); renderLearn(); }
     else if (b.dataset.lmode) { db.learnMode = b.dataset.lmode; save(); learnSet = lastStep[learnMethod] = pageOf(stepOf(learnSet)); renderLearn(); }
@@ -2816,13 +2930,19 @@ body.racing { overflow: hidden; }
     const n = Object.values(db.solves).reduce((a, l) => a + l.filter(x => !x.ex).length, 0);
     if (n >= 50 && !db.lastBackup && !db.backupNudged) { db.backupNudged = Date.now(); save(); setTimeout(() => toast('50 solves, all only on this device. Save a backup (Backup, at the bottom) or send them to another device.'), 1500); }
   }
+  // how much of the browser's room (about 5 MB for each site) Sub-X's data takes
+  function storageText() {
+    if (saveWarnEl) return " Storage is full: new solves aren't being saved.";   // other data on this site may take the room
+    const mb = (lastSaved || '').length / 1048576;
+    return ` Storage used: ${mb < 0.1 ? 'under 0.1' : mb.toFixed(1)} MB of about 5 MB${mb > 4 ? '. Nearly full: save a backup, then delete old solves or sessions to make room' : ''}.`;
+  }
   function backupInfo() {
     const n = Object.values(db.solves).reduce((a, l) => a + l.length, 0);
     const stale = n && (!db.lastBackup || Date.now() - db.lastBackup > 7 * 864e5);
     const canSync = typeof SY !== 'undefined' && SY && syncHere, app = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     $('backupInfo').innerHTML = (canSync && SY.user ? '<b>Your times are synced to your Google account.</b>' : '<b>Your times are only on this device.</b>') +
       ` Last backup: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleDateString() : 'never'}</b>${stale ? ' · <span style="color:var(--warn)">time for a new one</span>' : ''}`;
-    $('backupMore').textContent = (canSync && SY.user ? 'A backup file is a good extra copy.' : `${app ? 'Uninstalling the app' : "Clearing the browser's site data"} deletes them, so keep a backup${canSync ? ' or sign in to sync' : ''}.`) + ` A backup saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings, but not recordings. Restore also takes a csTimer export.`;
+    $('backupMore').textContent = (canSync && SY.user ? 'A backup file is a good extra copy.' : `${app ? 'Uninstalling the app' : "Clearing the browser's site data"} deletes them, so keep a backup${canSync ? ' or sign in to sync' : ''}.`) + ` A backup saves your ${n} solve${n === 1 ? '' : 's'}, sessions, learned cases and settings, but not recordings. Restore also takes a csTimer export.` + storageText();
   }
   async function saveTextFile(name, text) {
     if (typeof NATIVE !== 'undefined' && NATIVE) {           // Android app: no browser downloads
@@ -2850,27 +2970,43 @@ body.racing { overflow: hidden; }
   // Penalty 0 is OK, 2000 is +2 and -1 is DNF. Each session goes into a Sub-X session of the same name, by its scramble type.
   const CS_TYPES = { '333': '333', '222so': '222', '444wca': '444', '555wca': '555', '333oh': 'oh', '333ni': '333bf', '333fm': '333', pyrso: 'pyram', skbso: 'skewb', '666wca': '666', '777wca': '777', mgmp: 'minx', sqrs: 'sq1', clkwca: 'clock' };
   function importCsTimer(j) {
-    let meta = {}; try { meta = JSON.parse((j.properties || {}).sessionData || '{}'); } catch (e) {}
-    let added = 0, sessions = 0, skipped = 0;
+    let meta = {}; try { meta = JSON.parse((j.properties || {}).sessionData || '{}') || {}; } catch (e) {}
+    let added = 0, sessions = 0, skipped = 0, back = 0;
+    const now = Date.now(), allT = new Set(Object.values(db.solves).flatMap(l => l.map(s => s.t)));
+    // A solve already here, in any session of that puzzle, is matched by its second, time and scramble (each one counted
+    // once): csTimer's own data, so it still matches after you delete a solve in csTimer or rename the session here.
+    const idOf = (t, ms, scr) => Math.floor(t / 1000) + '|' + ms + '|' + scr, have = {};
+    const haveOf = ev => {
+      if (have[ev]) return have[ev];
+      const m = have[ev] = new Map();
+      for (const k of [ev].concat(Object.keys(db.sessions).filter(x => db.sessions[x].event === ev))) for (const s of db.solves[k] || []) { const id = idOf(s.t, s.ms, s.scr); m.set(id, (m.get(id) || 0) + 1); }
+      return m;
+    };
     for (const k of Object.keys(j).filter(k => /^session\d+$/.test(k)).sort((a, b) => a.slice(7) - b.slice(7))) {
       const list = Array.isArray(j[k]) ? j[k] : [], m = meta[k.slice(7)] || {}, type = (m.opt && m.opt.scrType) || '333', ev = CS_TYPES[type];
       if (!list.length) continue;
       if (!ev) { skipped += list.length; continue; }
-      const name = ('csTimer ' + (m.name !== undefined ? m.name : k.slice(7))).slice(0, 30);
-      let key = Object.keys(db.sessions).find(x => db.sessions[x].event === ev && db.sessions[x].name === name);
-      if (!key) { key = 's' + Date.now().toString(36) + sessions; db.sessions[key] = { name, event: ev }; db.solves[key] = []; sessions++; }
-      const mine = db.solves[key], seen = new Set(mine.map(s => s.t));
+      const name = ('csTimer ' + (m.name !== undefined ? m.name : k.slice(7))).slice(0, 30), H = haveOf(ev), inSec = new Map();
+      let key = Object.keys(db.sessions).find(x => db.sessions[x].event === ev && db.sessions[x].name === name), mine = key ? db.solves[key] : null;
       list.forEach((r, i) => {
         if (!Array.isArray(r) || !Array.isArray(r[0]) || typeof r[0][1] !== 'number') return;
-        const pen = r[0][0] === -1 ? 'dnf' : r[0][0] > 0 ? '+2' : null, t = typeof r[3] === 'number' ? r[3] * 1000 + (i % 1000) / 1000 : Date.now() - (list.length - i) * 1000;
-        if (seen.has(t)) return;
-        const s = { ms: Math.round(r[0][1]), pen, scr: String(r[1] || 'Scrambled by hand'), t };
+        const pen = r[0][0] === -1 ? 'dnf' : r[0][0] > 0 ? '+2' : null, ms = Math.round(r[0][1]), scr = String(r[1] || 'Scrambled by hand');
+        // csTimer keeps whole seconds: solves in the same second are told apart by their order in that second
+        let t;
+        if (typeof r[3] === 'number') { const n = inSec.get(r[3]) || 0; inSec.set(r[3], n + 1); t = r[3] * 1000 + n / 1000; }
+        else t = now - (list.length - i) * 1000;
+        const id = idOf(t, ms, scr);
+        if (H.get(id) > 0) { H.set(id, H.get(id) - 1); return; }
+        while (allT.has(t)) t += 0.001;
+        if (!mine) { key = 's' + Date.now().toString(36) + sessions; db.sessions[key] = { name, event: ev }; mine = db.solves[key] = []; sessions++; }
+        const s = { ms, pen, scr, t };
         if (r[2]) s.note = String(r[2]).slice(0, 200);
-        mine.push(s); seen.add(t); added++;
+        if (db.gone && t in db.gone) { delete db.gone[t]; s.e = now; back++; }   // deleted here before: it comes back, and stays on the next sync
+        mine.push(s); allT.add(t); added++;
       });
-      mine.sort((a, b) => a.t - b.t);
+      if (mine) mine.sort((a, b) => a.t - b.t);
     }
-    return { added, sessions, skipped };
+    return { added, sessions, skipped, back };
   }
   // Restoring merges: solves already here are kept, missing ones are added (matched by time stamp).
   $('importBtn').addEventListener('click', () => $('importFile').click());
@@ -2880,48 +3016,143 @@ body.racing { overflow: hidden; }
     try { j = JSON.parse(await f.text()); } catch (err) { toast("That file isn't a Sub-X backup or a csTimer export."); return; }
     if (j && j.app !== 'sub-x' && Object.keys(j).some(k => /^session\d+$/.test(k))) {
       const before = JSON.stringify(db), r = importCsTimer(j);
-      save(); fillSessions(); renderStats();
-      toast(`Imported ${r.added} csTimer solve${r.added === 1 ? '' : 's'}${r.sessions ? ` into ${r.sessions} new session${r.sessions === 1 ? '' : 's'}` : ''}${r.skipped ? ` (${r.skipped} from puzzles Sub-X doesn't time were left out)` : ''}. Pick them in Session.`, () => {
-        for (const k of Object.keys(db)) delete db[k];
-        Object.assign(db, JSON.parse(before)); save(); fillSessions(); renderStats();
-      });
+      if (save() === 'full') { dbBack(before); toast(`Not imported: ${r.added} solves don't fit in this device's storage. Delete old solves or sessions to make room, or import a smaller file.`); return; }
+      fillSessions(); renderStats();
+      const notes = [r.back && `${r.back} you had deleted`, r.skipped && `${r.skipped} from puzzles Sub-X doesn't time were left out`].filter(Boolean);
+      toast(`Imported ${r.added} csTimer solve${r.added === 1 ? '' : 's'}${r.sessions ? ` into ${r.sessions} new session${r.sessions === 1 ? '' : 's'}` : ''}${notes.length ? ` (${notes.join('; ')})` : ''}. Pick them in Session.`, () => dbBack(before));
       return;
     }
     restoreBackup(j);
   });
   function restoreBackup(j) {
-    if (!j || j.app !== 'sub-x' || !j.data || typeof j.data.solves !== 'object') { toast("That file isn't a Sub-X backup or a csTimer export."); return; }
-    const data = j.data;
-    const before = JSON.stringify(db);
-    let added = 0, newSessions = 0;
-    for (const [k, s] of Object.entries(data.sessions || {})) {
-      if (!db.sessions[k] && s && EVENTS[s.event]) { db.sessions[k] = { name: String(s.name || 'Imported').slice(0, 30), event: s.event }; newSessions++; }
+    if (!j || j.app !== 'sub-x' || !isObj(j.data) || !isObj(j.data.solves)) { toast("That file isn't a Sub-X backup or a csTimer export."); return; }
+    const before = JSON.stringify(db), data = j.data, now = Date.now();
+    // you chose to bring these back: what's in the file and was deleted here comes back, stamped so the next sync keeps it
+    let back = 0; db.gone = db.gone || {}; db.goneSess = db.goneSess || {};
+    for (const [k, s] of Object.entries(isObj(data.sessions) ? data.sessions : {})) if (isObj(s) && k in db.goneSess) { delete db.goneSess[k]; s.e = now; }
+    for (const l of Object.values(data.solves)) if (Array.isArray(l)) for (const s of l) if (isObj(s) && Number.isFinite(s.t) && s.t in db.gone) { delete db.gone[s.t]; s.e = now; back++; }
+    const { added, newSessions } = mergeData(data, true);
+    settingsUI();
+    if (save() === 'full') { dbBack(before); toast("Not restored: that backup doesn't fit in this device's storage. Delete old solves or sessions to make room, then try again."); return; }
+    fillSessions(); renderStats(); if (view === 'learn') renderLearn();
+    toast(added || newSessions ? `Restored ${added} solve${added === 1 ? '' : 's'}${newSessions ? ` and ${newSessions} session${newSessions === 1 ? '' : 's'}` : ''}${back ? ` (${back} you had deleted)` : ''}` : 'Nothing new: every solve in it is already here.', () => dbBack(before));
+  }
+  // puts everything back as it was before an import or a Restore (its Undo, or when it didn't fit)
+  function dbBack(before) {
+    for (const k of Object.keys(db)) delete db[k];
+    Object.assign(db, JSON.parse(before)); linkTrHist(); settingsUI(); save(); fillSessions(); renderStats(); if (view === 'learn') renderLearn();
+  }
+  // settings a Restore takes from its file (not the ones that belong to this device, like Pro testing or the last backup)
+  const SETTINGS = ['goal', 'inspection', 'voice', 'skin', 'stepTap', 'trendN', 'coach', 'l3', 'lessonPref', 'lessonShut', 'defMethod', 'fold', 'learnMode', 'trPic', 'casesSet', 'casesSort', 'casesFilter', 'compCut', 'compLim', 'bfPairs', 'bfSide', 'tpsDrill', 'zbSet', 'zbPage', 'pllrSec', 'pllrPool', 'pllrPic', 'pllrNames'];
+  // the controls show the settings again after a Restore or its Undo, so the next change doesn't write the old ones back
+  function settingsUI() {
+    const set = (id, p, v) => { const el = $(id); if (el) el[p] = v; };
+    set('insp', 'checked', !!db.inspection); set('voice', 'checked', !!db.voice); set('stepTap', 'checked', !!db.stepTap); set('goal', 'value', db.goal);
+    const sk = $('skin'); if (sk) { if (![...sk.options].some(o => o.value === db.skin)) db.skin = ''; sk.value = db.skin || ''; applySkin(); }
+    const cm = $('coachMode'); if (cm) { if (![...cm.options].some(o => o.value === db.coach)) db.coach = 'suggest'; cm.value = db.coach; }
+    if (typeof l3Settings === 'function' && db.l3) l3Settings();
+    foldApply();
+  }
+  // Adds another copy's data to this one. Solves are matched by time stamp. A deletion is remembered with its time, and a
+  // solve or session changed after it (an Undo, a Restore, a penalty) stays. A penalty, a session's name or a learned mark
+  // changed on both sides: the newer change wins (s.e, the session's e, learnE). user: a Restore or a move link you opened,
+  // which only adds (the file's deletions aren't applied here) and takes the file's settings.
+  function mergeData(data, user) {
+    let added = 0, newSessions = 0, removed = 0, changed = 0;
+    if (!isObj(data)) data = {};
+    const now = Date.now(), O = v => isObj(v) ? v : {};
+    db.gone = O(db.gone); db.goneSess = O(db.goneSess);
+    if (!user) for (const g of ['gone', 'goneSess']) for (const [k, v] of Object.entries(O(data[g]))) {
+      const at = v > 1 ? v : GONE_OLD;   // 1: from an older Sub-X
+      if (now - at < GONE_KEEP && !(db[g][k] >= at)) db[g][k] = at;
     }
-    for (const [k, list] of Object.entries(data.solves)) {
+    for (const [k, at] of Object.entries(db.goneSess)) {
+      const s = db.sessions[k]; if (!s) continue;
+      if (at > (s.e || 0)) { delete db.sessions[k]; delete db.solves[k]; if (db.event === k) db.event = '333'; removed++; }
+      else delete db.goneSess[k];
+    }
+    const dead = s => s.t in db.gone && db.gone[s.t] > (s.e || 0);
+    for (const [k, list] of Object.entries(db.solves)) {
+      const keep = list.filter(s => !dead(s));
+      if (keep.length < list.length) { removed += list.length - keep.length; db.solves[k] = keep; }
+      for (const s of keep) if (s.t in db.gone) delete db.gone[s.t];   // changed after it was deleted: it stays, here and on the next sync
+    }
+    for (const [k, s] of Object.entries(O(data.sessions))) {
+      if (!isObj(s) || !EVENTS[s.event] || EVENTS[k]) continue;
+      const mine = db.sessions[k], e = Number.isFinite(s.e) ? s.e : 0;
+      if (mine) { if (e > (mine.e || 0) && mine.event === s.event) { mine.name = String(s.name || mine.name).slice(0, 30); mine.e = e; changed++; } continue; }
+      if (k in db.goneSess && db.goneSess[k] > e) continue;
+      delete db.goneSess[k];
+      db.sessions[k] = { name: String(s.name || 'Imported').slice(0, 30), event: s.event }; if (e) db.sessions[k].e = e; newSessions++;
+    }
+    for (const [k, list] of Object.entries(O(data.solves))) {
       if (!Array.isArray(list) || !(EVENTS[k] || db.sessions[k])) continue;
-      const mine = db.solves[k] = db.solves[k] || [], seen = new Set(mine.map(s => s.t));
-      for (const s of list) if (s && typeof s.ms === 'number' && typeof s.t === 'number' && !s.ex && !seen.has(s.t)) { mine.push(s); seen.add(s.t); added++; }
-      mine.sort((a, b) => a.t - b.t);
+      const mine = db.solves[k] = db.solves[k] || [], at = new Map(mine.map(s => [s.t, s]));
+      let grew = false;
+      for (const s of list) {
+        if (!cleanSolve(s, true) || s.ex) continue;
+        const have = at.get(s.t);
+        if (have) {   // the same solve: a newer penalty from the other side wins
+          if ((s.e || 0) > (have.e || 0)) { have.pen = s.pen || null; if (s.note) have.note = s.note; else delete have.note; have.e = s.e; changed++; }
+          continue;
+        }
+        if (dead(s)) continue;
+        delete db.gone[s.t]; mine.push(s); at.set(s.t, s); added++; grew = true;
+      }
+      if (grew) mine.sort((a, b) => a.t - b.t);
     }
-    for (const [k, v] of Object.entries(data.learned || {})) if (v) db.learned[k] = true;
-    for (const s of Array.isArray(data.saved) ? data.saved : []) if (s && typeof s.t === 'number' && typeof s.scr === 'string' && !savedOf(s)) db.saved.push(s);
-    // trainer and drill times: merged by time stamp (trainers) or kept if longer (drills)
-    for (const [k, list] of Object.entries(data.trHist || {})) if (Array.isArray(list)) {
-      const mine = db.trHist[k] = db.trHist[k] || [], seen = new Set(mine.map(r => r.t));
-      for (const r of list) if (r && typeof r.solve === 'number' && !(r.t && seen.has(r.t))) mine.push(r);
-      mine.sort((x, y) => (x.t || 0) - (y.t || 0));
+    db.learnE = O(db.learnE); db.learnedAt = O(db.learnedAt);
+    const inL = O(data.learned), inE = O(data.learnE);
+    for (const k of new Set(Object.keys(inL).concat(Object.keys(inE)))) {
+      const e = Number.isFinite(inE[k]) ? inE[k] : 0, mineE = db.learnE[k] || 0, was = !!db.learned[k];
+      if (e > mineE) { db.learned[k] = !!inL[k]; db.learnE[k] = e; }
+      else if (!e && !mineE && inL[k]) db.learned[k] = true;   // neither side knows when: learned on either is learned
+      if (!!db.learned[k] !== was) changed++;
     }
-    db.drillTimes = db.drillTimes || {};
-    for (const [k, list] of Object.entries(data.drillTimes || {})) if (Array.isArray(list) && list.length > (db.drillTimes[k] || []).length) db.drillTimes[k] = list.filter(v => typeof v === 'number');
-    db.srs = db.srs || {};
-    for (const [k, v] of Object.entries(data.srs || {})) if (v && (!db.srs[k] || (v.seen || 0) > (db.srs[k].seen || 0))) db.srs[k] = v;
-    for (const [k, v] of Object.entries(data.caseStats || {})) if (v && Array.isArray(v.rec) && (!db.caseStats[k] || (v.last || 0) > (db.caseStats[k].last || 0))) db.caseStats[k] = v;
-    for (const [k, v] of Object.entries(data.ach || {})) if (typeof v === 'number' && !(db.ach || {})[k]) (db.ach = db.ach || {})[k] = v;
-    save(); fillSessions(); renderStats(); if (view === 'learn') renderLearn();
-    toast(`Restored ${added} solve${added === 1 ? '' : 's'}${newSessions ? ` and ${newSessions} session${newSessions === 1 ? '' : 's'}` : ''}`, () => {
-      for (const k of Object.keys(db)) delete db[k];
-      Object.assign(db, JSON.parse(before)); save(); fillSessions(); renderStats();
-    });
+    for (const [k, v] of Object.entries(O(data.learnedAt))) if (Number.isFinite(v) && !(db.learnedAt[k] <= v)) db.learnedAt[k] = v;   // the first time it was learned
+    // the beginner steps done, the cases picked to memorize and the lessons seen: on either side counts
+    for (const [key, val] of [['bgn', true], ['memoPick', 1], ['lessonSeen', 1]]) {
+      const inc = O(data[key]); if (!Object.keys(inc).length) continue;
+      db[key] = O(db[key]); for (const [k, v] of Object.entries(inc)) if (v && !db[key][k]) { db[key][k] = val; changed++; }
+    }
+    if (!Array.isArray(db.saved)) db.saved = [];
+    for (const s of Array.isArray(data.saved) ? data.saved : []) if (isObj(s) && Number.isFinite(s.t) && typeof s.scr === 'string' && !savedOf(s)) { delete s.cr; delete s.ct; db.saved.push(s); }
+    // trainer tries: matched by their time (or plan and solve time, for ones without), the last 200 kept. Lists are changed
+    // in place: each trainer holds its own list
+    db.trHist = O(db.trHist);
+    const tryKey = r => r.t ? 't' + r.t : r.plan + '|' + r.solve;
+    for (const [k, list] of Object.entries(O(data.trHist))) if (Array.isArray(list)) {
+      const mine = Array.isArray(db.trHist[k]) ? db.trHist[k] : (db.trHist[k] = []), seen = new Set(mine.map(tryKey));
+      let grew = false;
+      for (const r of list) if (okTry(r) && !seen.has(tryKey(r))) { mine.push(r); seen.add(tryKey(r)); grew = true; }
+      if (grew) { mine.sort((x, y) => (x.t || 0) - (y.t || 0)); if (mine.length > 200) mine.splice(0, mine.length - 200); }
+    }
+    // drill times have no time stamps: the ones not here yet (repeats counted) go after these, the last 50 kept
+    db.drillTimes = O(db.drillTimes);
+    for (const [k, list] of Object.entries(O(data.drillTimes))) if (Array.isArray(list)) {
+      const mine = Array.isArray(db.drillTimes[k]) ? db.drillTimes[k] : (db.drillTimes[k] = []), left = new Map();
+      for (const v of mine) left.set(v, (left.get(v) || 0) + 1);
+      for (const v of list) { if (!Number.isFinite(v)) continue; if (left.get(v) > 0) left.set(v, left.get(v) - 1); else mine.push(v); }
+      if (mine.length > 50) mine.splice(0, mine.length - 50);
+    }
+    db.srs = O(db.srs);
+    for (const [k, v] of Object.entries(O(data.srs))) if (isObj(v) && Number.isFinite(v.box) && Number.isFinite(v.due) && (!db.srs[k] || (v.seen || 0) > (db.srs[k].seen || 0))) db.srs[k] = v;
+    db.caseStats = O(db.caseStats);
+    for (const [k, v] of Object.entries(O(data.caseStats))) if (okStats(v) && (!db.caseStats[k] || (v.last || 0) > (db.caseStats[k].last || 0))) { if (!Number.isFinite(v.n)) v.n = v.rec.length; db.caseStats[k] = v; }
+    for (const [k, v] of Object.entries(O(data.ach))) if (typeof v === 'number' && !(db.ach || {})[k]) (db.ach = db.ach || {})[k] = v;
+    for (const k of ['coachDone', 'races']) if (Number.isFinite(data[k]) && data[k] > (db[k] || 0)) db[k] = data[k];
+    if (user) {
+      for (const k of SETTINGS) {
+        const v = data[k];
+        if (v == null || Array.isArray(v) || (db[k] != null && typeof v !== typeof db[k])) continue;
+        if (k === 'l3') { if (isObj(db.l3) && isObj(v)) Object.assign(db.l3, v); continue; }
+        db[k] = v;
+      }
+      db.goal = Math.max(1, Math.min(600, Math.round(+db.goal) || 20));
+      for (const [ev, key] of Object.entries(O(data.lastSess))) if (EVENTS[ev] && (key === ev || (db.sessions[key] && db.sessions[key].event === ev))) db.lastSess[ev] = key;
+    }
+    linkTrHist();
+    return { added, newSessions, removed, changed };
   }
 
   // ---------- send to another device: everything packed into a link, or the backup file when it's too big for one ----------
@@ -2966,8 +3197,9 @@ body.racing { overflow: hidden; }
   }
   function switchSession(key) {
     db.event = key; db.lastSess[EV()] = key; drill = null; save(); cancel();
-    justSolved = false; openIdx = -1; confirmClear = false;
+    justSolved = false; openIdx = -1; solIdx = -1; confirmClear = false; listAll = false;
     $('event').value = EV(); fillSessions(); newScramble(); renderStats(); showTime('0.00');
+    if (state === 'idle') setState('idle');   // the hint: blindfolded has no inspection
   }
   let delArmed = false;
   const disarmDelete = () => { delArmed = false; $('sessDelete').textContent = 'Delete session'; };
@@ -2982,7 +3214,9 @@ body.racing { overflow: hidden; }
     $('sessName').value = db.sessions[db.event] ? db.sessions[db.event].name : ''; $('sessNote').textContent = ''; disarmDelete();
   });
   $('sessCreate').addEventListener('click', () => {
-    const name = $('sessName').value.trim() || 'Session ' + (Object.keys(db.sessions).length + 2);
+    // the field shows this session's name (for Rename): left as it is, the new session gets a name of its own
+    const typed = $('sessName').value.trim(), cur = db.sessions[db.event];
+    const name = typed && !(cur && typed === cur.name) ? typed : 'Session ' + (Object.keys(db.sessions).length + 2);
     const key = 's' + Date.now().toString(36);
     db.sessions[key] = { name, event: EV() }; db.solves[key] = [];
     switchSession(key); $('sessNote').textContent = `Created "${name}" for ${EVENTS[EV()].name}.`;
@@ -2990,7 +3224,7 @@ body.racing { overflow: hidden; }
   $('sessRename').addEventListener('click', () => {
     const s = db.sessions[db.event]; if (!s) return;
     const name = $('sessName').value.trim(); if (!name) { $('sessNote').textContent = 'Type a name first.'; return; }
-    s.name = name; save(); fillSessions(); renderStats(); $('sessNote').textContent = 'Renamed.';
+    s.name = name; s.e = Date.now(); save(); fillSessions(); renderStats(); $('sessNote').textContent = 'Renamed.';
   });
   $('sessDelete').addEventListener('click', () => {
     const key = db.event, s = db.sessions[key]; if (!s) return;
@@ -3011,17 +3245,17 @@ body.racing { overflow: hidden; }
   const OLL = [
     { group: 'Step 1 · Make the yellow cross', items: [
       { id: 'oll:line', name: 'Line', alg: "F R U R' U' F'", tip: 'Hold the line horizontal.' },
-      { id: 'oll:l', name: 'L shape', alg: "f R U R' U' f'", tip: 'Hold the L in the back-left corner.' },
+      { id: 'oll:l', name: 'L shape', alg: "f R U R' U' f'", tip: 'Hold the L at the front-right: yellow edges at the front and right.' },
       { id: 'oll:dot', name: 'Dot', alg: "F R U R' U' F' f R U R' U' f'", tip: 'Line, then L shape, back to back.' },
     ] },
     { group: 'Step 2 · Orient the corners', items: [
       { id: 'oll:sune', name: 'Sune', alg: "R U R' U R U2 R'", tip: 'One yellow corner on top: put it front-left.' },
-      { id: 'oll:antisune', name: 'Antisune', alg: "R' U' R U' R' U2 R", tip: 'Mirror of Sune: yellow corner front-right.' },
-      { id: 'oll:h', name: 'H', alg: "R U2 R' U' R U R' U' R U' R'", tip: 'Two pairs of headlights facing left and right.' },
+      { id: 'oll:antisune', name: 'Antisune', alg: "R' U' R U' R' U2 R", tip: 'Mirror of Sune: yellow corner at the back-left, yellow facing you on the front-left corner.' },
+      { id: 'oll:h', name: 'H', alg: "R U2 R' U' R U R' U' R U' R'", tip: 'Two pairs of headlights, facing front and back.' },
       { id: 'oll:pi', name: 'Pi', alg: "R U2 R2 U' R2 U' R2 U2 R", tip: 'Headlights on the left side.' },
       { id: 'oll:headlights', name: 'Headlights', alg: "R2 D R' U2 R D' R' U2 R'", tip: 'Headlights facing you on the front.' },
-      { id: 'oll:t', name: 'T', alg: "r U R' U' r' F R F'", tip: 'Yellow stickers on the left face up front and back.' },
-      { id: 'oll:bowtie', name: 'Bowtie', alg: "F' r U R' U' r' F R", tip: 'Diagonal yellow corners: one at front-left.' },
+      { id: 'oll:t', name: 'T', alg: "r U R' U' r' F R F'", tip: "The left corners' yellow stickers face front and back." },
+      { id: 'oll:bowtie', name: 'Bowtie', alg: "F' r U R' U' r' F R", tip: "Yellow corners on top at the front-left and back-right; the front-right corner's yellow faces you." },
     ] },
   ];
   const PLL = [
@@ -3283,7 +3517,7 @@ body.racing { overflow: hidden; }
     { title: 'PLL', sub: 'permute the last layer', text: 'Move the last-layer pieces to their places without breaking the yellow top. Start with 2-look PLL: fix the corners with the T perm (two adjacent corners swapped) or the Y perm (two diagonal corners swapped), then the edges with Ua, Ub, H or Z.',
       tips: ['Recognise the case from the colours on the sides, not the top.', 'After 2-look PLL, learn the rest of the 21 so every solve finishes with one algorithm.'] },
     { title: 'COLL', sub: 'next step after full PLL', text: 'When the last F2L pair leaves the top edges oriented (a yellow cross on top), COLL solves the corners while it orients them. Then only an edge PLL is left, and one time in twelve nothing at all.',
-      tips: ['Learn it one shape at a time. Sune and Antisune come up most, and you already know one case of each.', 'Recognise the case by the shape of the yellow corners first, then by the colours on the sides of the corners.', 'ZBLL goes one step further and solves the whole last layer in one algorithm (472 cases). The COLL trainer can mix up the edges too, so you practise those cases as COLL, then an edge PLL.'] },
+      tips: ['Learn it one shape at a time. Pi, U, T, L, Sune and Antisune come up equally often (H half as often), and from 2-look OLL you already know one case of each.', 'Recognise the case by the shape of the yellow corners first, then by the colours on the sides of the corners.', 'ZBLL goes one step further and solves the whole last layer in one algorithm (472 cases). The COLL trainer can mix up the edges too, so you practise those cases as COLL, then an edge PLL.'] },
   ];
   const ROUX_STEPS = [
     { title: 'First block', sub: '1×2×3 on the left', text: 'With white on the bottom, build a 1×2×3 block on the left: the white edge at the bottom left, the two white corners beside it and the two edges above them. Any side can be your left side.',
@@ -3455,6 +3689,12 @@ body.racing { overflow: hidden; }
     return TR.phase === 'plan' ? ((now - TR.t0) / 1000).toFixed(1) + 's' : TR.phase === 'solve' ? fmt(now - TR.t1) : TR.phase === 'done' ? fmt(TR.t2 - TR.t1) : '';
   };
   const trBusy = () => TR.phase === 'plan' || TR.phase === 'solve';
+  // Leaving a trainer page or the Learn tab drops a try in progress (Blind F2L's inspection and TPS runs too): its
+  // clock would keep counting while you're away, and the next tap would save that as a time. The case stays set up.
+  function trLeave() {
+    if (trBusy()) { TR.phase = 'scramble'; TR.t0 = TR.t1 = TR.t2 = 0; TR.moves = 0; TR.track = null; }   // trSync follows the setup again on a smart cube
+    if (tpsT.phase === 'run') { clearInterval(tpsT.timer); tpsT.phase = 'ready'; }
+  }
   // timed tries in all the trainers: the "touch anywhere" hint is only for the first few
   const trTries = () => Object.values(db.trHist || {}).reduce((n, h) => n + (h ? h.length : 0), 0);
   // the trainers share one picture setting, and their case choices sit under the clock
@@ -3622,7 +3862,7 @@ body.racing { overflow: hidden; }
     else if (a.startsWith('lvl:')) { cross.level = a.slice(4); newCross(); }
     else if (a === 'reveal') cross.shown = !cross.shown;
     else if (a === 'check') crossCheck();
-    else if (a === '3d') { if (cross.sol.length) openPlayer({ id: 'cross', name: 'Shortest cross', alg: cross.sol.join(' '), mode: 'cross' }); return; }
+    else if (a === '3d') { if (cross.sol.length) openPlayer({ id: 'cross', name: 'Shortest cross', alg: cross.sol.join(' '), mode: 'cross', setup: cross.scr }); return; }
     renderCross();
   }
 
@@ -3861,7 +4101,7 @@ body.racing { overflow: hidden; }
     else if (a === 'pic') trPicToggle();
     else if (a === 'reveal') f2lbf.shown = !f2lbf.shown;
     else if (a === 'yes' || a === 'no') { const H = bfHist(), r = H[H.length - 1]; if (r) { r.ok = a === 'yes'; save(); } }
-    else if (a === '3d') { openPlayer({ id: 'bf', name: 'Blind F2L', alg: Cube.invert(f2lbf.scr), mode: 'f2l', setup: f2lbf.scr }); return; }
+    else if (a === '3d') { openPlayer({ id: 'bf', name: 'Blind F2L', alg: Cube.invert(f2lbf.scr), mode: 'f2l', setup: f2lbf.scr, pairs: f2lbf.n }); return; }
     renderBF();
   }
   function newF2L(id) {
@@ -3907,7 +4147,7 @@ body.racing { overflow: hidden; }
     else if (a.startsWith('case:')) newF2L(a.slice(5));
     else if (a === 'pic') trPicToggle();
     else if (a === 'reveal') f2lt.shown = !f2lt.shown;
-    else if (a === 'learn') { db.learned[f2lt.c.id] = !db.learned[f2lt.c.id]; if (db.learned[f2lt.c.id]) (db.learnedAt = db.learnedAt || {})[f2lt.c.id] = Date.now(); save(); }
+    else if (a === 'learn') { setLearned(f2lt.c.id, !db.learned[f2lt.c.id]); save(); }
     renderF2LT();
   }
 
@@ -3987,7 +4227,7 @@ body.racing { overflow: hidden; }
     else if (a === 'pic') trPicToggle();
     else if (a === 'zb') { T.zb = !T.zb; newLL(kind, T.c && T.c.id); }
     else if (a === 'reveal') T.shown = !T.shown;
-    else if (a === 'learn') { db.learned[T.c.id] = !db.learned[T.c.id]; if (db.learned[T.c.id]) (db.learnedAt = db.learnedAt || {})[T.c.id] = Date.now(); save(); }
+    else if (a === 'learn') { setLearned(T.c.id, !db.learned[T.c.id]); save(); }
     renderLLT();
   }
 
@@ -4222,7 +4462,13 @@ body.racing { overflow: hidden; }
   const rx = Object.fromEntries(['sb', 'lse'].map(k => [k, { scr: '', sol: null, shown: false, check: '', checkClass: '', try: '', hist: [] }]));
   // every trainer's timed tries (last 200) are kept on this device and in backups, so its stats survive a reload
   db.trHist = db.trHist || {};
-  for (const [k, D] of Object.entries({ cross, xcross: xc, f2lt, f2lbf, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })) if (Array.isArray(db.trHist[k])) D.hist = db.trHist[k];
+  // each trainer's list is the one in db.trHist, so its tries are saved there. Linked again whenever db.trHist is replaced
+  // (a Restore, a sync, an Undo), or the next try would write an old list back over the new one.
+  function linkTrHist() {
+    db.trHist = isObj(db.trHist) ? db.trHist : {};
+    for (const [k, D] of Object.entries({ cross, xcross: xc, f2lt, f2lbf, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })) D.hist = Array.isArray(db.trHist[k]) ? db.trHist[k] : [];
+  }
+  linkTrHist();
   const rxKind = () => learnSet === 'sbt' ? 'sb' : 'lse';
   function newRx(kind) { const T = rx[kind]; T.scr = rxSetup(kind); T.sol = null; T.shown = false; T.check = ''; T.try = ''; trStart(T.scr, true); }
   function renderRx() {
@@ -4779,7 +5025,22 @@ body.racing { overflow: hidden; }
   // trainer, cases marked learned, and timed solves. CFOP: your slowest step (from smart-cube splits), the
   // trainer with your slowest case, new cases from the next set you haven't finished, and 12 solves.
   const dayStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
-  const LEARN_ORDER = [['oll', '2-look OLL'], ['pll', 'PLL'], ['f2l', 'F2L cases'], ['f2lb', 'F2L other slots'], ['ollf', 'Full OLL'], ['coll', 'COLL']];
+  // What to learn next: the order of the CFOP lesson (Cross → What to learn, in order), then COLL, the other slots
+  // and ZBLL. [set, name, the cases of that step if it's only part of the set, what they are]
+  const LEARN_ORDER = [['f2l', 'F2L cases', ['f2l:1', 'f2l:2', 'f2l:3', 'f2l:4'], 'the 4 short inserts (F2L 1–4)'], ['oll', '2-look OLL'],
+    ['pll', 'PLL', ['pll:t', 'pll:y', 'pll:ua', 'pll:ub', 'pll:h', 'pll:z'], '2-look PLL: T and Y for the corners, then Ua, Ub, H and Z'], ['f2l', 'F2L cases'], ['pll', 'PLL'],
+    ['ollf', 'Full OLL'], ['coll', 'COLL'], ['f2lb', 'F2L other slots']];
+  // the yellow edges on top in an OLL case: a cross, a line, an L or none
+  const ollEdges = c => { const e = Cube.apply(Cube.solved(3), 3, caseScramble(c)).filter(k => k.p[1] === 2 && k.n[1] === 1 && k.col === 'U' && k.p.filter(v => v === 0).length === 1);
+    return e.length === 4 ? 'cross' : !e.length ? 'dot' : e[0].p[0] === -e[1].p[0] && e[0].p[2] === -e[1].p[2] ? 'line' : 'L'; };
+  // A 2-look OLL case is also known through full OLL: its corner cases are OLL 21–27 (the same algorithms), and the
+  // line, L and dot are never needed once every full OLL with that edge shape is learned.
+  function planKnows(c) {
+    if (db.learned[c.id]) return true;
+    if (!c.id.startsWith('oll:')) return false;
+    const full = OLL_FULL.flatMap(g => g.items), shape = ollEdges(c);
+    return shape === 'cross' ? full.some(f => f.alg === c.alg && db.learned[f.id]) : full.filter(f => ollEdges(f) === shape).every(f => db.learned[f.id]);
+  }
   const PHASE_PAGE = ['cross', 'f2lt', 'ollt', 'pllt'], PAGE_NAME = { cross: 'Cross', f2lt: 'F2L trainer', f2lbf: 'Blind F2L', ollt: 'OLL trainer', pllt: 'PLL trainer', collt: 'COLL trainer', fbt: 'First block trainer', sbt: 'Second block trainer', cmllt: 'CMLL trainer', lset: 'LSE trainer' };
   function makePlan(method) {
     const items = [];
@@ -4801,8 +5062,9 @@ body.racing { overflow: hidden; }
       if (worst) items.push({ kind: 'train', page: worst.page, n: 6, why: `Your slowest case is ${worst.w.c.name} (${fmt(worst.w.a.tot)} to recognise and solve). The trainer focuses on your slowest.` });
       else if (!items.some(x => x.page === 'f2lt')) items.push({ kind: 'train', page: 'f2lt', n: 6, why: 'F2L pairs, one at a time. Once you have times, it focuses on your slowest.' });
       // 3. new cases from the first set you haven't finished
-      const set = LEARN_ORDER.find(([k]) => ALL_CASES.some(c => c.id.startsWith(k + ':') && !db.learned[c.id]));
-      if (set) items.push({ kind: 'learn', page: set[0], n: 2, why: 'Watch them in 3D, drill them on the timer, then tap their ✓.' });
+      const left = ([k, , ids]) => ALL_CASES.filter(c => c.id.startsWith(k + ':') && (!ids || ids.includes(c.id)) && !planKnows(c));
+      const set = LEARN_ORDER.find(s => left(s).length);
+      if (set) items.push({ kind: 'learn', page: set[0], n: Math.min(2, left(set).length), why: (set[3] ? `Start with ${set[3]}. ` : '') + 'Watch them in 3D, drill them on the timer, then tap their ✓.' });
     }
     items.push({ kind: 'solves', page: 'timer', n: 12, why: 'Twelve timed solves for a fresh ao12.' });
     return { day: dayStart(), items };
@@ -4820,7 +5082,7 @@ body.racing { overflow: hidden; }
     const next = P.items.findIndex(it => planDone(it) < it.n);   // only the next task to do gets the solid button
     const rows = P.items.map((it, i) => {
       const d = Math.min(planDone(it), it.n), ok = d >= it.n;
-      const title = it.kind === 'train' ? `${PAGE_NAME[it.page] || it.page}: ${it.n} timed tries` : it.kind === 'learn' ? `${(LEARN_ORDER.find(([k]) => k === it.page) || [, 'New cases'])[1]}: learn ${it.n} new cases` : `${it.n} timed solves`;
+      const title = it.kind === 'train' ? `${PAGE_NAME[it.page] || it.page}: ${it.n} timed tries` : it.kind === 'learn' ? `${(LEARN_ORDER.find(([k]) => k === it.page) || [, 'New cases'])[1]}: learn ${it.n} new case${it.n === 1 ? '' : 's'}` : `${it.n} timed solves`;
       return `<li class="plan-item${ok ? ' done' : ''}"><span class="plan-tick" aria-hidden="true">${ok ? '✓' : i + 1}</span>
         <div class="plan-main"><b>${esc(title)}</b><p>${esc(it.why)}</p><div class="plan-prog"><div class="plan-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${it.n}" aria-valuenow="${Math.min(d, it.n)}" aria-label="${d} of ${it.n} done"><i style="width:${Math.round(d / it.n * 100)}%"></i></div><span class="plan-count">${d}/${it.n}</span></div></div>
         <span class="plan-acts">${ok ? '' : `<button type="button" class="btn${i === next ? '' : ' ghost'}" data-plan="go:${i}">Start</button>`}</span><button type="button" class="plan-rm" data-plan="rm:${i}" aria-label="Remove ${esc(title)} from today's plan" title="Remove from today's plan">×</button></li>`;
@@ -4911,7 +5173,9 @@ body.racing { overflow: hidden; }
   }
   $('learnChips').addEventListener('scroll', learnRailEdges, { passive: true });
   function renderLearn() { keepFocus(drawLearn); }
+  let learnShown = null;   // the Learn page drawn last: a different one means you left it
   function drawLearn() {
+    if (learnShown !== learnSet) { if (learnShown) trLeave(); learnShown = learnSet; }
     achCheck();  // marking cases learned or finishing the plan can earn one
     const set = SETS[learnSet];
     $('learnTitle').textContent = set.title;
@@ -5389,7 +5653,8 @@ body.racing { overflow: hidden; }
   $('scrMode').addEventListener('change', e => { db.scrMode = e.target.value; save(); cancel(); newScramble(); unfocus(e.target); drawerDone(); });
   $('scrMode').value = ['own', 'daily'].includes(db.scrMode) || F2L_HANDS[db.scrMode] ? db.scrMode : 'gen';
   $('event').value = EV(); fillSessions(); $('insp').checked = db.inspection; $('voice').checked = db.voice; $('stepTap').checked = !!db.stepTap; $('goal').value = db.goal;
-  setState('idle'); newScramble(); renderStats();
+  // the first draw, each part on its own: a bad record in what was saved can't stop the app from opening
+  for (const f of [() => setState('idle'), newScramble, renderStats]) try { f(); } catch (e) { console.error(e); }
   // ---------- coach: after a slow step, practise that exact thing ----------
   // With a smart cube Sub-X knows each step's time and which OLL and PLL case came up. When a step is much slower
   // than your usual, it names the case and (in "Must practise") the next solve waits until you've drilled it 3 times.
@@ -5397,15 +5662,15 @@ body.racing { overflow: hidden; }
   // (this copy has no smart-cube splits section, so the step names live here)
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];
   // step times from tapping at each step (this copy has no smart cube)
-  const phaseTimes = p => [p.cross, p.pairs[3] - p.cross, p.oll - p.pairs[3], p.total - p.oll].map(v => Math.max(0, v));
+  const phaseTimes = p => { const f = p.pairs && Number.isFinite(p.pairs[3]) ? p.pairs[3] : p.cross; return [p.cross, f - p.cross, p.oll - f, p.total - p.oll].map(v => Math.max(0, v || 0)); };
   function splitsText(s) { const t = phaseTimes(s.splits); return PHASES.map((n, i) => `${n} ${fmt(t[i])}`).join(' · ') + ' · tapped'; }
   // ---------- stats: the numbers under the clock, the time spread and the practice calendar ----------
   function deltaHtml(now, before, what, short) {
     if (now == null || before == null || now === Infinity || before === Infinity) return '<span class="delta">&nbsp;</span>';
-    const d = now - before, cls = d < -5 ? 'down' : d > 5 ? 'up' : '';
+    const d = now - before, cls = d < -5 ? 'down' : d > 5 ? 'up' : '', same = !cls;
     const words = short ? `<span class="d-long"> ${what}</span><span class="d-short"> ${short}</span>` : what ? ' ' + what : '';
     const than = what ? what.replace(/^vs /, '').replace(/(\d+) before$/, '$1 solves before') : 'before';
-    return `<span class="delta ${cls}" title="${d < 0 ? 'Faster' : 'Slower'} than ${than}">${d < 0 ? '−' : '+'}${(Math.abs(d) / 1000).toFixed(2)}${words}</span>`;
+    return `<span class="delta ${cls}" title="${same ? 'Same as' : d < 0 ? 'Faster than' : 'Slower than'} ${than}">${same ? '±' : d < 0 ? '−' : '+'}${same ? '0.00' : (Math.abs(d) / 1000).toFixed(2)}${words}</span>`;
   }
   function renderKpis(list) {
     const box = $('kpis'), L = list.length; if (!box) return;
@@ -5472,8 +5737,8 @@ body.racing { overflow: hidden; }
   db.coach = db.coach || 'suggest';
   const coachOn = () => db.coach !== 'off';
   const STEP_I = { Cross: 0, OLL: 2, PLL: 3 };
-  function stepTimes(s) {   // seconds-ish per CFOP step for a smart solve (cached on the solve), with the cases
-    if (s.ct) return s.ct;
+  function stepTimes(s) {   // seconds-ish per CFOP step for a smart solve (worked out once, kept in memory), with the cases
+    if (stepMemo.has(s)) return stepMemo.get(s);
     const mv = yourMoves(s); if (!s.mv || !s.mt || !mv) return null;
     let a; try { a = Solver.analyse(s.scr, mv, s.mt); } catch (e) { return null; }
     if (!a || !a.solved) return null;
@@ -5483,7 +5748,7 @@ body.racing { overflow: hidden; }
       t[i] += st.ms || 0;   // counted from the end of the step before, so the pause to recognise it is in
       if (st.id) ids[i] = st.id;
     }
-    return (s.ct = { t, ids });
+    const r = { t, ids }; stepMemo.set(s, r); return r;
   }
   function coachCheck(s) {
     if (!coachOn() || !s || s.ex || s.f2l || s.comp || drill || !['333', 'oh'].includes(EV()) || s.pen === 'dnf') return;
@@ -5590,7 +5855,7 @@ body.racing { overflow: hidden; }
   coachShow();
 
 
-  readHash();
+  try { readHash(); } catch (e) { console.error(e); }
 
   // ---------- achievements and streaks: worked out from what's already saved ----------
   const dayKey = t => { const d = new Date(t), p2 = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
@@ -5611,8 +5876,8 @@ body.racing { overflow: hidden; }
       for (let e = 5; e <= l.length; e++) ao5 = Math.min(ao5, avgOf(l, 5, e));
       for (let e = 12; e <= l.length; e++) ao12 = Math.min(ao12, avgOf(l, 12, e));
     }
-    const rounds = {}; for (const x of all) if (x.comp) (rounds[x.comp] = rounds[x.comp] || []).push(x);
-    const full = Object.values(rounds).filter(r => r.length >= 5).map(r => avgOf(r, 5, 5));
+    const rounds = {}; for (const k of keys) for (const x of db.solves[k]) if (x.comp && !x.ex) (rounds[x.comp] = rounds[x.comp] || { f: compFmt(evOfKey(k)), r: [] }).r.push(x);
+    const full = Object.values(rounds).filter(({ f, r }) => r.length >= f.n).map(({ f, r }) => compResult(r, f));   // finished rounds, each in its event's format
     const learnedAll = pre => { const c = ALL_CASES.filter(x => x.id.startsWith(pre)); return c.length > 0 && c.every(x => db.learned[x.id]); };
     const P = db.plan && db.plan[learnMethod];
     const perDay = {}; for (const x of all) { const d = dayKey(x.t); perDay[d] = (perDay[d] || 0) + 1; }
@@ -5689,14 +5954,17 @@ body.racing { overflow: hidden; }
     db.ach = db.ach || {};
     for (const [id, name, , ok] of ACH) if (!db.ach[id] && ok(S)) { db.ach[id] = Date.now(); fresh.push(name); }
     if (fresh.length || first) save();
-    if (fresh.length && !first) toast(`Achievement: ${fresh[0]}${fresh.length > 1 ? ` (and ${fresh.length - 1} more)` : ''}`);
+    if (fresh.length && !first) {   // waits while another message shows (a time-limit DNF, an Undo), rather than replacing it
+      const msg = `Achievement: ${fresh[0]}${fresh.length > 1 ? ` (and ${fresh.length - 1} more)` : ''}`;
+      const show = () => { if ($('toast').hidden) toast(msg); else setTimeout(show, 500); }; show();
+    }
     $('achCount').textContent = `${ACH.filter(a => db.ach[a[0]]).length} of ${ACH.length}`;
     $('streak').hidden = S.streak < 2; $('streak').innerHTML = `${S.streak}<span class="s-long">-day streak</span><span class="s-short"> days</span>`;
     $('streak').title = 'Days in a row with at least one timed solve';
     $('achStreak').textContent = S.streak > 1 ? `You've solved on ${S.streak} days in a row. Do a solve each day to keep it going.` : S.streak ? 'Solve again tomorrow to start a streak.' : 'Do a solve each day to build a streak.';
     $('achGrid').innerHTML = ACH.slice().sort((a, b) => !!db.ach[b[0]] - !!db.ach[a[0]]).map(([id, name, how]) => `<div class="ach ${db.ach[id] ? 'got' : 'locked'}"><b>${esc(name)}</b>${esc(how)}${db.ach[id] ? `<br>${shortDate(db.ach[id], false)}` : ''}</div>`).join('');
   }
-  achCheck();
+  try { achCheck(); } catch (e) { console.error(e); }
 
   // ---------- first visit: a welcome card, then an optional short tour ----------
   // how to start a solve, for this device and the inspection setting (short: one line for the welcome card)
