@@ -6874,6 +6874,7 @@ body.running .acct-btn { visibility: hidden; }
   }
   function smartReadyGo() {
     if (state !== 'idle' || view !== 'timer') return;   // on Learn the Timer waits: it arms when you come back
+    if (overTimer() || (typeof RACE !== 'undefined' && RACE.open)) return;   // nor under race mode or a dialog
     if (useInspection()) { inspStart = performance.now(); holdFrom = 'inspecting'; setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
     else { holdFrom = 'idle'; setState('smartReady'); showTime('0.00'); }
   }
@@ -6981,7 +6982,7 @@ body.running .acct-btn { visibility: hidden; }
     }
     else if (ev.type === 'FACELETS') {
       if (state === 'running') return;
-      SM.cur = SmartCore.fromFacelets(ev.facelets); SM.fSerial = ev.serial != null ? ev.serial : null; if (live3dOn()) live3dSync();
+      SM.cur = SmartCore.fromFacelets(ev.facelets); SM.fSerial = ev.serial ? ev.serial : null;   // 0 is unknown: some GAN cubes (iCarry 2) report 0 at move 255 if (live3dOn()) live3dSync();
       if (SM.T) { SmartCore.step(SM.T, SM.cur, null); smartShow(); if (SM.T.done) smartReadyGo(); }
       if (trainerActive() && TR.phase === 'scramble' && TR.track) { SmartCore.step(TR.track, SM.cur, null); renderTrainer(); }
       else if (exampleActive() && workedExamples[learnSet].track) { SmartCore.step(workedExamples[learnSet].track, SM.cur, null); renderExample(learnSet); }
