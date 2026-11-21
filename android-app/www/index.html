@@ -339,7 +339,10 @@ body.running .add-time { visibility: hidden; }
 body.running .kpis { opacity: .12; transition: opacity .2s; }
 .legend i.sq { width: 10px; height: 10px; border-radius: 2px; }
 .steps-bar { display: flex; height: 28px; border-radius: 7px; overflow: hidden; margin-bottom: 10px; }
-.steps-bar span { display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--font-display); font-weight: 600; font-size: 12px; letter-spacing: .04em; min-width: 0; overflow: hidden; white-space: nowrap; }
+.steps-bar span { display: flex; align-items: center; justify-content: center; color: var(--ph-text, #fff); font-family: var(--font-display); font-weight: 600; font-size: 12px; letter-spacing: .04em; min-width: 0; overflow: hidden; white-space: nowrap; }
+/* the step colours are bright in the dark looks: their labels are near-black there (white only on the darker light-look colours) */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-skin="pink"]) { --ph-text: #0B0E14; } }
+:root[data-theme="dark"]:not([data-skin="pink"]), :root:is([data-skin="midnight"], [data-skin="terminal"], [data-skin="speed"], [data-skin="dracula"], [data-skin="ocean"], [data-skin="sunset"]) { --ph-text: #0B0E14; }
 .dash-scroll { overflow-x: auto; }
 .dash-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin-bottom: 10px; }
 .dash-table th, .dash-table td { padding: 6px 5px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -562,6 +565,8 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .p3d-head h3 { margin: 0; font-family: var(--font-display); font-size: 24px; }
 .p3d canvas { width: 100%; aspect-ratio: 1; max-width: 100%; touch-action: none; cursor: grab; border-radius: 10px; background: var(--sunk); }
 .p3d canvas:active { cursor: grabbing; }
+/* a phone held sideways: a smaller cube, so the moves and Play fit without scrolling past the picture (dragging it turns the cube) */
+@media (max-height: 560px) and (orientation: landscape) { .p3d canvas { width: min(100%, 46vh); align-self: center; } }
 .p3d-hint, .p3d-status { margin: 0; font-size: 13px; color: var(--muted); }
 .p3d-moves { display: flex; flex-wrap: wrap; gap: 2px; }
 .p3d-moves span { font-family: var(--font-mono); font-size: 15px; padding: 3px 6px; border-radius: 6px; border: 1px solid transparent; }
@@ -972,6 +977,7 @@ body.running .acct-btn { visibility: hidden; }
 [data-skin="minimal"] #learnChips .chip[aria-pressed="true"] { background: none; color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
 [data-skin="minimal"] .btn { border-radius: 2px; font-size: 12px; font-weight: 500; letter-spacing: .12em; padding: 10px 18px; }
 [data-skin="minimal"] .btn.ghost, [data-skin="minimal"] .pill-btn, [data-skin="minimal"] .mini-btn { background: none; border: 1px solid var(--line); border-radius: 2px; font-weight: 500; letter-spacing: .1em; }
+[data-skin="minimal"] .mini-btn[aria-pressed="true"] { background: none; color: var(--ink); border-color: var(--ink); }   /* the chosen one: outlined in ink (no fill in this look) */
 [data-skin="minimal"] .pill-btn { font-size: 11px; padding: 6px 12px; }
 @media (hover: hover) { [data-skin="minimal"] .pill-btn:hover, [data-skin="minimal"] .mini-btn:hover, [data-skin="minimal"] .btn.ghost:hover { border-color: var(--ink); color: var(--ink); } }
 [data-skin="minimal"] .pill-btn[aria-pressed="true"], [data-skin="minimal"] .learn-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
@@ -2373,6 +2379,7 @@ body.running .acct-btn { visibility: hidden; }
     if (v === 'account') planUI();
     document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.view === v ? 'page' : 'false'));
     if (v === 'learn') renderLearn();
+    if (v === 'timer' && typeof SM !== 'undefined' && SM.T && SM.T.done) { smartShow(); smartReadyGo(); }   // scrambled before you went
   }
   // a shared scramble arrives as #timer?e=333&s=R%20U...
   function readHash() {
@@ -2539,7 +2546,7 @@ body.running .acct-btn { visibility: hidden; }
     db.drillTimes = db.drillTimes || {};   // each case's drill times (last 50) are kept, so you see them next time too
     // which step the case belongs to, so a smart cube stops the clock when that step is done (an F2L case when
     // the pairs are in, an OLL when the top is yellow), whatever the rest of the cube looks like
-    const k = c.mode || c.id.split(':')[0], step = k === 'f2l' || k === 'f2lb' ? 'f2l' : k === 'oll' || k === 'ollf' ? 'oll' : k === 'coll' ? 'coll' : 'll';
+    const k = c.mode || c.id.split(':')[0], step = k === 'f2l' || k === 'f2lb' ? 'f2l' : k === 'oll' || k === 'ollf' ? (OLL[0].items.some(x => x.id === c.id) ? 'eo' : 'oll') : k === 'coll' ? 'coll' : 'll';
     drill = { name: c.name, alg: c.alg, step, times: db.drillTimes[c.id] || (db.drillTimes[c.id] = []) };
     justSolved = false; renderLastActions();
     newScramble(); setState('idle'); showTime('0.00');
@@ -2934,7 +2941,7 @@ body.running .acct-btn { visibility: hidden; }
     else if (state === 'ready') start();
   }
   function start() {
-    if (SM && SM.conn) { SM.moves = []; SM.raw = []; SM.readySt = SmartCore.clone(SM.cur); SM.rot = SM.gyroSeen ? { q0: SM.gq || null, at: [0, 0, 0, 1], list: [] } : null; }
+    if (SM && SM.conn) { SM.kbStart = true; SM.moves = []; SM.raw = []; SM.readySt = SmartCore.clone(SM.cur); SM.rot = SM.gyroSeen ? { q0: SM.gq || null, at: [0, 0, 0, 1], list: [] } : null; }
     justSolved = false; renderLastActions();   // the last solve's buttons (and its Undo) go when the next solve starts
     if (toastOff) toastHide();
     lastPen = null;
@@ -4536,7 +4543,7 @@ body.running .acct-btn { visibility: hidden; }
   const trData = () => ({ cross, xcross: xc, f2lt, f2lbf, ollt: llt.oll, pllt: llt.pll, collt: llt.coll, zbllt: llt.zbll, cmllt: llt.cmll, fbt, sbt: rx.sb, lset: rx.lse })[learnSet];
   const trNew = () => ({ cross: newCross, xcross: newXCross, f2lt: newF2L, f2lbf: newBF, ollt: () => newLL('oll'), pllt: () => newLL('pll'), collt: () => newLL('coll'), zbllt: () => newLL('zbll'), cmllt: () => newLL('cmll'), fbt: newFB, sbt: () => newRx('sb'), lset: () => newRx('lse') })[learnSet]();
   // what "done" means for each trainer, on a smart cube's state (white on top)
-  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), xcross: st => XCross.done(st), f2lt: st => SmartCore.f2lSolvedTop(st), f2lbf: st => SmartCore.f2lSolvedTop(st), ollt: st => SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), zbllt: st => SmartCore.isSolved(st), cmllt: st => SmartCore.solvedUpToAuf(st),
+  const TR_DONE = { cross: st => CrossSolver.crossSolvedTop(st), xcross: st => XCross.done(st), f2lt: st => SmartCore.f2lSolvedTop(st), f2lbf: st => SmartCore.f2lSolvedTop(st), ollt: st => llt.oll.c && OLL[0].items.includes(llt.oll.c) ? stepDone('eo', st) : SmartCore.ollSolvedTop(st), pllt: st => SmartCore.isSolved(st), collt: st => llt.coll.zb ? SmartCore.isSolved(st) : SmartCore.ollSolvedTop(st) && cornersDoneBottom(st), zbllt: st => SmartCore.isSolved(st), cmllt: st => SmartCore.solvedUpToAuf(st),
     fbt: st => Roux.fbDone(st), sbt: st => Roux.f2bDone(st), lset: st => SmartCore.solvedAnyWay(st) };
   // the last-layer corners are solved, up to a turn of that layer (on the bottom: the smart cube holds white on top)
   const faceOfN = n => n[0] === 1 ? 'R' : n[0] === -1 ? 'L' : n[1] === 1 ? 'U' : n[1] === -1 ? 'D' : n[2] === 1 ? 'F' : 'B';
@@ -6264,7 +6271,7 @@ body.running .acct-btn { visibility: hidden; }
   // ones after 1, 3, 7, 16 and 35 days (SRS_DAYS). With a smart cube the scramble crosses off as you turn, and the
   // cube checks your solve: solved without peeking counts as known.
   const MEMO_SETS = ['f2l', 'oll', 'ollf', 'pll', 'coll', 'zbll'];
-  const memoStep = c => { const k = c.id.split(':')[0]; return k === 'f2l' ? 'f2l' : k === 'oll' || k === 'ollf' ? 'oll' : k === 'coll' ? 'coll' : 'll'; };
+  const memoStep = c => { const k = c.id.split(':')[0]; return k === 'f2l' ? 'f2l' : k === 'oll' || k === 'ollf' ? (OLL[0].items.some(x => x.id === c.id) ? 'eo' : 'oll') : k === 'coll' ? 'coll' : 'll'; };
   db.memoPick = db.memoPick || {};
   const memoPool = set => ALL_CASES.filter(c => c.id.startsWith(set + ':') && db.memoPick[c.id]);
   let quiz = { open: null, cur: null, shown: false, hint: false, peeked: false, graded: false, phase: 'setup', T: null, t0: 0, ms: 0, right: 0, total: 0 };
@@ -6844,6 +6851,7 @@ body.running .acct-btn { visibility: hidden; }
   function smartScramble() {
     const note = $('smartNote');
     if (!SM.conn) { note.hidden = true; SM.T = null; return; }
+    if (state === 'smartReady' || state === 'inspecting') cancel();   // a new scramble: the last one's inspection is over
     if ((!drill && db.scrMode === 'own') || !SMART_EVENTS.includes(EV())) {
       SM.T = null; note.hidden = false; note.classList.remove('err');
       note.textContent = 'Smart cube connected: the timer stops by itself when the cube is solved. Scramble tracking works with generated 3×3 scrambles.';
@@ -6857,13 +6865,13 @@ body.running .acct-btn { visibility: hidden; }
     $('scramble').innerHTML = trackSpans(T, T.toks);
     const fix = T.sync ? null : SmartCore.fixMoves(T, SM.cur);
     note.hidden = false; note.classList.toggle('err', !T.sync);
-    note.textContent = T.done ? (useInspection() ? 'Scrambled. Inspection is running: your first turn starts the timer.' : 'Scrambled. Your first turn starts the timer.')
+    note.textContent = T.done ? (state === 'inspecting' || (state === 'idle' && useInspection() && view !== 'timer') ? 'Scrambled. Inspection is running: your first turn starts the timer.' : 'Scrambled. Your first turn starts the timer.')
       : T.sync ? `Follow the scramble on your smart cube: ${T.k} of ${T.toks.length} moves done.`
       : fix ? 'Off the scramble. Fix it with: ' + fix.join(' ')
       : "Your cube doesn't match the scramble. Solve it and follow the scramble from the start, or tap “My cube is solved” if it already is.";
   }
   function smartReadyGo() {
-    if (state !== 'idle') return;
+    if (state !== 'idle' || view !== 'timer') return;   // on Learn the Timer waits: it arms when you come back
     if (useInspection()) { inspStart = performance.now(); holdFrom = 'inspecting'; setState('inspecting'); cancelAnimationFrame(raf); tickInspection(); }
     else { holdFrom = 'idle'; setState('smartReady'); showTime('0.00'); }
   }
@@ -6871,6 +6879,8 @@ body.running .acct-btn { visibility: hidden; }
   // solved (COLL), or the whole cube without its last top turn (PLL, ZBLL, CMLL)
   function drillDone(st) { return stepDone(drill && drill.step, st); }
   function stepDone(s, st) {
+    // eo: the yellow cross (yellow is on the bottom of the cube's own frame)
+    if (s === 'eo') return SmartCore.f2lSolvedTop(st) && st.every(k => k.n[1] !== -1 || k.p.every(v => v !== 0) || k.col === 'D');
     return s === 'f2l' ? SmartCore.f2lSolvedTop(st) : s === 'oll' ? SmartCore.ollSolvedTop(st) : s === 'coll' ? SmartCore.ollSolvedTop(st) && cornersDoneBottom(st) : SmartCore.solvedUpToAuf(st);
   }
   function smartMove(m, ts, ev) {
@@ -6881,24 +6891,33 @@ body.running .acct-btn { visibility: hidden; }
     if (exampleActive() && exSmartMove(m)) return;
     if (memoActive() && memoSmartMove(m)) return;
     if (state === 'running') {
-      SM.moves.push({ m, t: ts }); if (ev) SM.raw.push(ev);
+      SM.moves.push({ m, t: ts, lost: !!ev && ev.localTimestamp == null }); if (ev) SM.raw.push(ev);
       if (SmartCore.isSolved(SM.cur) || (f2lMode() && SmartCore.f2lSolvedTop(SM.cur)) || (drill && drillDone(SM.cur))) smartFinish();   // F2L practice stops when the pairs are in, a drill when its step is done
       return;
     }
-    if ((state === 'inspecting' || state === 'smartReady') && SM.T && SM.T.done) {
-      start(); runStart = ts;                         // the first turn starts the timer
-      SM.readySt = before; SM.moves = [{ m, t: ts }]; SM.raw = ev ? [ev] : [];
+    // (idle too: inspection was cancelled with Esc, but the cube is still scrambled, as the note says)
+    if ((state === 'inspecting' || state === 'smartReady' || (state === 'idle' && view === 'timer' && !drill)) && SM.T && SM.T.done) {
+      start(); runStart = ts; SM.kbStart = false;     // the first turn starts the timer
+      SM.readySt = before; SM.moves = [{ m, t: ts, lost: !!ev && ev.localTimestamp == null }]; SM.raw = ev ? [ev] : [];
       return;
     }
     if (SM.T) { SmartCore.step(SM.T, SM.cur, m); smartShow(); if (SM.T.done) smartReadyGo(); }
   }
   function smartFinish() {
-    const t0 = SM.moves[0].t, moves = SM.moves.map(x => ({ m: x.m, t: Math.round(x.t - t0) })), raw = SM.raw.slice();
-    let ms = moves[moves.length - 1].t;              // first turn to solved, on this device's clock
+    // Started by the first turn: first turn to solved. Started with the space bar or a tap: from then, like any timer
+    // (picking the cube up counts), so the turns' times are measured from the start too.
+    // A turn recovered from the cube's history only has the time its reply arrived (up to seconds late): put it
+    // 50 ms before the turn after it, or 50 ms after the one before when it was the last.
+    const L = SM.moves;
+    for (let i = L.length - 2; i >= 0; i--) if (L[i].lost && L[i].t > L[i + 1].t - 50) L[i].t = L[i + 1].t - 50;
+    if (L.length > 1 && L[L.length - 1].lost) L[L.length - 1].t = L[L.length - 2].t + 50;
+    const kb = !!SM.kbStart, first = SM.moves[0].t, t0 = kb ? Math.min(runStart, first) : first;
+    const moves = SM.moves.map(x => ({ m: x.m, t: Math.round(x.t - t0) })), raw = SM.raw.slice();
+    let ms = moves[moves.length - 1].t;              // to solved, on this device's clock
     try {   // the cube's own clock is steadier: fit it to ours (the csTimer method) and use it if it agrees
       if (SM.lib && raw.length > 2 && raw.every(r => r.cubeTimestamp != null && r.localTimestamp != null)) {
         const fit = SM.lib.cubeTimestampLinearFit(raw), d = fit[fit.length - 1].cubeTimestamp - fit[0].cubeTimestamp;
-        if (d > 0 && Math.abs(d - ms) < Math.max(300, ms * 0.1)) ms = d;
+        const lead = Math.round(first - t0); if (d > 0 && Math.abs(lead + d - ms) < Math.max(300, ms * 0.1)) ms = lead + d;
       }
     } catch (e) {}
     if (drill) { stop(Math.round(ms)); ignoreRelease = false; return; }
@@ -6942,16 +6961,24 @@ body.running .acct-btn { visibility: hidden; }
   function smartCleanup() {
     SM.gq = SM.gbase = SM.rot = null; SM.gyroSeen = false; SM.gyroOk = null; L3.gt = L3.gq = null;
     try { if (SM.sub) SM.sub.unsubscribe(); } catch (e) {}
-    SM.sub = null; SM.conn = null; SM.T = null; SM.battery = null; smartUI();
+    SM.sub = null; SM.conn = null; SM.T = null; SM.battery = null; SM.fSerial = null; smartUI();
     $('smartNote').hidden = true;
     if (!drill && db.scrMode !== 'own') $('scramble').textContent = scramble;
     if (state === 'smartReady') setState('idle');
   }
   function onSmartEvent(ev) {
-    if (ev.type === 'MOVE') smartMove(ev.move, ev.localTimestamp != null ? ev.localTimestamp : ev.timestamp, ev);
+    if (ev.type === 'MOVE') {
+      // A turn whose notification was lost comes later, recovered from the cube's history, often after a state
+      // report that already has it in. Applying it again would put Sub-X one turn off the real cube (a finished
+      // scramble would start the timer, and the solve would never end). Serials count 0-255 and wrap.
+      if (state !== 'running' && SM.fSerial != null && ev.serial != null && ((SM.fSerial - ev.serial) & 0xFF) < 128) return;
+      if (ev.serial != null) SM.fSerial = null;
+      // a recovered turn has no time of its own: it gets one when the solve is saved (see smartFinish)
+      smartMove(ev.move, ev.localTimestamp != null ? ev.localTimestamp : ev.timestamp, ev);
+    }
     else if (ev.type === 'FACELETS') {
       if (state === 'running') return;
-      SM.cur = SmartCore.fromFacelets(ev.facelets); if (live3dOn()) live3dSync();
+      SM.cur = SmartCore.fromFacelets(ev.facelets); SM.fSerial = ev.serial != null ? ev.serial : null; if (live3dOn()) live3dSync();
       if (SM.T) { SmartCore.step(SM.T, SM.cur, null); smartShow(); if (SM.T.done) smartReadyGo(); }
       if (trainerActive() && TR.phase === 'scramble' && TR.track) { SmartCore.step(TR.track, SM.cur, null); renderTrainer(); }
       else if (exampleActive() && workedExamples[learnSet].track) { SmartCore.step(workedExamples[learnSet].track, SM.cur, null); renderExample(learnSet); }
@@ -7004,9 +7031,11 @@ body.running .acct-btn { visibility: hidden; }
       SM.sub = conn.events$.subscribe(onSmartEvent);
       smartUI(); smartInfo('Connected. Your cube should be solved before you start a scramble. If Sub-X disagrees, solve it and tap “My cube is solved”.');
       // some cubes don't answer these: that's fine, the connection stays
-      try { await conn.sendCubeCommand({ type: 'REQUEST_FACELETS' }); } catch (e) {}
-      try { await conn.sendCubeCommand({ type: 'REQUEST_BATTERY' }); } catch (e) {}
-      try { await conn.sendCubeCommand({ type: 'REQUEST_HARDWARE' }); } catch (e) {}   // says whether it has a gyroscope
+      smartScramble();   // track from now: the cube's answers below can take a while
+      // (and one that never answers mustn't hold up the rest: wait at most 1.5 s for each)
+      const ask = type => Promise.race([Promise.resolve().then(() => conn.sendCubeCommand({ type })).catch(() => {}), new Promise(r => setTimeout(r, 1500))]);
+      await ask('REQUEST_FACELETS'); await ask('REQUEST_BATTERY');
+      await ask('REQUEST_HARDWARE');   // says whether it has a gyroscope
       smartScramble();
       for (const E of Object.values(workedExamples)) E.track = null;
       if (trainerActive()) { trNew(); renderTrainer(); }
@@ -7030,7 +7059,7 @@ body.running .acct-btn { visibility: hidden; }
   $('smartReset').addEventListener('click', async () => {
     if (!SM.conn) return;
     try { await SM.conn.sendCubeCommand({ type: 'REQUEST_RESET' }); } catch (e) {}
-    SM.cur = Cube.solved(3); smartScramble(); toast('Cube marked as solved'); if (live3dOn()) live3dSync();
+    SM.cur = Cube.solved(3); SM.fSerial = null; smartScramble(); toast('Cube marked as solved'); if (live3dOn()) live3dSync();
     if (TR.track) SmartCore.step(TR.track, SM.cur, null);
     for (const E of Object.values(workedExamples)) if (E.track) SmartCore.step(E.track, SM.cur, null);
   });
@@ -7809,6 +7838,7 @@ body.running .acct-btn { visibility: hidden; }
     $('calStats').innerHTML = `<span>Solves <b>${inRange.toLocaleString()}</b></span><span>Days practised <b>${active}</b></span><span>Streak <b>${streak} day${streak === 1 ? '' : 's'}</b></span><span>Longest <b>${longest} day${longest === 1 ? '' : 's'}</b></span>`;
     const o = { month: 'short', day: 'numeric' };
     $('calRange').textContent = `${new Date(start).toLocaleDateString(undefined, o)} to ${new Date(today).toLocaleDateString(undefined, o)}`;
+    const sc = $('cal').parentElement; sc.scrollLeft = sc.scrollWidth;   // on a phone the newest weeks are the ones in view
   }
 
   // ---------- installable app ----------
