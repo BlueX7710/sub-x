@@ -1,9 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-US">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sub-X Cube Timer</title>
+<title>Sub-X: Free Speedcubing Timer and CFOP Trainer</title>
+<meta name="description" content="Free speedcubing timer and trainer: WCA scrambles and inspection, ao5/ao12 stats, CFOP and Roux lessons with every F2L, OLL and PLL case, trainers, and smart-cube splits. No ads, works offline.">
+<link rel="canonical" href="https://bluex7710.github.io/sub-x/">
+<!-- the card a shared link shows (Reddit, Discord, iMessage, X, WhatsApp) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sub-X">
+<meta property="og:title" content="Sub-X: free speedcubing timer that coaches you">
+<meta property="og:description" content="Free speedcubing timer and trainer: WCA scrambles and inspection, ao5/ao12 stats, CFOP and Roux lessons with every F2L, OLL and PLL case, trainers, and smart-cube splits. No ads, works offline.">
+<meta property="og:url" content="https://bluex7710.github.io/sub-x/">
+<meta property="og:image" content="https://bluex7710.github.io/sub-x/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Sub-X timer with ao5 and ao12 stats and a CFOP step breakdown">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -69,7 +82,7 @@ button, select, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .5; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* inside lists that scroll, the ring goes inside so it isn't cut off; on the dark toast and tour it takes their text colour */
+/* inside lists that scroll, the ring goes inside so it isn't cut off; on the dark toast and tour it takes their text color */
 :is(.solves, .rec-list, #learnChips, .bar-rest) :focus-visible { outline-offset: -2px; }
 :root :is(.toast, .tour) :focus-visible { outline-color: currentColor; }
 .wrap { max-width: 1180px; margin: 0 auto; }
@@ -340,7 +353,7 @@ body.running .kpis { opacity: .12; transition: opacity .2s; }
 .legend i.sq { width: 10px; height: 10px; border-radius: 2px; }
 .steps-bar { display: flex; height: 28px; border-radius: 7px; overflow: hidden; margin-bottom: 10px; }
 .steps-bar span { display: flex; align-items: center; justify-content: center; color: var(--ph-text, #fff); font-family: var(--font-display); font-weight: 600; font-size: 12px; letter-spacing: .04em; min-width: 0; overflow: hidden; white-space: nowrap; }
-/* the step colours are bright in the dark looks: their labels are near-black there (white only on the darker light-look colours) */
+/* the step colors are bright in the dark looks: their labels are near-black there (white only on the darker light-look colors) */
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-skin="pink"]) { --ph-text: #0B0E14; } }
 :root[data-theme="dark"]:not([data-skin="pink"]), :root:is([data-skin="midnight"], [data-skin="terminal"], [data-skin="speed"], [data-skin="dracula"], [data-skin="ocean"], [data-skin="sunset"]) { --ph-text: #0B0E14; }
 .dash-scroll { overflow-x: auto; }
@@ -868,7 +881,7 @@ body.running .acct-btn { visibility: hidden; }
 .plan-badge { padding: 2px 10px; border-radius: 999px; background: var(--sunk); font-family: var(--font-display); letter-spacing: .06em; text-transform: uppercase; }
 .plan-badge.pro { background: color-mix(in srgb, #E8B923 26%, transparent); }
 .acct-links { margin: 0; text-align: center; font-size: 13px; color: var(--muted); }
-/* the paywall: the same layout as the design, in the colours of the current Look */
+/* the paywall: the same layout as the design, in the colors of the current Look */
 .pw-overlay { position: fixed; inset: 0; z-index: 30; background: rgb(5 8 18 / .55); overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; padding: max(16px, env(safe-area-inset-top, 0px)) 12px 24px; }
 .pw { position: relative; width: min(760px, 100%); background: var(--bg); color: var(--ink); border-radius: 28px; overflow: hidden; padding-bottom: 22px; }
 .pw-band { position: absolute; left: -20%; right: -20%; top: 0; height: 300px; background: var(--accent); border-radius: 0 0 50% 50% / 0 0 130px 130px; }
@@ -1024,7 +1037,7 @@ body.running .acct-btn { visibility: hidden; }
 [data-skin="midnight"] .legend i.dot { background: var(--ph-pll); }
 
 /* ---- Terminal look: green text on black, square corners, all monospace. Always dark. ---- */
-/* Green is the text colour; a brighter phosphor tone marks bests and "ready", so they stand out from it. */
+/* Green is the text color; a brighter phosphor tone marks bests and "ready", so they stand out from it. */
 :root[data-skin="terminal"] {
   --bg: #050805; --surface: #0A120A; --sunk: #0F1C0F; --ink: #4CFF7A; --muted: #2E9E4B; --line: #1B3A20;
   --accent: #C8FFD6; --accent-ink: #050805; --hold: #FF4C4C; --ready: #A6FF4C; --warn: #FFD24C; --plastic: #000; --ll-off: #1F3D25;
@@ -1040,7 +1053,7 @@ body.running .acct-btn { visibility: hidden; }
 [data-skin="terminal"] .learn-tick::before { border-radius: 0; }
 [data-skin="terminal"] .brand::before { content: "> "; color: var(--muted); }
 [data-skin="terminal"] .brand span { color: var(--ink); }
-/* glow only on the brand and the clock, in their own colour (red while holding, yellow in late inspection) */
+/* glow only on the brand and the clock, in their own color (red while holding, yellow in late inspection) */
 [data-skin="terminal"] .brand { text-shadow: 0 0 10px color-mix(in srgb, currentColor 55%, transparent); }
 [data-skin="terminal"] .clock { position: relative; font-weight: 400; text-shadow: 0 0 18px color-mix(in srgb, currentColor 60%, transparent); }
 /* ready is inverse video: green to lime alone is too close to tell apart (and there's no red step on a smart cube) */
@@ -1055,7 +1068,7 @@ body.running .acct-btn { visibility: hidden; }
 [data-skin="terminal"] .case .acts .pill-btn:not([aria-pressed="true"]) { color: var(--muted); font-weight: 500; }
 @media (hover: hover) { [data-skin="terminal"] .case .acts .pill-btn:hover { color: var(--ink); } }
 [data-skin="terminal"] .case .alg { font-size: 14px; }
-/* the cursor sits outside the digits, so the time stays centred and doesn't jump when you start holding */
+/* the cursor sits outside the digits, so the time stays centered and doesn't jump when you start holding */
 [data-skin="terminal"] .stage[data-s="idle"] .clock::after { content: "_"; position: absolute; left: 100%; bottom: 0; margin-left: .05em; animation: blink 1s steps(2) infinite; }
 /* the next scramble move is a block cursor */
 [data-skin="terminal"] .scramble .snext { background: var(--ink); color: var(--bg); text-decoration: none; text-shadow: none; box-shadow: 0 0 10px rgb(76 255 122 / .5); padding: 0 .12em; }
@@ -1127,7 +1140,7 @@ body.running .acct-btn { visibility: hidden; }
 [data-skin="speed"] .panel h2 { color: var(--ink); letter-spacing: .06em; }
 [data-skin="speed"] .p3d-moves span.cur { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 [data-skin="speed"] .scramble-card.drill { border-color: var(--info); }
-/* red is also the hold colour, so pressed buttons, ticks, focus and lesson edges are white rather than red */
+/* red is also the hold color, so pressed buttons, ticks, focus and lesson edges are white rather than red */
 [data-skin="speed"] .pill-btn[aria-pressed="true"]:not(.learn-btn) { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 [data-skin="speed"] input[type=checkbox], [data-skin="speed"] input[type=range] { accent-color: var(--ink); }
 [data-skin="speed"] :focus-visible { outline-color: var(--ink); }
@@ -1142,7 +1155,7 @@ body.running .acct-btn { visibility: hidden; }
 @media (hover: hover) { [data-skin="speed"] .mini-btn:hover { background: color-mix(in srgb, var(--ink) 10%, transparent); } }
 [data-skin="speed"] .tour { border-color: var(--ink); }
 
-/* ---- Dracula look: dark purple, with code-editor colours for each section. Always dark. ---- */
+/* ---- Dracula look: dark purple, with code-editor colors for each section. Always dark. ---- */
 :root[data-skin="dracula"] {
   --bg: #21222C; --surface: #282A36; --sunk: #343746; --ink: #F8F8F2; --muted: #A9AFD0; --line: #44475A;
   --accent: #BD93F9; --accent-ink: #21222C; --hold: #FF5555; --ready: #50FA7B; --warn: #FFB86C; --plastic: #191A21; --ll-off: #4A4D63;
@@ -1163,7 +1176,7 @@ body.running .acct-btn { visibility: hidden; }
 [data-skin="dracula"] #statsBody tr.pb-now td,[data-skin="dracula"] .solve-row.pb .t { color: var(--ready); }
 [data-skin="dracula"] .trend circle[fill="var(--accent)"] { fill: var(--ready); }
 [data-skin="dracula"] .legend i.dot { background: var(--ready); }
-/* panel titles in syntax colours, kept away from the green (ready, PB) and red (slow) that carry meaning */
+/* panel titles in syntax colors, kept away from the green (ready, PB) and red (slow) that carry meaning */
 [data-skin="dracula"] .side > :is(.session-panel, .panel:has(#solves)) h2 { color: #8BE9FD; }
 [data-skin="dracula"] .side > :is(#splitsPanel, #achPanel) h2 { color: #F1FA8C; }
 [data-skin="dracula"] .side > :is(#goalPanel, .hw) h2 { color: #BD93F9; }
@@ -1336,8 +1349,8 @@ body.running .acct-btn { visibility: hidden; }
         <label class="ctl toggle" for="insp"><input id="insp" type="checkbox" checked> 15s inspection</label>
         <label class="ctl toggle" for="voice" title="Calls out 8 and 12 seconds in inspection, like a judge"><input id="voice" type="checkbox" checked> Voice calls</label>
         <label class="ctl toggle" for="stepTap" title="3×3: tap (or press space) when the cross, F2L and OLL are done, then once more to stop. You get each step's time without a smart cube."><input id="stepTap" type="checkbox"> Tap at each step</label>
-        <label class="ctl" for="coachMode" title="After a slow step, Sub-X shows what to practise">Coach
-          <select id="coachMode"><option value="suggest">Suggest</option><option value="force">Must practise</option><option value="off">Off</option></select>
+        <label class="ctl" for="coachMode" title="After a slow step, Sub-X shows what to practice">Coach
+          <select id="coachMode"><option value="suggest">Suggest</option><option value="force">Must practice</option><option value="off">Off</option></select>
         </label>
         <div class="bar-btns" id="setBtns">
           <button type="button" class="pill-btn" id="sessMore" aria-controls="sessPanel" aria-expanded="false">Sessions…</button>
@@ -1421,10 +1434,10 @@ body.running .acct-btn { visibility: hidden; }
           <p class="lead" id="l3GyroNote" hidden style="margin:4px 0"></p>
           <button type="button" class="pill-btn" id="l3GyroReset" hidden>Reset orientation</button>
           <div class="l3-grid">
-            <canvas id="l3Preview" width="120" height="120" role="img" aria-label="Preview of the 3D cube's colours"></canvas>
+            <canvas id="l3Preview" width="120" height="120" role="img" aria-label="Preview of the 3D cube's colors"></canvas>
             <div class="l3-opts">
               <label class="ctl" for="l3Hold">Hold <select id="l3Hold"><option value="up">White on top</option><option value="down">White on the bottom</option></select></label>
-              <label class="ctl" for="l3Scheme">Colours <select id="l3Scheme"></select></label>
+              <label class="ctl" for="l3Scheme">Colors <select id="l3Scheme"></select></label>
               <label class="ctl" for="l3Body">Plastic <select id="l3Body"><option value="black">Black</option><option value="white">White</option><option value="none">Stickerless</option></select></label>
             </div>
           </div>
@@ -1565,7 +1578,7 @@ body.running .acct-btn { visibility: hidden; }
       <button type="button" class="pill-btn p3d-ico p3d-step" id="p3dFwd" aria-label="Step forward" title="Step forward">▶</button>
       <select id="p3dSpeed" aria-label="Speed"><option value="0.5">Slow</option><option value="1" selected>Normal</option><option value="2">Fast</option></select>
     </div>
-    <label class="toggle" id="p3dAllWrap" for="p3dAll"><input type="checkbox" id="p3dAll"> Show last-layer colours</label>
+    <label class="toggle" id="p3dAllWrap" for="p3dAll"><input type="checkbox" id="p3dAll"> Show last-layer colors</label>
     <p class="p3d-hint">Drag to look around the cube. Yellow on top, green in front. Space plays and pauses.</p>
   </div>
 </div>
@@ -2118,7 +2131,7 @@ body.running .acct-btn { visibility: hidden; }
       const order = [...groups.values()].sort((a, b) => (a.n ? a.ax / a.n : 0) * toward - (b.n ? b.ax / b.n : 0) * toward);
       const flat = v => { const w = V(v); return [w[0], -w[1]]; };
       const polys = [];
-      // o.pop floats the hidden sides of the top layer out behind the cube, that far from its centre, so all four show
+      // o.pop floats the hidden sides of the top layer out behind the cube, that far from its center, so all four show
       if (o.pop) for (const k of st) {
         if (k.p[1] !== 2 || k.n[1] || V(k.n)[2] > 0) continue;
         const ax = k.n.findIndex(v => v !== 0), c = k.p.map((v, i) => i === ax ? k.n[i] * o.pop : v);
@@ -2144,7 +2157,7 @@ body.running .acct-btn { visibility: hidden; }
   // the other slots' F2L cases are shown looking at that slot (a quarter or half turn round)
   const FL_VIEW = { yaw: -0.62 + Math.PI / 2, pitch: 0.5 }, BR_VIEW = { yaw: -0.62 - Math.PI / 2, pitch: 0.5 }, BL_VIEW = { yaw: -0.62 + Math.PI, pitch: 0.5 };
   // drawn from the algorithm's face turns backwards, like the case's scramble: with d, u or a rotation in it, the
-  // algorithm itself backwards would turn the centres too, and show the case from another side
+  // algorithm itself backwards would turn the centers too, and show the case from another side
   function f2l3D(alg, view) { return f2l3DSetup(Cube.invert(Solver.faceTurns(alg).join(' ')), view); }
   function f2l3DSetup(setup, view = F2L_VIEW) {
     const st = markGrey(Cube.apply(Cube.solved(3), 3, setup));
@@ -2171,7 +2184,7 @@ body.running .acct-btn { visibility: hidden; }
     Object.assign(P3, c.view || (c.mode === 'f2l' || c.mode === 'sb' ? F2L_VIEW : LL_VIEW));
     $('p3dTitle').textContent = c.name + (c.mode === 'pll' ? ' perm' : '');
     $('p3dAllWrap').hidden = c.mode !== 'f2l' && c.mode !== 'sb';
-    const held = c.mode === 'cross' || c.id === 'tps' ? 'White on top, green in front.' : c.mode === 'solve' || c.mode === 'roux' ? 'White on the bottom, green in front.' : c.mode === 'lse' ? 'Set up from yellow on top, green in front (M turns move the centres).' : 'Yellow on top, green in front.';
+    const held = c.mode === 'cross' || c.id === 'tps' ? 'White on top, green in front.' : c.mode === 'solve' || c.mode === 'roux' ? 'White on the bottom, green in front.' : c.mode === 'lse' ? 'Set up from yellow on top, green in front (M turns move the centers).' : 'Yellow on top, green in front.';
     $('p3d').querySelector('.p3d-hint').textContent = `Drag to look around the cube. ${held}${matchMedia('(pointer: coarse)').matches ? '' : ' Space plays and pauses.'}`;
     $('p3d').hidden = false; P3.open = true;
     p3dReset(); p3dSize();
@@ -2304,7 +2317,7 @@ body.running .acct-btn { visibility: hidden; }
     const st = Cube.solved(3); if (arrows) for (const k of st) k.home = k.p.slice();
     Cube.apply(st, 3, setup);
     const idx = c => (c + 2) / 2, c = 24, o = 17, s = 8;
-    // COLL: the corners in full colour; the edges only show that they are oriented
+    // COLL: the corners in full color; the edges only show that they are oriented
     const fill = k => mode === 'oll' ? (k.col === 'U' ? PAL_LL.U : 'var(--ll-off)') : mode === 'coll' && (k.p[0] === 0) !== (k.p[2] === 0) && k.n[1] !== 1 ? 'var(--ll-off)' : PAL_LL[k.col];
     let out = `<rect x="${o - 2}" y="${o - 2}" width="${c * 3 + 4}" height="${c * 3 + 4}" rx="4" fill="var(--plastic)"/>`;
     for (const k of st) {
@@ -2539,7 +2552,7 @@ body.running .acct-btn { visibility: hidden; }
     const note = $('ownNote');
     note.hidden = false;
     note.classList.toggle('err', bad.length > 0);
-    note.textContent = bad.length ? `Not recognised: ${bad.join(' ')}. Use moves like R U' F2 Rw.`
+    note.textContent = bad.length ? `Not recognized: ${bad.join(' ')}. Use moves like R U' F2 Rw.`
       : txt ? 'The picture shows the cube after these moves (white on top, green in front).' + (matchMedia('(pointer: coarse)').matches ? '' : ' Press Enter when you are done typing.')
       : 'Scramble your cube by hand and start the timer. If you type the scramble, it is pictured here and saved with the solve.';
   }
@@ -2591,7 +2604,7 @@ body.running .acct-btn { visibility: hidden; }
     // each panel on its own: one bad record can't blank the rest, or the Backup panel you'd need to put it right
     for (const f of [renderTodayLine, sessCounts, () => renderTrend(list, goal), () => renderList(list, goal), renderLastActions, backupInfo, renderComp, achCheck, renderGoal, () => renderKpis(list), () => renderSpread(list, goal), renderCal, renderDeep]) try { f(); } catch (e) { console.error(e); }
   }
-  // ---------- today: how many solves, how long you spent solving, and about how long you practised ----------
+  // ---------- today: how many solves, how long you spent solving, and about how long you practiced ----------
   // Practice time adds up the gaps between your solves and trainer tries today (each solve's own time for the
   // first one), leaving out breaks longer than 10 minutes. It counts every event and session.
   const BREAK = 10 * 60000;
@@ -2609,7 +2622,7 @@ body.running .acct-btn { visibility: hidden; }
     const el = $('today'); if (!el) return;
     const T = todayStats();
     el.hidden = !T.n && !T.tries && showingExamples();   // nothing to say next to the example times
-    el.innerHTML = T.n || T.tries ? `<b>Today</b> ${T.n} solve${T.n === 1 ? '' : 's'}${T.tries ? ` and ${T.tries} trainer tr${T.tries === 1 ? 'y' : 'ies'}` : ''} · <b>${durText(T.solving)}</b> solving · about <b>${durText(T.practice)}</b> practising`
+    el.innerHTML = T.n || T.tries ? `<b>Today</b> ${T.n} solve${T.n === 1 ? '' : 's'}${T.tries ? ` and ${T.tries} trainer tr${T.tries === 1 ? 'y' : 'ies'}` : ''} · <b>${durText(T.solving)}</b> solving · about <b>${durText(T.practice)}</b> practicing`
       : 'No solves yet today';
   }
 
@@ -2836,7 +2849,7 @@ body.running .acct-btn { visibility: hidden; }
   const neverSolved = () => !Object.values(db.solves).some(l => l.some(x => !x.ex));   // only example times so far
   const fewSolves = () => Object.values(db.solves).reduce((a, l) => a + l.filter(x => !x.ex).length, 0) < 5;
   const idleClock = () => { const l = db.solves[db.event]; if (justSolved && l.length) showResult(l[l.length - 1]); else showTime('0.00'); };
-  // the screen stays on while you practise: from your first press until 5 minutes without one (trainers call it too)
+  // the screen stays on while you practice: from your first press until 5 minutes without one (trainers call it too)
   let awakeTimer = 0;
   function keepAwake() {
     clearTimeout(awakeTimer);
@@ -3170,7 +3183,7 @@ body.running .acct-btn { visibility: hidden; }
     else if (b.dataset.solmine !== undefined) {
       const i = +b.dataset.solmine, s = db.solves[db.event][i], el = $('solMine' + i); if (!s || !el) return;
       const txt = el.value.trim().replace(/[’‘]/g, "'"), bad = Cube.tokens(txt).filter(t => !MOVE_RE.test(t));
-      if (bad.length) { toast('Not recognised: ' + bad.join(' ') + ". Use moves like R U' F2."); return; }
+      if (bad.length) { toast('Not recognized: ' + bad.join(' ') + ". Use moves like R U' F2."); return; }
       s.my = txt; save(); renderList(solvesFor(db.event), db.goal * 1000);
     }
     else if (b.dataset.save !== undefined) { const s = db.solves[db.event][+b.dataset.save]; if (s) { toggleSaved(s); renderList(solvesFor(db.event), db.goal * 1000); renderLastActions(); } }
@@ -4419,7 +4432,7 @@ body.running .acct-btn { visibility: hidden; }
   const ZBLL_SETS = [...new Set(ZBLL.map(g => g.set))];
   // How to do each step. Every step page in Learn opens with its lesson, then the practice for it.
   const CFOP_STEPS = [
-    { title: 'Cross', sub: 'no algorithms', text: 'Solve the four white edges so they form a cross on the bottom, each one matching the centre next to it.',
+    { title: 'Cross', sub: 'no algorithms', text: 'Solve the four white edges so they form a cross on the bottom, each one matching the center next to it.',
       tips: ['Plan the whole cross during the 15-second inspection, then do it without stopping.', 'Most crosses take 8 turns or fewer. If yours takes more, look for a shorter way.', 'Solve it on the bottom (white down) so you can see the F2L pieces on top while you work.'],
       more: { title: 'What to learn, in order', ol: true, tips: ['Cross on the bottom, plus the 4 short F2L inserts (F2L 1–4).', '2-look OLL: the 3 cross cases, then Sune and Antisune, then the other 5.', '2-look PLL: T and Y perms for corners, then Ua, Ub, H and Z for edges.', 'The rest of F2L, so every pair goes in efficiently.', 'The remaining PLLs, then full OLL.'] } },
     { title: 'F2L', sub: 'first two layers', text: 'Fill the four slots between the cross edges. For each slot, find the white corner and its matching edge, join them into a pair on top, then insert the pair.',
@@ -4428,17 +4441,17 @@ body.running .acct-btn { visibility: hidden; }
     { title: 'OLL', sub: 'orient the last layer', text: 'Make the whole top face yellow. 2-look OLL does it in two steps with 10 algorithms: first the yellow cross, then the corners.',
       tips: ['Learn Sune and Antisune first; they come up a lot.', 'Full OLL (57 cases) does this in one step. Learn it once 2-look is fast, starting with the cases you see most.'] },
     { title: 'PLL', sub: 'permute the last layer', text: 'Move the last-layer pieces to their places without breaking the yellow top. Start with 2-look PLL: fix the corners with the T perm (two adjacent corners swapped) or the Y perm (two diagonal corners swapped), then the edges with Ua, Ub, H or Z.',
-      tips: ['Recognise the case from the colours on the sides, not the top.', 'After 2-look PLL, learn the rest of the 21 so every solve finishes with one algorithm.'] },
+      tips: ['Recognize the case from the colors on the sides, not the top.', 'After 2-look PLL, learn the rest of the 21 so every solve finishes with one algorithm.'] },
     { title: 'COLL', sub: 'next step after full PLL', text: 'When the last F2L pair leaves the top edges oriented (a yellow cross on top), COLL solves the corners while it orients them. Then only an edge PLL is left, and one time in twelve nothing at all.',
-      tips: ['Learn it one shape at a time. Pi, U, T, L, Sune and Antisune come up equally often (H half as often), and from 2-look OLL you already know one case of each.', 'Recognise the case by the shape of the yellow corners first, then by the colours on the sides of the corners.', 'ZBLL goes one step further and solves the whole last layer in one algorithm (472 cases). The COLL trainer can mix up the edges too, so you practise those cases as COLL, then an edge PLL.'] },
+      tips: ['Learn it one shape at a time. Pi, U, T, L, Sune and Antisune come up equally often (H half as often), and from 2-look OLL you already know one case of each.', 'Recognize the case by the shape of the yellow corners first, then by the colors on the sides of the corners.', 'ZBLL goes one step further and solves the whole last layer in one algorithm (472 cases). The COLL trainer can mix up the edges too, so you practice those cases as COLL, then an edge PLL.'] },
     { title: 'ZBLL', sub: 'the whole last layer in one look', text: 'When the top edges are already oriented, one ZBLL algorithm solves the whole last layer: no OLL, no PLL. There are 472 cases. Each COLL case splits into 12 (8 for two of the H cases), one for each way the edges can sit.',
-      tips: ['Learn the COLL cases first: ZBLL starts by recognising the COLL from the corners, then looks at the edges.', 'Go one corner shape at a time (S and AS are Sune and Antisune). They all come up equally often except H, which comes up half as often. Each shape has 72 cases (H has 40).', 'For the edges, look at one side: does the edge between two corners match them, or which colour is it? Then check a second side.', 'Most of these algorithms use only R and U turns, or add F, D or L. Learn the 2-gen ones (R and U only) first.'] },
+      tips: ['Learn the COLL cases first: ZBLL starts by recognizing the COLL from the corners, then looks at the edges.', 'Go one corner shape at a time (S and AS are Sune and Antisune). They all come up equally often except H, which comes up half as often. Each shape has 72 cases (H has 40).', 'For the edges, look at one side: does the edge between two corners match them, or which color is it? Then check a second side.', 'Most of these algorithms use only R and U turns, or add F, D or L. Learn the 2-gen ones (R and U only) first.'] },
   ];
   const ROUX_STEPS = [
     { title: 'First block', sub: '1×2×3 on the left', text: 'With white on the bottom, build a 1×2×3 block on the left: the white edge at the bottom left, the two white corners beside it and the two edges above them. Any side can be your left side.',
-      tips: ['Plan the whole block in inspection. Most first blocks take 6 to 8 turns.', 'Start with the bottom-left edge and the centre, then add a corner pair on each side.', 'Look at all four sides before you choose: one is usually much shorter.'] },
+      tips: ['Plan the whole block in inspection. Most first blocks take 6 to 8 turns.', 'Start with the bottom-left edge and the center, then add a corner pair on each side.', 'Look at all four sides before you choose: one is usually much shorter.'] },
     { title: 'Second block', sub: '1×2×3 on the right', text: 'Build the matching block on the right without breaking the first one. R, r, U and M turns never touch the left block, so use only those.',
-      tips: ['Build the square first (the bottom-right edge and one corner pair), then the last corner and edge pair.', 'Pairs go in much like F2L pairs, but r and M let you move edges around for free.', 'Leave the middle slice alone: the bottom centre does not have to line up yet.'] },
+      tips: ['Build the square first (the bottom-right edge and one corner pair), then the last corner and edge pair.', 'Pairs go in much like F2L pairs, but r and M let you move edges around for free.', 'Leave the middle slice alone: the bottom center does not have to line up yet.'] },
     { title: 'CMLL', sub: 'the four top corners', text: 'Solve all four top corners in one algorithm, ignoring the top edges and the middle slice. Full CMLL is 42 algorithms; start with two looks, using the algorithms below.',
       tips: ['First orient the corners so the top is yellow on all four: Sune, Antisune, H, Pi, Headlights, T or Bowtie.', 'Then swap corners with the T perm (two adjacent corners swapped) or the Y perm (two diagonal corners swapped). Both keep your blocks.'] },
     { title: 'LSE', sub: 'last six edges', text: 'Finish with only M and U turns: orient the six edges, put the left and right top edges in place, then solve the last four edges of the middle slice.',
@@ -4450,30 +4463,30 @@ body.running .acct-btn { visibility: hidden; }
     { group: 'Look 2 · Swap the corners', items: PLL.flatMap(g => g.items).filter(c => c.id === 'pll:t' || c.id === 'pll:y'), mode: 'pll' },
   ];
   const SETS = {
-    f2lb: { title: 'F2L in the other slots', lead: 'The same 41 cases in the other three slots, solved without turning the cube. Each picture looks at its slot.', more: 'Front-left (FL) is the mirror image of front-right (R U R\' becomes L\' U\' L), back-right (BR) the mirror the other way (R\' U\' R), and back-left (BL) is front-right turned round (R becomes L, F becomes B). Grey stickers are last-layer pieces that do not matter yet.', groups: F2L_BACK, mode: 'f2l' },
-    f2l: { title: 'F2L', lead: 'The 41 cases for the front-right slot, with yellow on top. Grey stickers do not matter yet.', more: 'For the other slots, turn the cube so the slot is front-right, or learn them in Other slots. Grey stickers are last-layer pieces.', groups: F2L, mode: 'f2l' },
+    f2lb: { title: 'F2L in the other slots', lead: 'The same 41 cases in the other three slots, solved without turning the cube. Each picture looks at its slot.', more: 'Front-left (FL) is the mirror image of front-right (R U R\' becomes L\' U\' L), back-right (BR) the mirror the other way (R\' U\' R), and back-left (BL) is front-right turned round (R becomes L, F becomes B). Gray stickers are last-layer pieces that do not matter yet.', groups: F2L_BACK, mode: 'f2l' },
+    f2l: { title: 'F2L', lead: 'The 41 cases for the front-right slot, with yellow on top. Gray stickers do not matter yet.', more: 'For the other slots, turn the cube so the slot is front-right, or learn them in Other slots. Gray stickers are last-layer pieces.', groups: F2L, mode: 'f2l' },
     bgn: { title: 'Learn to solve', lead: 'Seven steps and six short algorithms for your first solve. Hold the cube with yellow on top the whole way through.' },
     words: { title: 'Words cubers use', lead: "What the timer's numbers and the method names mean." },
     notation: { title: 'Notation', lead: 'How to read an algorithm: each letter turns one face a quarter turn clockwise, as you look at that face.' },
     oll: { title: '2-look OLL', lead: 'Ten algorithms, and the first three share one trigger.', groups: OLL, mode: 'oll' },
     ollf: { title: 'Full OLL', lead: 'All 57 cases, grouped by the shape on top. Each makes the top yellow in one algorithm.', more: 'Learn 2-look OLL first: its 7 corner cases are OLL 21 to 27 here.', groups: OLL_FULL, mode: 'oll' },
     pll: { title: 'PLL', lead: 'All 21 cases. New to PLL? Start with 2-look PLL in the lesson below.', groups: PLL, mode: 'pll' },
-    coll: { title: 'COLL', lead: '40 cases, grouped by the shape of the yellow corners. Grey edges do not matter yet.', groups: COLL, mode: 'coll' },
-    collt: { title: 'COLL trainer', lead: 'One COLL case at a time: see how long you take to recognise it and to solve it.', more: 'Recognise each case from the corners, then solve them. Turn on random edges to practise all 472 ZBLL cases the 2-look way: COLL, then an edge PLL.' },
+    coll: { title: 'COLL', lead: '40 cases, grouped by the shape of the yellow corners. Gray edges do not matter yet.', groups: COLL, mode: 'coll' },
+    collt: { title: 'COLL trainer', lead: 'One COLL case at a time: see how long you take to recognize it and to solve it.', more: 'Recognize each case from the corners, then solve them. Turn on random edges to practice all 472 ZBLL cases the 2-look way: COLL, then an edge PLL.' },
     zbll: { title: 'ZBLL', lead: 'With a yellow cross on top, one algorithm solves the whole last layer: 472 cases.', more: 'Pick a corner shape, then each group is one COLL case with the 12 ways its edges can sit.', groups: ZBLL, mode: 'zbll' },
-    zbllt: { title: 'ZBLL trainer', lead: 'One ZBLL case at a time: see how long you take to recognise it and to solve it.', more: 'Recognise each case from the corners and edges, then solve the whole last layer. Pick a corner shape to practise one set at a time.' },
-    ollt: { title: 'OLL trainer', lead: 'One OLL case at a time: see how long you take to recognise it and to solve it.' },
+    zbllt: { title: 'ZBLL trainer', lead: 'One ZBLL case at a time: see how long you take to recognize it and to solve it.', more: 'Recognize each case from the corners and edges, then solve the whole last layer. Pick a corner shape to practice one set at a time.' },
+    ollt: { title: 'OLL trainer', lead: 'One OLL case at a time: see how long you take to recognize it and to solve it.' },
     pllr: { title: 'PLL recognition', lead: 'Name each PLL case before the next one replaces it. Say it in your head, or turn it on your cube.' },
-    pllt: { title: 'PLL trainer', lead: 'One PLL case at a time, from any angle: see how long you take to recognise it and to solve it.' },
+    pllt: { title: 'PLL trainer', lead: 'One PLL case at a time, from any angle: see how long you take to recognize it and to solve it.' },
     fb: { title: 'First block', lead: 'How to build it, then a worked example: a scramble and the shortest first block for it.' },
     fbt: { title: 'First block trainer', lead: 'Plan the first block, then compare it with the shortest one on any of the four sides.' },
     sb: { title: 'Second block', lead: 'How to build it, then a worked example you can watch in 3D.' },
     sbt: { title: 'Second block trainer', lead: 'Each case starts with the first block built. Build the second, then compare with the shortest way.' },
     cmll: { title: 'CMLL', lead: '2-look CMLL, with algorithms you may know from CFOP. Hold the blocks left and right, yellow on top.', groups: CMLL_GROUPS },
-    cmllt: { title: 'CMLL trainer', lead: 'One 2-look CMLL case at a time: see how long you take to recognise it and to solve it.' },
+    cmllt: { title: 'CMLL trainer', lead: 'One 2-look CMLL case at a time: see how long you take to recognize it and to solve it.' },
     lse: { title: 'LSE', lead: 'How to finish with M and U turns, then a worked example you can watch in 3D.' },
     lset: { title: 'LSE trainer', lead: 'Solve the last six edges with M and U turns, then compare with the shortest way.' },
-    f2lt: { title: 'F2L trainer', lead: 'One F2L pair at a time: see how long you take to recognise it and to insert it.' },
+    f2lt: { title: 'F2L trainer', lead: 'One F2L pair at a time: see how long you take to recognize it and to insert it.' },
     f2lbf: { title: 'Blind F2L', lead: 'Plan your pairs for as long as you like, then insert them with your eyes closed.' },
     tps: { title: 'TPS trainer', lead: 'Repeat a short sequence as fast and cleanly as you can. Each one ends solved.' },
     cross: { title: 'Cross', lead: 'Plan the cross, then compare it with the shortest one Sub-X finds.' },
@@ -4494,7 +4507,7 @@ body.running .acct-btn { visibility: hidden; }
   ];
   const ALL_CASES = [...F2L, ...F2L_BACK, ...OLL, ...OLL_FULL, ...PLL, ...COLL, ...ZBLL].flatMap(g => g.items.map(c => ({ ...c, mode: c.mode || (c.id.startsWith('ollf:') ? 'oll' : c.id.startsWith('f2lb:') ? 'f2l' : c.id.split(':')[0]) })));
   const caseById = id => ALL_CASES.find(c => c.id === id);
-  // Learn is organised by method; Learn opens on your default one, at its first step
+  // Learn is organized by method; Learn opens on your default one, at its first step
   const METHODS = {
     beginner: { name: 'Beginner', steps: [['bgn', 'Learn to solve'], ['notation', 'Notation'], ['words', 'Words']] },
     cfop: { name: 'CFOP', steps: [['today', 'Today'], ['algs', 'Progress'], ['cross', 'Cross'], ['xcross', 'X-cross'], ['f2l', 'F2L cases'], ['f2lb', 'Other slots'], ['f2lt', 'F2L trainer'], ['f2lbf', 'Blind F2L'], ['oll', '2-look OLL'], ['ollf', 'Full OLL'], ['ollt', 'OLL trainer'], ['pll', 'PLL'], ['pllt', 'PLL trainer'], ['pllr', 'PLL recognition'], ['coll', 'COLL'], ['collt', 'COLL trainer'], ['zbll', 'ZBLL'], ['zbllt', 'ZBLL trainer'], ['tps', 'TPS'], ['saved', 'My solves'], ['notation', 'Notation'], ['words', 'Words']] },
@@ -4649,12 +4662,12 @@ body.running .acct-btn { visibility: hidden; }
     }
     return TR.phase === 'plan' ? 'Smart cube: your first turn starts the solve clock.' : TR.phase === 'solve' ? `Smart cube: the clock stops by itself when the ${goal} ${goal === 'pairs' ? 'are' : 'is'} solved.` : TR.phase === 'done' ? 'Smart cube: turn any face for the next case.' : '';
   }
-  function trClockHtml(goal, rec) {   // rec: a case trainer, where the first phase is recognising the case
+  function trClockHtml(goal, rec) {   // rec: a case trainer, where the first phase is recognizing the case
     const blind = f2lBlind();
     const scr = ['cross', 'xcross', 'fbt'].includes(learnSet);   // the others are set up on a solved cube
-    const label = { scramble: scr ? 'Scramble first' : 'Set it up first', plan: blind ? 'Inspecting' : rec ? 'Recognising' : 'Planning', solve: `Solving the ${goal}`, done: 'Finished' }[TR.phase];
+    const label = { scramble: scr ? 'Scramble first' : 'Set it up first', plan: blind ? 'Inspecting' : rec ? 'Recognizing' : 'Planning', solve: `Solving the ${goal}`, done: 'Finished' }[TR.phase];
     const btn = { scramble: scr ? "I've scrambled: start the clock" : "It's set up: start the clock", plan: blind ? 'Close your eyes and start' : 'Start solving', solve: 'Done', done: 'Next' }[TR.phase];
-    const done = TR.phase === 'done' ? `${rec ? 'Recognised in' : 'Planned for'} ${((TR.t1 - TR.t0) / 1000).toFixed(1)} s, then ${blind ? 'turned without looking for' : `solved the ${goal} in`} ${fmt(TR.t2 - TR.t1)}${TR.moves ? ` with ${TR.moves} turns (${tpsOf(TR.moves, TR.t2 - TR.t1)} TPS)` : ''}.` : '';
+    const done = TR.phase === 'done' ? `${rec ? 'Recognized in' : 'Planned for'} ${((TR.t1 - TR.t0) / 1000).toFixed(1)} s, then ${blind ? 'turned without looking for' : `solved the ${goal} in`} ${fmt(TR.t2 - TR.t1)}${TR.moves ? ` with ${TR.moves} turns (${tpsOf(TR.moves, TR.t2 - TR.t1)} TPS)` : ''}.` : '';
     const smart = trSmartText(goal);
     const cover = blind && TR.phase === 'solve' ? `<button type="button" class="bf-cover" data-tr="next"><b>Eyes closed</b><span>${trSmartOn() ? `You will hear a beep when the ${goal} ${f2lbf.n === 1 ? 'is' : 'are'} in. Tap anywhere or press space to stop sooner.` : `Tap anywhere or press space when you think the ${goal} ${f2lbf.n === 1 ? 'is' : 'are'} in.`}</span></button>` : '';
     const D = trData(), setup = TR.phase === 'scramble' && D && D.scr ? `<p class="tr-setup">${trScr(D.scr)}</p>` : '';
@@ -4775,7 +4788,7 @@ body.running .acct-btn { visibility: hidden; }
     cross.checkClass = 'err';
     if (!txt) { cross.check = 'Type your moves first.'; return; }
     const toks = Cube.tokens(txt), bad = toks.filter(t => !MOVE_RE.test(t));
-    if (bad.length) { cross.check = 'Not recognised: ' + bad.join(' ') + ". Use moves like R U' F2."; return; }
+    if (bad.length) { cross.check = 'Not recognized: ' + bad.join(' ') + ". Use moves like R U' F2."; return; }
     // the moves are done with white on the bottom: replay them after z2, then turn back to check
     const ok = CrossSolver.crossSolvedTop(Cube.apply(Cube.solved(3), 3, cross.scr + ' z2 ' + txt + ' z2'));
     const n = toks.filter(t => !/^[xyz]/.test(t)).length, best = cross.sol.length;
@@ -4850,7 +4863,7 @@ body.running .acct-btn { visibility: hidden; }
     xc.checkClass = 'err';
     if (!txt) { xc.check = 'Type your moves first.'; return; }
     const toks = Cube.tokens(txt), bad = toks.filter(t => !MOVE_RE.test(t));
-    if (bad.length) { xc.check = 'Not recognised: ' + bad.join(' ') + ". Use moves like R U' F2."; return; }
+    if (bad.length) { xc.check = 'Not recognized: ' + bad.join(' ') + ". Use moves like R U' F2."; return; }
     // the moves are done with white on the bottom: replay them after z2, then turn back to check
     const st = Cube.apply(Cube.solved(3), 3, xc.scr + ' z2 ' + txt + ' z2');
     const n = toks.filter(t => !/^[xyz]/.test(t)).length, best = xcBest();
@@ -4941,7 +4954,7 @@ body.running .acct-btn { visibility: hidden; }
 
   // ---------- F2L trainer ----------
   // A random F2L case for the front-right slot, set up on a solved cube (yellow on top, green in
-  // front) with a random top-layer turn, so you practise recognising it as well as solving it.
+  // front) with a random top-layer turn, so you practice recognizing it as well as solving it.
   // The trainers start on 'Mostly my slowest': three cases in four come from your 5 slowest (by saved
   // recognition + solve time), the fourth from all of them, so untimed cases still get timed. A case drops off
   // the list once its average gets faster. Until 3 cases have times it is the same as all cases.
@@ -5055,14 +5068,14 @@ body.running .acct-btn { visibility: hidden; }
       </section>
       <section class="panel">
         ${trClockHtml('pair', true)}
-        <p class="lead">Find the white corner and its edge, recognise the case, then insert the pair into the front-right slot.</p>
+        <p class="lead">Find the white corner and its edge, recognize the case, then insert the pair into the front-right slot.</p>
         <div class="row-btns tr-answer"><button type="button" class="btn ghost" data-f2lt="reveal"${trBusy() ? ' disabled' : ''}>${f2lt.shown ? 'Hide the answer' : 'Show the answer'}</button></div>
         ${f2lt.shown ? `<div class="cross-sol">
           <p><b>${esc(c.name)}</b> · ${esc((F2L.find(g => g.items.includes(c)) || {}).group || '')}</p>
           <p class="alg">${esc(c.alg)}</p>
           <div class="row-btns"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn learn-btn" data-f2lt="learn" aria-pressed="${L}">${L ? 'Learned ✓' : 'Mark learned'}</button></div>
         </div>` : ''}
-        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} pair${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)} s · average insert ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The picture shows the case after the setup. To practise recognising it on your real cube, turn off Show the case picture at the bottom.'}</p>
+        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} pair${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)} s · average insert ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'The picture shows the case after the setup. To practice recognizing it on your real cube, turn off Show the case picture at the bottom.'}</p>
         ${slowHtml(F2L.flatMap(g => g.items), 'f2lt')}
         ${trOptsHtml('f2lt', `<div class="chips">${pools.map(([k, l]) => `<button type="button" class="chip" data-f2lt="pool:${k}" aria-pressed="${f2lt.pool === k}">${l}</button>`).join('')}</div>`)}
       </section></div>`;
@@ -5109,12 +5122,12 @@ body.running .acct-btn { visibility: hidden; }
     T.scr = Solver.faceTurns(`${caseKind(c) === 'pll' || caseKind(c) === 'zbll' || ep ? randAuf() : ''} ${ep} ${Cube.invert(c.alg)} ${randAuf()}`).join(' ');
     trStart(T.scr, true);
   }
-  // your slowest cases so far, with buttons to practise each one
+  // your slowest cases so far, with buttons to practice each one
   function slowHtml(cases, act) {
     const w = slowest(cases, 5);
     if (!w.length) return '<p class="drill-stats">Time a few cases and your slowest ones show up here. They are saved, so they build up over days.</p>';
-    return `<div class="slow-list"><h4>Your slowest cases</h4><table class="phase-table"><thead><tr><th>Case</th><th class="num">Recognise</th><th class="num">Solve</th><th class="num">Tries</th><th></th></tr></thead><tbody>${w.map(({ c, a }) =>
-      `<tr><td>${esc(c.name)}</td><td class="num">${(a.rec / 1000).toFixed(1)} s</td><td class="num">${fmt(a.sol)}</td><td class="num">${a.n}</td><td class="num"><button type="button" class="mini-btn" data-${act}="case:${c.id}">Practise</button></td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="slow-list"><h4>Your slowest cases</h4><table class="phase-table"><thead><tr><th>Case</th><th class="num">Recognize</th><th class="num">Solve</th><th class="num">Tries</th><th></th></tr></thead><tbody>${w.map(({ c, a }) =>
+      `<tr><td>${esc(c.name)}</td><td class="num">${(a.rec / 1000).toFixed(1)} s</td><td class="num">${fmt(a.sol)}</td><td class="num">${a.n}</td><td class="num"><button type="button" class="mini-btn" data-${act}="case:${c.id}">Practice</button></td></tr>`).join('')}</tbody></table></div>`;
   }
   function renderLLT() {
     const kind = lltKind(), T = llt[kind]; if (!T.c) newLL(kind);
@@ -5132,7 +5145,7 @@ body.running .acct-btn { visibility: hidden; }
       </section>
       <section class="panel">
         ${trClockHtml(zbOn ? 'last layer' : goal, true)}
-        <p class="lead">${kind === 'cmll' ? 'Recognise the case from the corners, then solve them.' : kind === 'zbll' ? 'Recognise the COLL case from the corners, then the edges around them, then solve the whole last layer.' : kind === 'coll' ? (zbOn ? 'Recognise the COLL from the corners, do it, then finish the edges with Ua, Ub, H or Z.' : 'Recognise the case from the yellow corners and their side colours, then solve the corners.') : kind === 'oll' ? 'Look at the yellow stickers, recognise the case, then make the whole top yellow.' : 'Look at the side colours of the top layer, recognise the case, then solve the cube.'}</p>
+        <p class="lead">${kind === 'cmll' ? 'Recognize the case from the corners, then solve them.' : kind === 'zbll' ? 'Recognize the COLL case from the corners, then the edges around them, then solve the whole last layer.' : kind === 'coll' ? (zbOn ? 'Recognize the COLL from the corners, do it, then finish the edges with Ua, Ub, H or Z.' : 'Recognize the case from the yellow corners and their side colors, then solve the corners.') : kind === 'oll' ? 'Look at the yellow stickers, recognize the case, then make the whole top yellow.' : 'Look at the side colors of the top layer, recognize the case, then solve the cube.'}</p>
         <div class="row-btns tr-answer"><button type="button" class="btn ghost" data-llt="reveal"${trBusy() ? ' disabled' : ''}>${T.shown ? 'Hide the answer' : 'Show the answer'}</button></div>
         ${T.shown ? `<div class="cross-sol">
           <p><b>${esc(c.name)}${ck === 'pll' ? ' perm' : ''}</b> · ${esc(group)}</p>
@@ -5140,7 +5153,7 @@ body.running .acct-btn { visibility: hidden; }
           ${hint ? `<p class="lead">From this setup: ${esc(hint)}.</p>` : ''}
           <div class="row-btns"><button type="button" class="pill-btn" data-p3d="${c.id}">Watch in 3D</button><button type="button" class="pill-btn learn-btn" data-llt="learn" aria-pressed="${L}">${L ? 'Learned ✓' : 'Mark learned'}</button></div>
         </div>` : ''}
-        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} case${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)} s · average ${zbOn ? 'last layer' : goal} ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'To practise recognising the case on your real cube, turn off Show the case picture at the bottom.'}</p>
+        <p class="drill-stats">${H.length ? `Your times so far: ${H.length} case${H.length === 1 ? '' : 's'} · average recognition ${(avgOfList(H, r => r.plan) / 1000).toFixed(1)} s · average ${zbOn ? 'last layer' : goal} ${fmt(avgOfList(H, r => r.solve))}${tpsLine(H)}` : 'To practice recognizing the case on your real cube, turn off Show the case picture at the bottom.'}</p>
         ${slowHtml(llGroups(kind).flatMap(g => g.items), 'llt')}
         ${trOptsHtml('llt', `${kind === 'zbll' ? `<div class="chips" role="group" aria-label="Corner shape">${[['', 'All shapes'], ...ZBLL_SETS.map(s => [s, s])].map(([k, l]) => `<button type="button" class="chip" data-llt="set:${k}" aria-pressed="${T.set === k}">${l}</button>`).join('')}</div>` : ''}
           <div class="chips">${LL_POOLS[kind].map(([k, l]) => `<button type="button" class="chip" data-llt="pool:${k}" aria-pressed="${T.pool === k}">${kind === 'zbll' && k === 'all' ? `All ${llGroups(kind).flatMap(g => g.items).length}` : l}</button>`).join('')}
@@ -5295,7 +5308,7 @@ body.running .acct-btn { visibility: hidden; }
     txt = txt.trim().replace(/[’‘]/g, "'");
     if (!txt) return { err: 'Type your moves first.' };
     const toks = Cube.tokens(txt), bad = toks.filter(t => !MOVE_RE.test(t));
-    if (bad.length) return { err: 'Not recognised: ' + bad.join(' ') + ". Use moves like R U' F2." };
+    if (bad.length) return { err: 'Not recognized: ' + bad.join(' ') + ". Use moves like R U' F2." };
     return { txt, n: toks.filter(t => !/^[xyz]/.test(t)).length };
   }
   function fbCheck() {
@@ -5333,7 +5346,7 @@ body.running .acct-btn { visibility: hidden; }
     fb: { name: 'first block', solve: scr => Roux.firstBlock(scr), mode: 'roux', setup: scr => scr + ' z2',
       text: 'Do the scramble, turn the cube over (z2) so white is on the bottom, then follow the moves. Watch it in 3D to see each turn.' },
     sb: { name: 'second block', solve: scr => ({ rot: '', moves: Roux.secondBlock(scr) }), mode: 'sb', setup: scr => scr,
-      text: 'The first block is already built on the left. Watch how the shortest second block uses R, r, U and M turns, which never touch it. Grey stickers are pieces that do not matter yet.' },
+      text: 'The first block is already built on the left. Watch how the shortest second block uses R, r, U and M turns, which never touch it. Gray stickers are pieces that do not matter yet.' },
     lse: { name: 'last six edges', solve: scr => ({ rot: '', moves: Roux.lastSix(scr) || [] }), mode: 'lse', setup: scr => scr,
       text: 'Both blocks and the top corners are solved. The shortest way often mixes the three LSE steps; when you solve it yourself, follow the steps in the lesson above.' },
   };
@@ -5485,7 +5498,7 @@ body.running .acct-btn { visibility: hidden; }
       const fkey = (p, n) => p.join() + '|' + n.join();
       const index = new Map(facelets.map((f, i) => [fkey(f.p, f.n), i]));
       const table = MOVES.map(m => facelets.map(f => { const s = [{ p: f.p.slice(), n: f.n.slice(), col: 'X' }]; Cube.apply(s, 3, m); return index.get(fkey(s[0].p, s[0].n)); }));
-      // the four white (U) edges, identified by their other colour
+      // the four white (U) edges, identified by their other color
       const PIECES = ['F', 'R', 'B', 'L'];
       const home = PIECES.map(c => { const k = solvedSt.find(s => s.col === 'U' && isEdge(s.p) && solvedSt.some(o => o !== s && o.p.join() === s.p.join() && o.col === c)); return index.get(fkey(k.p, k.n)); });
       const enc = s => ((s[0] * 24 + s[1]) * 24 + s[2]) * 24 + s[3];
@@ -5858,7 +5871,7 @@ body.running .acct-btn { visibility: hidden; }
       }
       const colsOf = p => SOLVED.filter(k => k.p.join() === p.join()).map(k => k.col).sort().join('');
       const want = pieces.map(([p, n]) => ({ cols: colsOf(p), col: SOLVED.find(k => fkey(k.p, k.n) === fkey(p, n)).col }));
-      // where the pieces are in `st`; `face` renames colours (by default each keeps its own name)
+      // where the pieces are in `st`; `face` renames colors (by default each keeps its own name)
       function solve(st, face = c => c) {
         const cubie = new Map(); for (const k of st) { const id = k.p.join(); if (!cubie.has(id)) cubie.set(id, []); cubie.get(id).push(face(k.col)); }
         const cols = p => cubie.get(p.join()).slice().sort().join('');
@@ -5914,7 +5927,7 @@ body.running .acct-btn { visibility: hidden; }
       lse: lseTable,
     }[name]());
     const ready = name => !!tables[name];
-    // name each colour after the face whose center has it
+    // name each color after the face whose center has it
     const byCenters = st => { const f = {}; for (const k of st) if (zeros(k.p) === 2) f[k.col] = HOME(k.n); return c => f[c]; };
     // shortest first block for a scramble (WCA orientation), with white on the bottom, on any side: { rot, moves }
     function firstBlock(scramble) {
@@ -5928,7 +5941,7 @@ body.running .acct-btn { visibility: hidden; }
     // shortest second block, and shortest last six edges, for setups done on a solved cube (yellow on top)
     const secondBlock = setup => table('sb').solve(Cube.apply(Cube.solved(3), 3, setup));
     const lastSix = setup => table('lse').solve(Cube.apply(Cube.solved(3), 3, setup));
-    // Blocks are checked by their own colours, held any way up, so a turned middle slice does not matter.
+    // Blocks are checked by their own colors, held any way up, so a turned middle slice does not matter.
     function blocksOk(st, sides) {
       const same = list => list.length && list.every(c => c === list[0]) ? list[0] : null;
       const D = [], F = [], B = [];
@@ -5989,7 +6002,7 @@ body.running .acct-btn { visibility: hidden; }
       } else items.push({ kind: 'train', page: 'cross', n: 5, why: 'Plan the whole cross in inspection.' });
       // 2. the trainer with your slowest case
       const worst = [['f2lt', F2L], ['ollt', OLL_FULL], ['pllt', PLL], ['collt', COLL], ['zbllt', ZBLL]].map(([page, groups]) => ({ page, w: slowest(groups.flatMap(g => g.items), 1)[0] })).filter(x => x.w && !items.some(it => it.page === x.page)).sort((a, b) => b.w.a.tot - a.w.a.tot)[0];
-      if (worst) items.push({ kind: 'train', page: worst.page, n: 6, why: `Your slowest case is ${worst.w.c.name} (${fmt(worst.w.a.tot)} to recognise and solve). The trainer focuses on your slowest.` });
+      if (worst) items.push({ kind: 'train', page: worst.page, n: 6, why: `Your slowest case is ${worst.w.c.name} (${fmt(worst.w.a.tot)} to recognize and solve). The trainer focuses on your slowest.` });
       else if (!items.some(x => x.page === 'f2lt')) items.push({ kind: 'train', page: 'f2lt', n: 6, why: 'F2L pairs, one at a time. Once you have times, it focuses on your slowest.' });
       // 3. new cases from the first set you haven't finished
       const left = ([k, , ids]) => ALL_CASES.filter(c => c.id.startsWith(k + ':') && (!ids || ids.includes(c.id)) && !planKnows(c));
@@ -6075,7 +6088,7 @@ body.running .acct-btn { visibility: hidden; }
       toast('Removed from My solves', () => { db.saved.splice(at, 0, s); save(); if (view === 'learn' && learnSet === 'saved') renderSaved(); });
     }
   }
-  // your saved times for a case: from its trainer (recognise + solve) and from drills on the timer
+  // your saved times for a case: from its trainer (recognize + solve) and from drills on the timer
   function caseTimesHtml(id) {
     const a = caseAvg(id), d = (db.drillTimes || {})[id] || [], parts = [];
     if (a) parts.push(`trainer <span>${fmt(a.rec)} + ${fmt(a.sol)}</span> (${a.n}×)`);
@@ -6193,18 +6206,18 @@ body.running .acct-btn { visibility: hidden; }
   // Each "repeat until" rule was simulated on hundreds of random cubes: corners take at most 5 R U R' U',
   // the cross at most 3 goes, the yellow face at most 3 Sunes, corners at most 2 and edges at most 3 goes.
   const BEGINNER = [
-    { t: 'White cross', goal: 'A white plus on one side, with each edge matching the centre next to it.', how: [
-      'Hold yellow on top. Bring the four white edges up around the yellow centre, white facing up. It looks like a flower: the daisy. Take your time, there\'s no algorithm.',
-      'For each white petal: turn the top until its other colour matches the centre below it, then turn that side twice (a half turn). The white edge drops to the bottom.',
+    { t: 'White cross', goal: 'A white plus on one side, with each edge matching the center next to it.', how: [
+      'Hold yellow on top. Bring the four white edges up around the yellow center, white facing up. It looks like a flower: the daisy. Take your time, there\'s no algorithm.',
+      'For each white petal: turn the top until its other color matches the center below it, then turn that side twice (a half turn). The white edge drops to the bottom.',
       'When all four are down, the white cross is on the bottom and yellow is still on top. Keep holding it this way.'] },
-    { t: 'White corners', goal: 'The whole white side, with the first layer around it matching the centres.', how: [
-      'Find a corner on top with white on it. Turn the top until the corner sits above the gap it belongs in: its two other colours match the centres either side.',
+    { t: 'White corners', goal: 'The whole white side, with the first layer around it matching the centers.', how: [
+      'Find a corner on top with white on it. Turn the top until the corner sits above the gap it belongs in: its two other colors match the centers either side.',
       'Turn the whole cube so that gap is at the front-right. Repeat the algorithm until the corner drops in, white on the bottom (up to 5 times).',
       'A white corner stuck in the bottom in the wrong place or twisted? Hold it at front-right and do the algorithm once to bring it up.'],
       algs: [['Repeat', "R U R' U'", 'f2l']] },
     { t: 'Middle edges', goal: 'The first two layers done.', how: [
-      'Find an edge on top with no yellow on it. Turn the top until its front colour matches the front centre.',
-      'If its top colour matches the right centre, do Right. If it matches the left centre, do Left.',
+      'Find an edge on top with no yellow on it. Turn the top until its front color matches the front center.',
+      'If its top color matches the right center, do Right. If it matches the left center, do Left.',
       'An edge stuck in the middle the wrong way round? Do either algorithm there to bring it up, then put it in properly.'],
       algs: [['Right', "U R U' R' U' F' U F", 'f2l'], ['Left', "U' L' U L U F U' F'", 'f2l']] },
     { t: 'Yellow cross', goal: 'A yellow plus on top (the corners don\'t matter yet).', how: [
@@ -6216,8 +6229,8 @@ body.running .acct-btn { visibility: hidden; }
       'Do the algorithm, then count again (up to 3 times).'],
       algs: [['Sune', "R U R' U R U2 R'", 'll']] },
     { t: 'Yellow corners', goal: 'The four top corners in the right places.', how: [
-      'Look for headlights: two corners on one side with the same colour. Turn the top to put them at the back and do the algorithm.',
-      'No headlights anywhere? Do it once from any side, and you\'ll have some. Then turn the top until the corners match the side centres (at most 2 goes).'],
+      'Look for headlights: two corners on one side with the same color. Turn the top to put them at the back and do the algorithm.',
+      'No headlights anywhere? Do it once from any side, and you\'ll have some. Then turn the top until the corners match the side centers (at most 2 goes).'],
       algs: [['Corners', "R' F R' B2 R F' R' B2 R2", 'll']] },
     { t: 'Yellow edges', goal: 'Solved!', how: [
       'Find a side that\'s completely finished and turn the whole cube so it\'s at the back. Do the algorithm and look again (up to 3 times).',
@@ -6254,7 +6267,7 @@ body.running .acct-btn { visibility: hidden; }
     ['Session', "A separate list of times, say one for practice and one for comp sim, so they don't mix."],
     ['Algorithm (alg)', 'A set sequence of moves that does one job, like swapping two corners.'],
     ['Trigger', "A short alg you do as one motion, like R U R' U' (the sexy move)."],
-    ['CFOP', 'The most popular speed method: Cross, F2L (first two layers in pairs), OLL (make the top one colour) and PLL (put the top pieces in place).'],
+    ['CFOP', 'The most popular speed method: Cross, F2L (first two layers in pairs), OLL (make the top one color) and PLL (put the top pieces in place).'],
     ['Roux', 'A method built from blocks: two side blocks, CMLL (the top corners), then LSE (the last six edges, mostly with M moves).'],
     ['2-look OLL / PLL', 'Doing OLL or PLL in two smaller steps with fewer algorithms (10 and 6) before learning them all (57 and 21).'],
     ['COLL, ZBLL', 'Bigger last-layer sets that solve more in one go. Learn them after full OLL and PLL.'],
@@ -6268,7 +6281,7 @@ body.running .acct-btn { visibility: hidden; }
   ];
 
   // ---------- memorizing, on each CFOP case page ----------
-  // Pick cases on their cards (or a whole group), then practise them here: each comes with its scramble, you set it up
+  // Pick cases on their cards (or a whole group), then practice them here: each comes with its scramble, you set it up
   // on a solved cube (yellow on top, green in front) and solve it from memory. Misses come back in a minute, known
   // ones after 1, 3, 7, 16 and 35 days (SRS_DAYS). With a smart cube the scramble crosses off as you turn, and the
   // cube checks your solve: solved without peeking counts as known.
@@ -6294,11 +6307,11 @@ body.running .acct-btn { visibility: hidden; }
     quiz.graded = true; quiz.total++; if (ok) quiz.right++;
     srsGrade(quiz.cur.id, ok);
   }
-  // the bar above the cards: how many you picked, and Practise
+  // the bar above the cards: how many you picked, and Practice
   function memoBarHtml() {
     const pool = memoPool(learnSet), srs = db.srs || {}, memo = pool.filter(c => srs[c.id] && srs[c.id].box >= 2).length;
     return `<div class="memo-bar"><span>Memorize: <b>${pool.length}</b> picked${pool.length ? ` · ${memo} memorized` : ''}</span>
-      <button type="button" class="btn" data-mz="start"${pool.length ? '' : ' disabled'}>Practise my picks</button>${pool.length ? '<button type="button" class="text-btn" data-mz="clear">Clear picks</button>' : ''}
+      <button type="button" class="btn" data-mz="start"${pool.length ? '' : ' disabled'}>Practice my picks</button>${pool.length ? '<button type="button" class="text-btn" data-mz="clear">Clear picks</button>' : ''}
       ${pool.length ? '' : '<p>Pick the cases you want to learn with <b>Memorize</b> on their cards, or <b>Pick all</b> beside a group.</p>'}</div>`;
   }
   function memoNote() {
@@ -6364,7 +6377,7 @@ body.running .acct-btn { visibility: hidden; }
     }
     renderMemo();
   }
-  // smart-cube turns while practising: the scramble crosses off, then the cube checks your solve
+  // smart-cube turns while practicing: the scramble crosses off, then the cube checks your solve
   function memoLine() { const s = $('memoScr'), n = $('memoNote'); if (s && quiz.T && quiz.phase === 'setup') s.innerHTML = trackSpans(quiz.T, quiz.T.toks); if (n) n.textContent = memoNote(); }
   function memoSmartMove(m) {
     if (quiz.phase === 'done') { pickQuiz(); renderMemo(); return true; }   // your next turn brings the next case (and counts towards its scramble)
@@ -6397,7 +6410,7 @@ body.running .acct-btn { visibility: hidden; }
     const key = (p, n) => p.join() + '/' + n.join();
     const ORDER = Cube.solved(3).map(k => key(k.p, k.n));
     // What a trainer needs from the cube, so the rest can be anything. With white on top the last layer has the
-    // yellow (D) stickers. Each rule looks at one sticker and all the colours of its piece; '.' means it doesn't matter.
+    // yellow (D) stickers. Each rule looks at one sticker and all the colors of its piece; '.' means it doesn't matter.
     const MASKS = {
       cross: (col, cols) => cols.length === 1 || (cols.length === 2 && cols.includes('U')) ? col : '.',
       f2l: (col, cols) => cols.length === 1 || !cols.includes('D') ? col : '.',
@@ -6539,7 +6552,7 @@ body.running .acct-btn { visibility: hidden; }
     const f2lSolvedTop = st => st.every(k => k.p[1] < 0 || k.col === HOME(k.n));
     const ollSolvedTop = st => f2lSolvedTop(st) && st.filter(k => k.n[1] === -1).every(k => k.col === 'D');   // yellow is on the bottom
     const solvedUpToAuf = st => ['', 'D', "D'", 'D2'].some(a => isSolved(Cube.apply(clone(st), 3, a)));   // yellow is on the bottom
-    // every face one colour. After M turns the cube's centers are not where the cube thinks they are
+    // every face one color. After M turns the cube's centers are not where the cube thinks they are
     // (it reports M as two face turns), so a solved cube can look turned over.
     const solvedAnyWay = st => { const f = new Map(); return st.every(k => { const id = k.n.join(); if (!f.has(id)) f.set(id, k.col); return f.get(id) === k.col; }); };
     return { clone, sig, isSolved, fromFacelets, toFacelets, track, step, fixMoves, splits, f2lSolvedTop, ollSolvedTop, solvedUpToAuf, solvedAnyWay };
@@ -6754,7 +6767,7 @@ body.running .acct-btn { visibility: hidden; }
   // ---------- smart cube: a 3D cube on the timer that turns with yours ----------
   // It shows the cube as the smart cube reports it (white on top, by its centers), or turned over (z2)
   // for solving with white on the bottom. Turns are animated; when they come faster, it catches up.
-  const L3_SCHEMES = {   // sticker colours by home face: U white, D yellow, F green, B blue, R red, L orange
+  const L3_SCHEMES = {   // sticker colors by home face: U white, D yellow, F green, B blue, R red, L orange
     standard: { name: 'Standard', U: '#FFFFFF', D: '#FFD500', F: '#009E60', B: '#0051BA', R: '#C41E3A', L: '#FF5800' },
     bright: { name: 'Bright', U: '#FFFFFF', D: '#FFEE00', F: '#00D84A', B: '#1E6BFF', R: '#FF2D2D', L: '#FF8A00' },
     pastel: { name: 'Pastel', U: '#F7F7F2', D: '#FFE89A', F: '#9BE3B4', B: '#9CC3F5', R: '#F59B9B', L: '#FFC48C' },
@@ -6792,7 +6805,7 @@ body.running .acct-btn { visibility: hidden; }
     drawCube3D($('live3d'), L3.st, turning, L3);
     if (L3.anim || L3.q.length || (L3.gt && qAngle(L3.gq, L3.gt) > 0.01)) live3dKick();
   }
-  // draws a cube state on a canvas in the chosen colours; `turning` is a layer part-way through a turn
+  // draws a cube state on a canvas in the chosen colors; `turning` is a layer part-way through a turn
   function drawCube3D(cv, st, turning, viewAt) {
     const d = window.devicePixelRatio || 1, w = Math.round((cv.clientWidth || cv.width) * d);
     if (!w) return;
@@ -6812,7 +6825,7 @@ body.running .acct-btn { visibility: hidden; }
       ctx.closePath(); ctx.fillStyle = ctx.strokeStyle = p.fill; ctx.fill(); ctx.stroke();
     }
   }
-  // the settings, with a preview that shows the colours before a cube is connected
+  // the settings, with a preview that shows the colors before a cube is connected
   const L3P = { yaw: -0.62, pitch: 0.5, st: Cube.apply(Cube.solved(3), 3, "R U R' U'") };
   function l3Preview() { drawCube3D($('l3Preview'), L3P.st, null, L3P); if (live3dOn()) live3dKick(); }
   function l3Settings() {
@@ -6829,7 +6842,7 @@ body.running .acct-btn { visibility: hidden; }
   $('l3Hold').addEventListener('change', e => { db.l3.hold = e.target.value; save(); l3Preview(); });
   $('l3Body').addEventListener('change', e => { db.l3.body = e.target.value; save(); l3Preview(); });
   $('l3Scheme').addEventListener('change', e => {
-    if (e.target.value === 'custom' && db.l3.scheme !== 'custom') db.l3.custom = { ...l3Colors() };   // start from the colours you had
+    if (e.target.value === 'custom' && db.l3.scheme !== 'custom') db.l3.custom = { ...l3Colors() };   // start from the colors you had
     db.l3.scheme = e.target.value; save(); l3Settings();
   });
   $('l3Custom').addEventListener('input', e => { const f = e.target.dataset.face; if (!f) return; db.l3.custom[f] = e.target.value; save(); l3Preview(); });
@@ -6898,7 +6911,7 @@ body.running .acct-btn { visibility: hidden; }
       if (SmartCore.isSolved(SM.cur) || (f2lMode() && SmartCore.f2lSolvedTop(SM.cur)) || (drill && drillDone(SM.cur))) smartFinish();   // F2L practice stops when the pairs are in, a drill when its step is done
       return;
     }
-    // (idle too: inspection was cancelled with Esc, but the cube is still scrambled, as the note says)
+    // (idle too: inspection was canceled with Esc, but the cube is still scrambled, as the note says)
     if ((state === 'inspecting' || state === 'smartReady' || (state === 'idle' && view === 'timer' && !drill && !overTimer() && !(typeof RACE !== 'undefined' && RACE.open))) && SM.T && SM.T.done) {
       start(); runStart = ts; SM.kbStart = false;     // the first turn starts the timer
       SM.readySt = before; SM.moves = [{ m, t: ts, lost: !!ev && ev.localTimestamp == null }]; SM.raw = ev ? [ev] : [];
@@ -7153,9 +7166,9 @@ body.running .acct-btn { visibility: hidden; }
   if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) { $('stackBtn').disabled = true; $('stackInfo').textContent += " This browser can't use a microphone input."; }
   $('stackBtn').addEventListener('click', e => { unfocus(e.target); stackConnect(); });
 
-  // ---------- coach: after a slow step, practise that exact thing ----------
+  // ---------- coach: after a slow step, practice that exact thing ----------
   // With a smart cube Sub-X knows each step's time and which OLL and PLL case came up. When a step is much slower
-  // than your usual, it names the case and (in "Must practise") the next solve waits until you've drilled it 3 times.
+  // than your usual, it names the case and (in "Must practice") the next solve waits until you've drilled it 3 times.
   // Without a smart cube it can only tell the whole solve was slow, so it asks where you got stuck.
   const COACH_N = 3;
   db.coach = db.coach || 'suggest';
@@ -7169,7 +7182,7 @@ body.running .acct-btn { visibility: hidden; }
     const t = [0, 0, 0, 0], ids = {};
     for (const st of a.steps) {
       const i = st.stage.startsWith('Pair') ? 1 : STEP_I[st.stage]; if (i === undefined) continue;
-      t[i] += st.ms || 0;   // counted from the end of the step before, so the pause to recognise it is in
+      t[i] += st.ms || 0;   // counted from the end of the step before, so the pause to recognize it is in
       if (st.id) ids[i] = st.id;
     }
     const r = { t, ids }; stepMemo.set(s, r); return r;
@@ -7206,7 +7219,7 @@ body.running .acct-btn { visibility: hidden; }
     if (db.coach !== 'force' || drill || !(P || (coachMsg && coachMsg.ask))) return false;
     const el = $('coach'); el.hidden = false; el.animate && el.animate([{ transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'none' }], 240);
     el.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
-    toast(P ? `Practise ${(caseById(P.id) || {}).name || 'the case'} first, or press Skip.` : 'Pick where you got stuck first, or press Not stuck.');
+    toast(P ? `Practice ${(caseById(P.id) || {}).name || 'the case'} first, or press Skip.` : 'Pick where you got stuck first, or press Not stuck.');
     return true;
   }
   function coachShow(msg) {
@@ -7216,8 +7229,8 @@ body.running .acct-btn { visibility: hidden; }
     let h;
     if (c) {
       const pll = c.id.startsWith('pll:'), name = c.name + (pll ? ' perm' : '');
-      const tip = c.tip || (pll ? 'Recognise it from two sides: look for headlights (two matching corners), blocks and bars.' : 'Recognise it by the yellow pattern on top and on the sides.');
-      h = `<b>Slow ${esc(P.step)}: ${esc(name)}</b><p>It took ${fmt(P.ms)}${P.avg ? ` (your ${esc(P.step)} usually takes ${fmt(P.avg)})` : ''}, counting the time to recognise it. ${force ? `Drill it ${P.need} times before your next solve.` : `Drill it a few times so it's quicker to spot.`}</p>
+      const tip = c.tip || (pll ? 'Recognize it from two sides: look for headlights (two matching corners), blocks and bars.' : 'Recognize it by the yellow pattern on top and on the sides.');
+      h = `<b>Slow ${esc(P.step)}: ${esc(name)}</b><p>It took ${fmt(P.ms)}${P.avg ? ` (your ${esc(P.step)} usually takes ${fmt(P.avg)})` : ''}, counting the time to recognize it. ${force ? `Drill it ${P.need} times before your next solve.` : `Drill it a few times so it's quicker to spot.`}</p>
         <p class="coach-tip">Tip: ${esc(tip)}</p>
         <div class="row-btns"><button type="button" class="btn" data-coach="drill">${P.done ? `Keep drilling (${P.done} of ${P.need})` : 'Drill it now'}</button><button type="button" class="pill-btn" data-coach="watch">Watch in 3D</button><button type="button" class="pill-btn" data-coach="skip">${force ? 'Skip' : 'Later'}</button></div>`;
     } else if (coachMsg.ask) {
@@ -7227,7 +7240,7 @@ body.running .acct-btn { visibility: hidden; }
     } else {
       const n = PHASES[coachMsg.step];
       h = `<b>Slow ${n}</b><p>It took ${fmt(coachMsg.ms)}${coachMsg.avg ? ` (usually ${fmt(coachMsg.avg)})` : ''}. A few rounds in the ${esc(PHASE_PAGE[coachMsg.step] === 'cross' ? 'Cross trainer' : PAGE_NAME[PHASE_PAGE[coachMsg.step]] || n)} help most.</p>
-        <div class="row-btns"><button type="button" class="btn" data-coach="go:${coachMsg.step}">Practise ${n}</button><button type="button" class="pill-btn" data-coach="skip">Later</button></div>`;
+        <div class="row-btns"><button type="button" class="btn" data-coach="go:${coachMsg.step}">Practice ${n}</button><button type="button" class="pill-btn" data-coach="skip">Later</button></div>`;
     }
     el.innerHTML = h; el.hidden = false;
   }
@@ -7280,7 +7293,7 @@ body.running .acct-btn { visibility: hidden; }
 
   // ---------- my cases: every OLL and PLL your smart-cube solves have had ----------
   // Each timed solve is split into steps once (kept in memory, not stored: it can be worked out again): the case, the
-  // time to recognise it (the pause before its first turn), the time to do it, and its turns.
+  // time to recognize it (the pause before its first turn), the time to do it, and its turns.
   function caseRuns(s) {
     if (caseMemo.has(s)) return caseMemo.get(s);
     const mv = yourMoves(s); if (s.ex || s.f2l || !s.mv || !s.mt || !mv) return null;
@@ -7345,7 +7358,7 @@ body.running .acct-btn { visibility: hidden; }
     const W = 340, row = 22, padL = 64, padR = 44, H = R.length * row + 4, top = Math.max(...R.map(o => o.d.rec + o.d.exe)) || 1;
     const X = ms => (W - padL - padR) * ms / top;
     const bars = R.map((o, i) => {
-      const y = 2 + i * row, a = X(o.d.rec), b = X(o.d.exe), tip = `${o.c.name}: ${sec2(o.d.rec)} s recognising, ${sec2(o.d.exe)} s executing`;
+      const y = 2 + i * row, a = X(o.d.rec), b = X(o.d.exe), tip = `${o.c.name}: ${sec2(o.d.rec)} s recognizing, ${sec2(o.d.exe)} s executing`;
       return `<g><title>${esc(tip)}</title><rect x="0" y="${y}" width="${W}" height="${row}" fill="transparent"/>` +
         `<text x="${padL - 6}" y="${y + 15}" text-anchor="end">${esc(o.c.name)}</text>` +
         `<rect x="${padL}" y="${y + 4}" width="${Math.max(0, a - 1).toFixed(1)}" height="14" rx="3" fill="var(--ph-cross)"/>` +
@@ -7353,7 +7366,7 @@ body.running .acct-btn { visibility: hidden; }
         `<text x="${(padL + a + b + 5).toFixed(1)}" y="${y + 15}">${sec2(o.d.rec + o.d.exe)}</text></g>`;
     }).join('');
     return `<div class="prog-chart"><h3>Where the time goes<small>median per case, slowest ${R.length}</small></h3>
-      <div class="legend"><span><i style="background:var(--ph-cross)"></i>recognise</span><span><i style="background:var(--ph-f2l)"></i>execute</span></div>
+      <div class="legend"><span><i style="background:var(--ph-cross)"></i>recognize</span><span><i style="background:var(--ph-f2l)"></i>execute</span></div>
       <svg class="prog-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Recognition and execution time per case">${bars}</svg></div>`;
   }
   // how many cases of the set you've learned, over time (from when you marked each one learned)
@@ -7399,7 +7412,7 @@ body.running .acct-btn { visibility: hidden; }
     const card = o => {
       const d = o.d, k = algTurns(o.c), long = d && d.x && k && d.x.n > k + 2;
       return `<article class="pcase">${caseDiagram(o.c, true)}<div class="pcase-main"><div class="pcase-head"><h3>${esc(o.c.name)}</h3>${badge(o)}</div>` +
-        (d ? `<p class="pcase-med"><small>Median</small>${sec2(d.med)} s${d.rec != null ? `<span>${sec2(d.rec)} recognise · ${sec2(d.exe)} execute</span>` : ''}</p>` +
+        (d ? `<p class="pcase-med"><small>Median</small>${sec2(d.med)} s${d.rec != null ? `<span>${sec2(d.rec)} recognize · ${sec2(d.exe)} execute</span>` : ''}</p>` +
           `<p class="pcase-n">${[d.seen && `${d.seen} in solves`, d.trained && `${d.trained} in the trainer`, d.drilled && `${d.drilled} drilled`].filter(Boolean).join(' · ')}${long ? `<span class="over" title="The algorithm in Learn takes ${k} turns">${d.x.n.toFixed(0)} turns, alg ${k}</span>` : ''}</p>${sparkSvg(d, o.c.name)}`
           : '<p class="pcase-n">Not timed yet</p>') +
         `<div class="pcase-acts"><button type="button" class="pill-btn" data-p3d="${o.c.id}">Watch in 3D</button><button type="button" class="pill-btn" data-drill="${o.c.id}">Drill on timer</button></div></div></article>`;
@@ -7409,10 +7422,10 @@ body.running .acct-btn { visibility: hidden; }
     body.innerHTML = `<div class="set-cards">${cards}</div>
       <section class="panel prog-panel">
         <div class="prog-stats"><div><small>Learned</small><b>${learnedN}<span>/${all.length}</span></b></div>${timed.length ? `<div><small>Timed</small><b>${timed.length}<span>/${all.length}</span></b></div>` : ''}${med != null ? `<div><small>Median case</small><b>${sec2(med)}<span> s</span></b></div>` : ''}</div>
-        ${charts ? `<div class="prog-charts">${charts}</div>` : `<p class="lead">No times for these cases yet. Practise them in the ${esc(PAGE_NAME[trPage] || 'trainer')}, drill them on the timer, or solve with a smart cube, and graphs of your times show up here.</p>${PAGE_NAME[trPage] ? `<div class="row-btns"><button type="button" class="pill-btn" data-lset="${trPage}">Open the ${esc(PAGE_NAME[trPage])}</button></div>` : ''}`}
+        ${charts ? `<div class="prog-charts">${charts}</div>` : `<p class="lead">No times for these cases yet. Practice them in the ${esc(PAGE_NAME[trPage] || 'trainer')}, drill them on the timer, or solve with a smart cube, and graphs of your times show up here.</p>${PAGE_NAME[trPage] ? `<div class="row-btns"><button type="button" class="pill-btn" data-lset="${trPage}">Open the ${esc(PAGE_NAME[trPage])}</button></div>` : ''}`}
         ${fresh.length ? `<div class="callout"><b>You know ${fresh.length} more</b>${fresh.map(o => esc(o.c.name)).join(', ')}: done 3 times or more in about the turns of the algorithm. <button type="button" class="pill-btn" data-caselearn="${fresh.map(o => o.c.id).join(',')}">Mark ${fresh.length === 1 ? 'it' : 'them'} learned</button></div>` : ''}
       </section>
-      <div class="prog-bar"><h2>${esc(CASE_SETS.find(s => s[0] === set)[1])} cases</h2><label>Sort ${sel('casesSort', [['slow', 'Slowest first'], ['most', 'Most practised'], ['name', 'Name']], sort)}</label><label>Show ${sel('casesFilter', [['all', 'All'], ['todo', 'Not learned'], ['learned', 'Learned'], ['none', 'No data']], filter)}</label></div>
+      <div class="prog-bar"><h2>${esc(CASE_SETS.find(s => s[0] === set)[1])} cases</h2><label>Sort ${sel('casesSort', [['slow', 'Slowest first'], ['most', 'Most practiced'], ['name', 'Name']], sort)}</label><label>Show ${sel('casesFilter', [['all', 'All'], ['todo', 'Not learned'], ['learned', 'Learned'], ['none', 'No data']], filter)}</label></div>
       ${rows.length ? `<div class="pcases">${rows.map(card).join('')}</div>` : '<p class="lead">No cases match.</p>'}`;
   }
   document.addEventListener('click', e => {
@@ -7446,7 +7459,7 @@ body.running .acct-btn { visibility: hidden; }
       if (me.ids[i]) { c = caseById(me.ids[i]); run = mine.find(r => r.id === me.ids[i]); x = T.get(me.ids[i]); if (x && x.seen >= 2) usual = x.r + x.e; else x = null; }
       const lost = v - usual; if (lost < 300) return;
       const why = [];
-      if (run && x && run.r - x.r >= 400) why.push(`${(Math.min(lost, run.r - x.r) / 1000).toFixed(1)} s of it was recognising`);
+      if (run && x && run.r - x.r >= 400) why.push(`${(Math.min(lost, run.r - x.r) / 1000).toFixed(1)} s of it was recognizing`);
       const k = c && algTurns(c); if (run && k && run.n > k + 2) why.push(`you used ${run.n} turns, and the algorithm in Learn takes ${k}`);
       items.push({ i, v, usual, lost, c, own: !!x, why });
     });
@@ -7455,7 +7468,7 @@ body.running .acct-btn { visibility: hidden; }
     const total = items.reduce((a, x) => a + x.lost, 0), pct = v => (v / 1000).toFixed(1);
     el.innerHTML = `<b>You could have saved about ${pct(total)} s</b><ul class="save-list">${items.map(it => `<li><span>${PHASES[it.i]}${it.c ? ` · ${esc(it.c.name)}${it.c.id.startsWith('pll:') ? ' perm' : ''}` : ''}</span>` +
       `${fmt(it.v)}, usually ${fmt(it.usual)}${it.own ? ' on this case' : ''}: <em>${pct(it.lost)} s lost</em>${it.why.length ? ', ' + esc(it.why.join(', and ')) : ''}.` +
-      `${it.c ? ` <button type="button" class="mini-btn" data-drill="${it.c.id}">Drill it</button>` : it.i < 2 ? ` <button type="button" class="mini-btn" data-coach="go:${it.i}">Practise</button>` : ''}</li>`).join('')}</ul>` +
+      `${it.c ? ` <button type="button" class="mini-btn" data-drill="${it.c.id}">Drill it</button>` : it.i < 2 ? ` <button type="button" class="mini-btn" data-coach="go:${it.i}">Practice</button>` : ''}</li>`).join('')}</ul>` +
       `<div class="row-btns"><button type="button" class="mini-btn" data-saving="close">Close</button> <button type="button" class="mini-btn" data-saving="cases">My progress</button></div>`;
     el.hidden = false;
   }
@@ -7684,7 +7697,7 @@ body.running .acct-btn { visibility: hidden; }
     $('spread').innerHTML = g;
     $('spreadSub').textContent = `${Math.round(ok.filter(v => v < goal).length / ok.length * 100)}% sub-${db.goal}`;
   }
-  // each smart-cube solve split into its steps once per page load: time, the pause to recognise it, turns
+  // each smart-cube solve split into its steps once per page load: time, the pause to recognize it, turns
   const stepCache = new WeakMap();
   function stepRun(s) {
     if (stepCache.has(s)) return stepCache.get(s);
@@ -7767,7 +7780,7 @@ body.running .acct-btn { visibility: hidden; }
       return `<tr><th scope="row"><span class="sw" style="background:${PH_COL[i]}"></span>${p}</th><td>${fmt(t[i])}</td><td>${fmt(look)}</td><td>${fmt(turning)}</td><td>${turns.toFixed(1)}</td><td>${(turns / (turning / 1000)).toFixed(1)}</td><td>${trend}</td></tr>`;
     }).join('');
     const ratio = t.map((v, i) => v / (total * TYPICAL[i])), slow = ratio.indexOf(Math.max(...ratio));
-    $('splitsNote').textContent = `${PHASES[slow]} takes a bigger share of your solves than it does for most CFOP solvers, so it's the best place to practise.${k ? ' Trend compares your last 12 with the solves before them.' : ''} Look is the pause before a step's first turn.`;
+    $('splitsNote').textContent = `${PHASES[slow]} takes a bigger share of your solves than it does for most CFOP solvers, so it's the best place to practice.${k ? ' Trend compares your last 12 with the solves before them.' : ''} Look is the pause before a step's first turn.`;
     const four = runs.filter(r => r.pairs.length === 4);
     $('pairsBox').innerHTML = four.length ? [0, 1, 2, 3].map(j => `<div><small>Pair ${j + 1}</small><b>${fmt(avgOver(four, r => r.pairs[j].ms))}</b><span>look ${fmt(avgOver(four, r => r.pairs[j].look))}</span></div>`).join('') : '';
     // cross length: how many solves took each number of turns
@@ -7784,7 +7797,7 @@ body.running .acct-btn { visibility: hidden; }
     // X-cross rate: solves where a pair was in by the time the cross was done (smart-cube splits, not tapped ones)
     const xs = solvesFor(db.event).filter(s => s.splits && !s.splits.manual && !s.ex && !s.f2l && s.splits.pairs && s.splits.pairs.length).slice(-50);
     const xn = xs.filter(s => s.splits.pairs[0] <= s.splits.cross).length;
-    $('xcrossRate').innerHTML = xs.length ? `X-cross: <b>${xn}</b> of your last ${xs.length} smart-cube solve${xs.length === 1 ? '' : 's'} (${Math.round(xn / xs.length * 100)}%) had a pair in with the cross. <button type="button" class="mini-btn" data-lset="xcross">Practise X-crosses</button>` : '';
+    $('xcrossRate').innerHTML = xs.length ? `X-cross: <b>${xn}</b> of your last ${xs.length} smart-cube solve${xs.length === 1 ? '' : 's'} (${Math.round(xn / xs.length * 100)}%) had a pair in with the cross. <button type="button" class="mini-btn" data-lset="xcross">Practice X-crosses</button>` : '';
   }
   // every OLL and PLL your smart-cube solves have had, slowest first
   let dashLL = 'pll';
@@ -7839,7 +7852,7 @@ body.running .acct-btn { visibility: hidden; }
     let streak = 0; for (let d = count.has(today) ? today : day(today - DAY + 3600000); count.has(d); d = day(d - DAY + 3600000)) streak++;
     let run = 0, longest = 0; [...count.keys()].sort((a, b) => a - b).forEach((d, i, arr) => { run = i && day(arr[i - 1] + DAY + 3600000) === d ? run + 1 : 1; longest = Math.max(longest, run); });
     const inRange = days.reduce((a, d) => a + (count.get(d) || 0), 0), active = days.filter(d => count.has(d)).length;
-    $('calStats').innerHTML = `<span>Solves <b>${inRange.toLocaleString()}</b></span><span>Days practised <b>${active}</b></span><span>Streak <b>${streak} day${streak === 1 ? '' : 's'}</b></span><span>Longest <b>${longest} day${longest === 1 ? '' : 's'}</b></span>`;
+    $('calStats').innerHTML = `<span>Solves <b>${inRange.toLocaleString()}</b></span><span>Days practiced <b>${active}</b></span><span>Streak <b>${streak} day${streak === 1 ? '' : 's'}</b></span><span>Longest <b>${longest} day${longest === 1 ? '' : 's'}</b></span>`;
     const o = { month: 'short', day: 'numeric' };
     $('calRange').textContent = `${new Date(start).toLocaleDateString(undefined, o)} to ${new Date(today).toLocaleDateString(undefined, o)}`;
     const sc = $('cal').parentElement; sc.scrollLeft = sc.scrollWidth;   // on a phone the newest weeks are the ones in view
@@ -7908,7 +7921,7 @@ body.running .acct-btn { visibility: hidden; }
 
   // ---------- achievements and streaks: worked out from what's already saved ----------
   const dayKey = t => { const d = new Date(t), p2 = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
-  function dayRun(days) {   // days in a row ending today (or yesterday, so the streak isn't lost before you practise)
+  function dayRun(days) {   // days in a row ending today (or yesterday, so the streak isn't lost before you practice)
     let n = 0; const d = new Date();
     if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
     while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
