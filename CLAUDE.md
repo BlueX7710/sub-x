@@ -25,8 +25,8 @@ claude.ai page. It's the owner's own project; `README.md` lists everything it do
   `docs/privacy.html`.
 - The Stackmat reader is website and app only (the claude.ai page has no microphone), like the camera and
   smart cube: `tools/sync.sh` rejects those hunks for the claude.ai copy on purpose.
-- Pro ($2.99 a month or $29.99 a year, a free week; RevenueCat with Google Play Billing in the Play app and Stripe
-  on the web; setup in `android-app/store/payments.md`): `PRO_LIVE` turns on once `PAY` has a key, and then Pro
+- Pro ($2.99 a month or $29.99 a year, a free week; RevenueCat with Google Play Billing in the Play app and Paddle
+  on the web (card, PayPal, Apple Pay); setup in `android-app/store/payments.md`): `PRO_LIVE` turns on once `PAY` has a key, and then Pro
   comes only from the store (`proStoreActive`), never from `db`. The claude.ai copy has no paywall or payments:
   drop the "Pro payments" block when syncing (it needs sign-in).
 - App versions: the app adds `SubX/<version>` to its user agent (`appendUserAgent` in

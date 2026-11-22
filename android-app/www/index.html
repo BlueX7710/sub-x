@@ -1738,8 +1738,8 @@ body.running .acct-btn { visibility: hidden; }
     if (d.back && d.back !== document.body && d.back.isConnected && !d.back.closest('[inert]')) d.back.focus({ preventScroll: true });
   }
   // ---------- Pro: the plan, the paywall, and which features it locks ----------
-  // Payments go through RevenueCat (see "Pro payments" further down): Google Play Billing in the Play app, a Stripe card
-  // checkout on the website. The locks come on (PRO_LIVE) once a store key is filled in; until then everything is free.
+  // Payments go through RevenueCat (see "Pro payments" further down): Google Play Billing in the Play app, a Paddle
+  // checkout on the website (card, PayPal, Apple Pay). The locks come on (PRO_LIVE) once a store key is filled in; until then everything is free.
   // Before that, ?protest=1 gives a testing switch on the Account page, and Go Pro turns on a pretend Pro on that device.
   // Prices: $2.99 a month or $29.99 a year, with a free week, set in Google Play Console and RevenueCat; the store's own
   // prices (in the buyer's currency) are shown once they load, these are only the fallback.
@@ -7570,13 +7570,13 @@ body.running .acct-btn { visibility: hidden; }
   syncUI();
 
   // ---------- Pro payments ----------
-  // RevenueCat keeps the subscriptions: Google Play Billing in the Play app (Google requires it there) and a Stripe card
-  // checkout on the website. Both are tied to Sign in with Google, so one subscription works everywhere. The APK on
+  // RevenueCat keeps the subscriptions: Google Play Billing in the Play app (Google requires it there) and a Paddle
+  // checkout on the website (card, PayPal, Apple Pay; Paddle is the seller of record and handles sales tax). Both are tied to Sign in with Google, so one subscription works everywhere. The APK on
   // GitHub isn't installed from Google Play, so Play Billing can't work in it: it says SubXGitHub in its user agent
   // (tools/build-github-apk.sh) and sends people to the website to pay. Prices and the free week are set in Google Play
   // Console and RevenueCat (android-app/store/payments.md). With no key below, PRO_LIVE stays off and nothing locks.
   const PAY = {
-    web: '',        // RevenueCat Web Billing public API key (rcb_..., or rcb_sb_... for test cards)
+    web: '',        // RevenueCat public API key of the Paddle web setup (pdl_...)
     android: '',    // RevenueCat Google Play public API key (goog_...)
     ent: 'pro',     // the entitlement both plans unlock
     sdk: 'https://cdn.jsdelivr.net/npm/@revenuecat/purchases-js@1.73.2/dist/Purchases.es.js',

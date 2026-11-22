@@ -44,8 +44,11 @@ The app shows whatever the store says, including local prices in other countries
   revenue threshold: check revenuecat.com/pricing for the current figures.
 - **Android app:** Google requires **Google Play Billing** for subscriptions sold inside an app. The app uses
   RevenueCat's Capacitor plugin (`@revenuecat/purchases-capacitor` 13.8.0), new in **app 1.8**.
-- **Website:** RevenueCat **Web Billing**, which charges cards through your **Stripe** account. Its library loads
-  from jsDelivr (`@revenuecat/purchases-js` 1.73.2) only when needed.
+- **Website:** **Paddle**, opened by RevenueCat's web library (`@revenuecat/purchases-js` 1.73.2, loaded from jsDelivr
+  only when needed). Paddle takes cards, **PayPal** and Apple Pay, and as the seller of record it charges and pays
+  the sales tax/VAT in each buyer's country. It takes about 5% + $0.50 a sale (check paddle.com/pricing).
+- Prices on the website: Paddle adds the buyer's sales tax on top of $2.99/$29.99 (in Indonesia that showed as
+  $3.32 a month). To make the price include tax instead, change each Paddle price's tax setting to "Tax inclusive".
 - Buying needs **Sign in with Google** (the same sign-in as sync). The subscription is stored against the
   Firebase account id, so one subscription works on the website and in the app.
 - The GitHub APK pays on the website instead (see below). Apps older than 1.8 can't sell Pro. They still unlock it for people who subscribed on the website, and they
@@ -68,38 +71,44 @@ The app shows whatever the store says, including local prices in other countries
    - Activate both base plans and offers.
 4. **Setup → License testing**: add your Google account, so test purchases are free.
 
-### 2. Stripe (for the website)
+### 2. Paddle (for the website)
 
-1. Make a Stripe account at stripe.com and finish verification (business or individual, bank account).
-2. Sales tax: turn on **Stripe Tax**, or check what your country requires. RevenueCat Web Billing isn't a
-   "merchant of record", so tax is your responsibility on the web. (Google Play handles tax in the app.)
+Paddle keeps test ("sandbox", sandbox-vendors.paddle.com) and live (vendors.paddle.com) as separate accounts.
+The sandbox one is already set up; repeat these steps on the live account when going live (Paddle reviews the
+live account and website first):
+
+1. **Catalog → Products → New product** "Sub-X Pro", with two prices: **$2.99 monthly** and **$29.99 yearly**,
+   each with a **7-day free trial** (Trials on, "Free trial", 7 days).
+2. **Checkout → Checkout settings**: Payment methods: **PayPal** and Apple Pay on (Google Pay needs Paddle's extra
+   check first); Default payment link **https://pay.rev.cat**; Recovery (abandoned checkout emails) **off**.
+3. **Checkout → Website approval** (live only): add `pay.rev.cat` and `bluex7710.github.io`.
+4. **Developer tools → Authentication → New API key** for RevenueCat, set to **never expire**. Copy the secret
+   (`pdl_live_...`, or `pdl_sdbx_...` in sandbox) from the pop-up straight after saving: Paddle shows it once.
+   RevenueCat lists the permissions it needs; read for everything plus write for client-side tokens, customer
+   portal sessions and transactions. (The sandbox key has write on everything, set while finding a paste problem;
+   trim it to that list.)
 
 ### 3. RevenueCat
 
-These steps follow how RevenueCat works, but its dashboard changes: where a name or menu differs, follow
-RevenueCat's current guides for **Google Play** and **Web Billing**. What the code needs is fixed: an
-entitlement called `pro`, and a current offering with a **Monthly** and an **Annual** package.
+What the code needs is fixed: an entitlement called `pro`, and a current offering with a **Monthly** and an
+**Annual** package. Done in the sandbox: project "Sub-X", entitlement `pro`, offering `default`, and the Paddle
+setup "Sub-X (Paddle)". (An earlier Stripe setup, "Sub-X (RevenueCat Billing)", is still there but unused; it can
+be deleted.)
 
-1. Sign up at revenuecat.com and make a project "Sub-X".
-2. **Add app → Google Play**: package `app.subx.cubetimer`. Follow RevenueCat's guide to give it a Google Cloud
-   service account with Play Console access (needed to check purchases). Copy the **public API key**
-   (starts with `goog_`).
-3. **Add app → Web Billing**: connect your Stripe account. Create two products: monthly at $2.99 and yearly at
-   $29.99, each with a **7-day free trial**. Copy the **public API key** (starts with `rcb_`, not `rcb_sb_`).
-   For testing first, the sandbox key (`rcb_sb_`) works with Stripe test cards.
-4. **Entitlements**: make one called exactly `pro`, and attach the Play product (`pro:monthly`, `pro:yearly`)
-   and both web products to it.
-5. **Offerings**: make one called `default`, mark it **Current**, and add two packages: **Monthly** with the
-   Play `pro:monthly` and web monthly product, **Annual** with `pro:yearly` and web yearly.
-6. In the Web Billing app settings, set the app name, support email and your privacy policy link
-   (https://bluex7710.github.io/sub-x/privacy.html), and any allowed-domain setting it asks for
-   (`bluex7710.github.io`).
+1. **Web → New web provider → Paddle**: names "Sub-X (Paddle)" / "Sub-X", paste the Paddle API key with **Set
+   secret**, keep Automatic tracking and autogenerated user IDs, **Connect to Paddle**.
+2. **Product catalog → Products → Sub-X (Paddle) → Import** both Paddle prices.
+3. Attach them to the `pro` entitlement, and add them to the `default` offering's Monthly and Annual packages.
+4. The Paddle setup's **Public API Key** (starts with `pdl_`) is what goes in `PAY.web`.
+5. **Add app → Google Play**: package `app.subx.cubetimer`. Follow RevenueCat's guide to give it a Google Cloud
+   service account with Play Console access. Copy the **public API key** (starts with `goog_`) for `PAY.android`,
+   and attach the Play products (`pro:monthly`, `pro:yearly`) to `pro` and the offering's packages.
 
 ### 4. Turn it on
 
-1. Send Claude the two **public** keys (they're meant to be public; never send the secret keys or the Stripe
-   secret key). They go in `PAY.web` and `PAY.android` in `docs/index.html`.
-2. Test with the sandbox key and a license-tester account: start a trial on the website and in the app, check
+1. Send Claude the two **public** keys (they're meant to be public; never send the secret Paddle or RevenueCat keys). They go in `PAY.web` and `PAY.android` in `docs/index.html`.
+2. Test with the sandbox keys and a license-tester account (Paddle test card 4242 4242 4242 4242, any future
+   date, CVV 100): start a trial on the website and in the app, check
    both unlock, cancel, and check Restore purchases in the app.
 3. Release **app 1.8** to production first, then push the site with the real keys. (The site update reaches
    the app at once; older apps show "Update the app to subscribe".)
@@ -120,7 +129,7 @@ Both stay. Google Play Billing only works in the copy installed from Google Play
 - **Google Play app:** subscribes with Google Play Billing, as above.
 - **GitHub APK:** built with `bash tools/build-github-apk.sh`, which adds `SubXGitHub/<version>` to its user agent.
   In that copy the Pro card says **Subscribe on the website** and opens the Sub-X website with the card already
-  open. People sign in there with the same Google account and pay by card (Stripe). Back in the app, Pro turns on
+  open. People sign in there with the same Google account and pay with Paddle (card, PayPal or Apple Pay). Back in the app, Pro turns on
   (it re-checks within 10 minutes, or straight away when they open the card). This is allowed because that copy
   isn't distributed through Google Play. Attach `android-app/Sub-X.apk` to the GitHub release as before.
 - Always build the GitHub APK with the script, never plain `assembleDebug`, or its buy button would try Google
