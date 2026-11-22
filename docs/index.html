@@ -7851,7 +7851,7 @@ body.running .acct-btn { visibility: hidden; }
     navigator.serviceWorker.register("sw.js").catch(() => {});
     // Once the service worker controls the page, warm its cache with everything offline use needs: the
     // fonts of every look (latin only) and the smart-cube library. Done again whenever the cache version changes.
-    const OFFLINE_VER = 'subx-v3';
+    const OFFLINE_VER = 'subx-v4';
     const warmOffline = async () => {
       if (!navigator.onLine || db.offlineReady === OFFLINE_VER) return;
       try {

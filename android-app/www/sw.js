@@ -2,7 +2,7 @@
 // everything else (icons, fonts, the smart-cube library) is served from cache and refreshed in the background.
 // The page warms the cache after it loads (all fonts every look uses, and the smart-cube library), so
 // Sub-X works fully offline after one visit. Paths are relative to this file, so it works in a sub-folder.
-const CACHE = 'subx-v3';
+const CACHE = 'subx-v4';   // v4: v3 could have saved another page (privacy.html) as the app
 const BASE = new URL('./', self.location).href;
 const SHELL = ['', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'].map(p => BASE + p);
 const CACHED_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net'];
@@ -22,11 +22,14 @@ self.addEventListener('fetch', e => {
   if (url.origin !== self.location.origin && !CACHED_HOSTS.includes(url.hostname)) return;
 
   if (req.mode === 'navigate') {
+    // the app is kept as BASE; another page (privacy.html) under its own address, so it never takes the app's place
+    const isApp = url.origin === self.location.origin && (url.pathname === new URL(BASE).pathname || url.pathname === new URL(BASE).pathname + 'index.html');
+    const key = isApp ? BASE : url.origin + url.pathname;
     e.respondWith(
       fetch(req, { cache: 'no-cache' }).then(res => {   // ask the site each time: its pages may otherwise be reused for 10 minutes
-        if (res.ok && !res.redirected) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(BASE, copy)); }
+        if (res.ok && !res.redirected) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(key, copy)); }
         return res;
-      }).catch(() => caches.match(BASE))
+      }).catch(() => caches.match(key).then(hit => hit || caches.match(BASE)))
     );
     return;
   }

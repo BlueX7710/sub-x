@@ -20,15 +20,23 @@ a { color: var(--accent); }
 <body>
 <main>
   <h1>Sub-<span>X</span> privacy policy</h1>
-  <p class="muted">For the Sub-X website (bluex7710.github.io/sub-x), the Sub-X Android app and the Sub-X page on claude.ai. Last updated 31 October 2026.</p>
+  <p class="muted">For the Sub-X website (bluex7710.github.io/sub-x), the Sub-X Android app and the Sub-X page on claude.ai. Last updated 22 November 2026.</p>
 
   <h2>The short version</h2>
-  <p>Sub-X has no accounts, no ads and no analytics. Your times, sessions and settings are stored on your own device and are not sent to us or anyone else.</p>
+  <p>Sub-X has no ads and no analytics. Your times, sessions and settings are stored on your own device. If you choose to sign in with Google to sync them between devices, a copy is kept in your own Sub-X sync storage (Google Firebase) that only your account can read. Nothing is sold or shared.</p>
 
   <h2>What is stored, and where</h2>
   <ul>
     <li><b>Your solves, sessions, learned cases, trainer times, achievements and settings</b> are saved in your browser's or the app's local storage on your device. Clearing the site's data or uninstalling the app deletes them.</li>
     <li><b>Backups</b> are files you choose to save, and they stay wherever you put them.</li>
+  </ul>
+
+  <h2>Sign-in and sync (optional, website and Android app)</h2>
+  <ul>
+    <li>Sign-in uses Google's sign-in through Google Firebase Authentication. Sub-X receives your Google account's ID, name, email address and profile picture; it shows the picture on the Account button and uses the ID to find your synced data.</li>
+    <li>While you are signed in, everything a backup holds (solves, sessions, learned cases, trainer times, achievements and settings) is copied to Google Cloud Firestore under your account and kept in step with your other devices. Firebase's security rules let only your signed-in account read or change it.</li>
+    <li>Signing out stops syncing; the times on each device stay there. To have your synced copy and sign-in record deleted, open an issue at the address under Contact.</li>
+    <li>Google processes this data as Firebase's provider, under the <a href="https://firebase.google.com/support/privacy">Firebase privacy terms</a>.</li>
   </ul>
 
   <h2>Permissions the app asks for</h2>

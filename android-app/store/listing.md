@@ -26,7 +26,7 @@ Everything to paste into the Play Console, and the steps that need the owner.
 **Full description:**
 
 ```
-Sub-X is a speedcubing timer that teaches you too. Free, no account, no ads, and it works offline.
+Sub-X is a speedcubing timer that teaches you too. Free, no account needed, no ads, and it works offline.
 
 TIMER
 • Competition-style 15-second inspection with "8 seconds" and "12 seconds" calls
@@ -82,8 +82,12 @@ Don't use "Rubik's" in the name or as a main keyword: it's a trademark.
 ## App content answers
 
 - **Ads:** no ads.
-- **Data safety:** no data collected, no data shared. Data is processed only on the device.
-  (The microphone is used on the device only and nothing is sent.)
+- **Data safety:** with sync, the app does collect data (it is optional and only after Google sign-in):
+  Personal info → Name, Email address and User IDs (account management); App activity → Other user-generated
+  content (your solves and settings, app functionality). Encrypted in transit: yes. Users can request deletion: yes
+  (through GitHub issues, as the privacy policy says). Not shared, not sold. The microphone is used on the device only.
+  Google Play also asks apps with sign-in for an account-deletion path: add an in-app "Delete synced data" option
+  (or a web form) before the store release.
 - **Content rating:** fill the IARC questionnaire as a utility/tool with no violence, user content, chat,
   gambling or purchases. It should come out as Everyone / PEGI 3.
 - **Target audience:** 13 and over is simplest. Including under-13s brings in the Families policy rules.
