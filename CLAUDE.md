@@ -14,7 +14,8 @@ claude.ai page. It's the owner's own project; `README.md` lists everything it do
 - To ship a change, use `/effortless` (`.claude/skills/effortless/SKILL.md`): `tools/sync.sh` copies
   the change into the other two copies, `tools/smoke.js` tests a copy in a browser, then commit,
   push and republish the claude.ai page.
-- Android APK: `cd android-app && npx cap sync android && cd android && gradlew.bat assembleDebug`. On the
+- Android APK for GitHub Releases: `bash tools/build-github-apk.sh` (it marks the user agent `SubXGitHub`, so Sub-X Pro is
+  bought on the website: Play Billing only works in the Play copy). Plain build: `cd android-app && npx cap sync android && cd android && gradlew.bat assembleDebug`. On the
   owner's PC, Java and the Android SDK are in `%LOCALAPPDATA%\SubXBuild` (set `JAVA_HOME` and `ANDROID_HOME`
   to them), and `npm ci` in `android-app` first if `node_modules` is missing. Keep the same debug key, so a
   new APK installs over the old one.
@@ -23,7 +24,12 @@ claude.ai page. It's the owner's own project; `README.md` lists everything it do
   the owner's steps and Data safety answers are in `android-app/store/listing.md`; the privacy policy is
   `docs/privacy.html`.
 - The Stackmat reader is website and app only (the claude.ai page has no microphone), like the camera and
-  smart cube: `tools/sync.sh` rejects those hunks for the claude.ai copy on purpose.- App versions: the app adds `SubX/<version>` to its user agent (`appendUserAgent` in
+  smart cube: `tools/sync.sh` rejects those hunks for the claude.ai copy on purpose.
+- Pro ($2.99 a month or $29.99 a year, a free week; RevenueCat with Google Play Billing in the Play app and Stripe
+  on the web; setup in `android-app/store/payments.md`): `PRO_LIVE` turns on once `PAY` has a key, and then Pro
+  comes only from the store (`proStoreActive`), never from `db`. The claude.ai copy has no paywall or payments:
+  drop the "Pro payments" block when syncing (it needs sign-in).
+- App versions: the app adds `SubX/<version>` to its user agent (`appendUserAgent` in
   `capacitor.config.json`). The site gives scrambles that cancel out to apps older than 1.4 (`OLD_APP` in
   the page), so raising the minimum means a new release on GitHub first, then pushing the site.
 

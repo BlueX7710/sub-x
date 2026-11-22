@@ -894,6 +894,7 @@ body.running .acct-btn { visibility: hidden; }
 .pw-go { min-height: 46px; padding: 0 38px; }
 .pw-badge { position: absolute; top: 12px; right: 12px; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, #E8B923 24%, transparent); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
 .pw-small { position: relative; margin: 16px 20px 0; font-size: 12px; color: var(--muted); text-align: center; }
+.pw-small.err { color: var(--warn); }
 .pw-sheet-wrap { align-items: flex-end; padding: 0; }
 .pw-sheet { width: min(520px, 100%); background: var(--surface); color: var(--ink); border-radius: 28px 28px 0 0; padding: 12px 24px max(24px, env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
 @media (min-width: 620px) { .pw-sheet-wrap { align-items: center; } .pw-sheet { border-radius: 28px; } }
@@ -1737,11 +1738,15 @@ body.running .acct-btn { visibility: hidden; }
     if (d.back && d.back !== document.body && d.back.isConnected && !d.back.closest('[inert]')) d.back.focus({ preventScroll: true });
   }
   // ---------- Pro: the plan, the paywall, and which features it locks ----------
-  // Payments aren't connected yet (Google Play Billing in the app, a card checkout on the website), so the locks are off
-  // for everyone (PRO_LIVE). To try them, open the site with ?protest=1: the Account page then shows a testing switch,
-  // and Go Pro turns on a pretend Pro on that device. Prices: Pro is $2.99 a month or $29.99 a year.
-  const PRO_LIVE = false, PRICE_M = 2.99, PRICE_Y = 29.99, PRO_SAVE = Math.round((1 - PRICE_Y / (PRICE_M * 12)) * 100);
-  const isPro = () => !!db.pro;
+  // Payments go through RevenueCat (see "Pro payments" further down): Google Play Billing in the Play app, a Stripe card
+  // checkout on the website. The locks come on (PRO_LIVE) once a store key is filled in; until then everything is free.
+  // Before that, ?protest=1 gives a testing switch on the Account page, and Go Pro turns on a pretend Pro on that device.
+  // Prices: $2.99 a month or $29.99 a year, with a free week, set in Google Play Console and RevenueCat; the store's own
+  // prices (in the buyer's currency) are shown once they load, these are only the fallback.
+  // Live, Pro comes from the store and is never read from saved data, so a backup, a restore or a sync can't turn it on.
+  let PRO_LIVE = false;
+  const PRICE_M = 2.99, PRICE_Y = 29.99, PRO_SAVE = Math.round((1 - PRICE_Y / (PRICE_M * 12)) * 100);
+  const isPro = () => PRO_LIVE ? proStoreActive() : !!db.pro;
   const proLocked = () => (PRO_LIVE || !!db.proTest) && !isPro();
   const PRO_ROWS = [['Timer, inspection and every WCA event', true], ['ao5, ao12 and your trend chart', true], ['Sync your times across devices', true],
     ['Connect a smart cube by Bluetooth', true], ['Beginner method, 2-look OLL and PLL', true], ['Smart-cube splits and stats', false],
@@ -1754,30 +1759,46 @@ body.running .acct-btn { visibility: hidden; }
     $('pwFreeList').innerHTML = PRO_ROWS.map(([l, free]) => free ? `<li>${PW_CHECK}${l}</li>` : `<li class="off">${l}</li>`).join('');
     $('pwProList').innerHTML = PRO_ROWS.map(([l]) => `<li>${PW_CHECK}${l}</li>`).join('');
     document.querySelectorAll('[data-pw]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.pw === 'y') === pwYearly)));
-    $('pwYearLabel').textContent = `Yearly · save ${PRO_SAVE}%`;
-    $('pwProPrice').textContent = (pwYearly ? PRICE_Y : PRICE_M).toFixed(2);
+    const P = PRO_LIVE && PRO.plans, sp = P && (pwYearly ? P.annual : P.monthly), M = P && P.monthly, Y = P && P.annual;
+    const save = M && Y && M.micros ? Math.round((1 - Y.micros / (M.micros * 12)) * 100) : PRO_SAVE;
+    $('pwYearLabel').textContent = save > 0 ? `Yearly · save ${save}%` : 'Yearly';
+    $('pwProPrice').previousElementSibling.hidden = !!sp;   // the store's price comes with its own currency sign
+    $('pwProPrice').textContent = sp ? sp.price : (pwYearly ? PRICE_Y : PRICE_M).toFixed(2);
     $('pwProPer').textContent = pwYearly ? '/year' : '/month';
-    $('pwProNote').textContent = pwYearly ? `About $${(PRICE_Y / 12).toFixed(2)} a month, billed once a year` : 'Billed every month';
-    $('pwGo').textContent = isPro() ? 'You have Pro' : 'Go Pro'; $('pwGo').disabled = isPro();
+    $('pwProNote').textContent = pwYearly ? `About ${sp && sp.cur ? money(sp.micros / 12, sp.cur) : '$' + (PRICE_Y / 12).toFixed(2)} a month, billed once a year` : 'Billed every month';
     $('pwFreeBtn').textContent = isPro() ? 'Free plan' : 'Your plan';
-    $('pwSmall').textContent = PRO_LIVE ? `Pro renews at $${(pwYearly ? PRICE_Y : PRICE_M).toFixed(2)} a ${pwYearly ? 'year' : 'month'} until you cancel.`
-      : db.proTest ? 'Testing: Go Pro turns on a pretend Pro on this device. No payment is made.' : 'Pro is coming soon. Until then every feature is free.';
+    if (!PRO_LIVE) {
+      $('pwGo').textContent = isPro() ? 'You have Pro' : 'Go Pro'; $('pwGo').disabled = isPro();
+      $('pwSmall').textContent = db.proTest ? 'Testing: Go Pro turns on a pretend Pro on this device. No payment is made.' : 'Pro is coming soon. Until then every feature is free.';
+      return;
+    }
+    const [label, small, dis] = proGoText(sp);
+    $('pwGo').textContent = label; $('pwGo').disabled = !!dis;
+    $('pwSmall').textContent = small;
+    $('pwSmall').classList.toggle('err', !!PRO.err || (!P && !!PRO.plansErr));
   }
-  function openPaywall() { closeSheet(); pwDraw(); $('paywall').hidden = false; dlgOpen($('paywall'), $('pwGo').disabled ? $('pwClose') : $('pwGo')); }
+  function openPaywall() {
+    closeSheet(); if (PRO_LIVE) PRO.err = '';
+    pwDraw(); $('paywall').hidden = false; dlgOpen($('paywall'), $('pwGo').disabled ? $('pwClose') : $('pwGo'));
+    if (PRO_LIVE) { proLoadPlans(); if (proUser()) proRefresh(!isPro()); }   // not Pro: ask again, it may have been bought on another device
+  }
   function closePaywall() { if ($('paywall').hidden) return; $('paywall').hidden = true; dlgClose($('paywall')); }
   function proSheet(title) {
     $('psTitle').textContent = title;
-    $('psPrice').textContent = `$${PRICE_M} a month, or $${PRICE_Y} a year (save ${PRO_SAVE}%)`;
+    const P = PRO_LIVE && PRO.plans, days = P ? proTrialDays() : 7;
+    $('psPrice').textContent = P && P.monthly && P.annual ? `${P.monthly.price} a month, or ${P.annual.price} a year${days ? `. The first ${days} days are free.` : ''}`
+      : `$${PRICE_M} a month, or $${PRICE_Y} a year (save ${PRO_SAVE}%)${PRO_LIVE ? '. The first week is free.' : ''}`;
     $('proSheet').hidden = false; dlgOpen($('proSheet'), $('psPlans'));
   }
   function closeSheet() { if ($('proSheet').hidden) return; $('proSheet').hidden = true; dlgClose($('proSheet')); }
   function planUI() {
     const pro = isPro();
     $('planBadge').textContent = pro ? 'Pro' : 'Free'; $('planBadge').classList.toggle('pro', pro);
-    $('planText').textContent = pro ? (PRO_LIVE ? 'Thanks for supporting Sub-X. Every trainer is yours.' : 'Testing: pretend Pro is on. Every Pro feature is open.')
+    $('planText').textContent = pro ? (PRO_LIVE ? 'Thanks for supporting Sub-X. Every trainer is yours.' + proPlanLine() : 'Testing: pretend Pro is on. Every Pro feature is open.')
       : PRO_LIVE || db.proTest ? 'Pro adds the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and your smart-cube splits.'
       : 'Pro is coming soon, with the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and smart-cube splits. Until then every feature is free.';
-    $('goProBtn').textContent = pro ? 'See plans' : 'See Pro plans';
+    $('goProBtn').textContent = pro ? (PRO_LIVE ? 'Manage subscription' : 'See plans') : 'See Pro plans';
+    $('restoreBtn').hidden = PRO_LIVE && (pro || !proUser());
     $('proFreeBtn').hidden = !(pro && !PRO_LIVE);
     $('proTestRow').hidden = !db.proTestOk; $('proTest').checked = !!db.proTest;
   }
@@ -7450,7 +7471,7 @@ body.running .acct-btn { visibility: hidden; }
     const a = app.initializeApp(FB_CFG);
     SY.fb = { auth, fs, A: auth.getAuth(a), D: fs.getFirestore(a) };
     auth.onAuthStateChanged(SY.fb.A, u => {
-      SY.user = u; setSyncState({ on: !!u }); syncUI();
+      SY.user = u; setSyncState({ on: !!u }); syncUI(); proAuth(u);
       if (u) syncNow();
     });
     return SY.fb;
@@ -7548,10 +7569,186 @@ body.running .acct-btn { visibility: hidden; }
   }
   syncUI();
 
+  // ---------- Pro payments ----------
+  // RevenueCat keeps the subscriptions: Google Play Billing in the Play app (Google requires it there) and a Stripe card
+  // checkout on the website. Both are tied to Sign in with Google, so one subscription works everywhere. The APK on
+  // GitHub isn't installed from Google Play, so Play Billing can't work in it: it says SubXGitHub in its user agent
+  // (tools/build-github-apk.sh) and sends people to the website to pay. Prices and the free week are set in Google Play
+  // Console and RevenueCat (android-app/store/payments.md). With no key below, PRO_LIVE stays off and nothing locks.
+  const PAY = {
+    web: '',        // RevenueCat Web Billing public API key (rcb_..., or rcb_sb_... for test cards)
+    android: '',    // RevenueCat Google Play public API key (goog_...)
+    ent: 'pro',     // the entitlement both plans unlock
+    sdk: 'https://cdn.jsdelivr.net/npm/@revenuecat/purchases-js@1.73.2/dist/Purchases.es.js',
+    play: 'https://play.google.com/store/apps/details?id=app.subx.cubetimer',
+    playSubs: 'https://play.google.com/store/account/subscriptions?package=app.subx.cubetimer',
+    site: 'https://bluex7710.github.io/sub-x/#account?pro=1',   // where the GitHub app sends people to subscribe
+  };
+  const PRO_KEY = 'subx-pro';
+  const proTest = location.hostname === 'localhost' ? window.SUBX_PRO_TEST || null : null;   // a pretend store, for tests
+  const proPlugin = () => NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+  const proGH = NATIVE && /SubXGitHub\//.test(navigator.userAgent);
+  const inApp = () => NATIVE && !proGH && !!proPlugin();
+  var PRO = {
+    on: !!proTest || (syncHere && !!(inApp() ? PAY.android : PAY.web)),
+    canBuy: !!proTest || !NATIVE || inApp() || proGH,   // an app from before payments can show Pro, but not sell it
+    st: null, uid: null, checked: 0, plans: null, plansErr: '', busy: false, err: '', web: null, app: null, loading: false,
+  };
+  PRO_LIVE = PRO.on;
+  if (PRO_LIVE) { db.proTest = false; db.pro = false; }   // the testing switch and pretend Pro end when payments are live
+  const proUser = () => proTest ? proTest.user || null : SY.user;
+  if (PRO.on) {   // what the store said last time, for opening offline (asked again once you're signed in)
+    try { const c = JSON.parse(localStorage.getItem(PRO_KEY)); if (c && c.st && (proTest || syncState().on)) Object.assign(PRO, { st: c.st, uid: c.uid, checked: c.checked || 0 }); } catch (e) {}
+  }
+  function proSave() { try { if (PRO.st && PRO.uid) localStorage.setItem(PRO_KEY, JSON.stringify({ uid: PRO.uid, st: PRO.st, checked: PRO.checked })); else localStorage.removeItem(PRO_KEY); } catch (e) {} }
+  // Pro is on: the store says so, with two spare days in case it renews while you're offline
+  function proStoreActive() { const s = PRO && PRO.st; return !!(s && s.active && (!s.until || s.until + 2 * 864e5 > Date.now())); }
+
+  // what a store says, in one shape for both: { active, until, trial, renew, manage }
+  function proFrom(ci) {
+    const e = ci && ci.entitlements && ci.entitlements.active && ci.entitlements.active[PAY.ent], manage = (ci && ci.managementURL) || '';
+    if (!e || e.isActive === false) return { active: false, manage };
+    return { active: true, until: e.expirationDate ? +new Date(e.expirationDate) : 0, trial: /trial/i.test(e.periodType || ''), renew: e.willRenew !== false, manage };
+  }
+  // a plan from either store: its price, the price in micros and currency (for the saving) and the free trial
+  function planFrom(pkg) {
+    if (!pkg) return null;
+    const w = pkg.webBillingProduct || pkg.rcBillingProduct;
+    if (w) return { pkg, price: w.currentPrice.formattedPrice, micros: w.currentPrice.amountMicros, cur: w.currentPrice.currency, trial: w.freeTrialPhase ? w.freeTrialPhase.periodDuration : '' };
+    const p = pkg.product, fp = p.defaultOption && p.defaultOption.freePhase;
+    return { pkg, price: p.priceString, micros: Math.round(p.price * 1e6), cur: p.currencyCode, trial: fp && fp.billingPeriod ? fp.billingPeriod.iso8601 : p.introPrice && p.introPrice.price === 0 ? p.introPrice.period : '' };
+  }
+  const isoDays = d => { const m = /^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?$/.exec(d || ''); return m ? (+m[1] || 0) * 365 + (+m[2] || 0) * 30 + (+m[3] || 0) * 7 + (+m[4] || 0) : 0; };
+  const money = (micros, cur) => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(micros / 1e6); } catch (e) { return ''; } };
+  const proDate = t => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: new Date(t).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+  const proTrialDays = () => { const P = PRO.plans, p = P && (P[pwYearly ? 'annual' : 'monthly'] || P.annual || P.monthly); return p ? isoDays(p.trial) : 7; };
+
+  // the website's RevenueCat. Before you sign in it uses a made-up id, just to show the prices.
+  function proWeb() {
+    return PRO.web || (PRO.web = (async () => {
+      const m = await import(PAY.sdk), u = SY.user;
+      let id = u && u.uid;
+      if (!id) { try { id = localStorage.getItem(PRO_KEY + '-anon'); } catch (e) {} if (!id) { id = m.Purchases.generateRevenueCatAnonymousAppUserId(); try { localStorage.setItem(PRO_KEY + '-anon', id); } catch (e) {} } }
+      return { rc: m.Purchases.configure({ apiKey: PAY.web, appUserId: id }), id };
+    })().catch(e => { PRO.web = null; throw e; }));
+  }
+  async function proWebFor() {   // the same, for whoever is signed in now
+    const w = await proWeb(), u = SY.user;
+    if (u && w.id !== u.uid) { await w.rc.changeUser(u.uid); w.id = u.uid; }
+    return w.rc;
+  }
+  // the Play app's RevenueCat (Google Play Billing)
+  async function proApp() {
+    const P = proPlugin(), u = SY.user;
+    if (!PRO.app) PRO.app = P.configure(u ? { apiKey: PAY.android, appUserID: u.uid } : { apiKey: PAY.android }).then(() => ({ id: u ? u.uid : null })).catch(e => { PRO.app = null; throw e; });
+    const a = await PRO.app;
+    if (u && a.id !== u.uid) { await P.logIn({ appUserID: u.uid }); a.id = u.uid; }
+    else if (!u && a.id) { try { await P.logOut(); } catch (e) {} a.id = null; }
+    return P;
+  }
+  const STORE = proTest || {
+    async info() { return proFrom(inApp() ? (await (await proApp()).getCustomerInfo()).customerInfo : await (await proWebFor()).getCustomerInfo()); },
+    async plans() {
+      const o = inApp() ? await (await proApp()).getOfferings() : await (await proWebFor()).getOfferings(), c = o && o.current;
+      if (!c || !(c.monthly || c.annual)) throw new Error('the plans are not set up yet');
+      return { monthly: planFrom(c.monthly), annual: planFrom(c.annual) };
+    },
+    async buy(p) {
+      if (inApp()) return proFrom((await (await proApp()).purchasePackage({ aPackage: p.pkg })).customerInfo);
+      const u = SY.user;
+      return proFrom((await (await proWebFor()).purchase({ rcPackage: p.pkg, customerEmail: (u && u.email) || undefined })).customerInfo);
+    },
+    async restore() { return inApp() ? proFrom((await (await proApp()).restorePurchases()).customerInfo) : this.info(); },
+  };
+  const proCancelled = e => !!e && (e.userCancelled === true || e.errorCode === 1 || e.code === '1' || e.code === 1 || /cancel/i.test(String(e.message || '')));
+  const proErrText = e => navigator.onLine ? String((e && (e.message || e.code)) || e).slice(0, 120) : "you're offline";
+
+  // after the store answers: if Pro switched on or off, redraw what it locks
+  let proWas = isPro();
+  function proApply() {
+    const now = isPro();
+    if (now !== proWas) { proWas = now; proChanged(); } else planUI();
+    if (!$('paywall').hidden) pwDraw();
+  }
+  // ask the store again: Pro every 6 hours, no Pro every 10 minutes (it may have been bought on another device)
+  async function proRefresh(force) {
+    if (!PRO.on) return;
+    const u = proUser();
+    if (!u) { if (PRO.st) { PRO.st = null; PRO.uid = null; proSave(); } proApply(); return; }
+    const old = PRO.st && PRO.st.until && PRO.st.until < Date.now();   // it has run out or renewed: find out which
+    if (!force && !old && PRO.uid === u.uid && PRO.checked && Date.now() - PRO.checked < (proStoreActive() ? 6 * 36e5 : 6e5)) { proApply(); return; }
+    if (PRO.uid !== u.uid) { PRO.st = null; PRO.uid = null; }   // someone else signed in
+    try { PRO.st = await STORE.info(); PRO.uid = u.uid; PRO.checked = Date.now(); PRO.err = ''; proSave(); }
+    catch (e) { PRO.err = "Couldn't check your subscription (" + proErrText(e) + ')'; }   // keep what it said last time
+    proApply();
+  }
+  function proAuth(u) {
+    if (!PRO.on) return;
+    PRO.plans = null;   // prices and the free trial can differ per account
+    if (!u) { PRO.st = null; PRO.uid = null; proSave(); proApply(); if (inApp() && PRO.app) proApp().catch(() => {}); return; }
+    proRefresh(PRO.uid !== u.uid).then(() => { if (!$('paywall').hidden) proLoadPlans(); });
+  }
+  async function proLoadPlans() {
+    if (PRO.plans || PRO.loading) return;
+    PRO.loading = true; PRO.plansErr = ''; if (!$('paywall').hidden) pwDraw();
+    try { PRO.plans = await STORE.plans(); }
+    catch (e) { PRO.plansErr = "Couldn't load the prices (" + proErrText(e) + ').'; }
+    PRO.loading = false; proApply();
+  }
+  // what Go Pro says and does, live: [label, the small print, disabled]
+  function proGoText(sp) {
+    const u = proUser(), st = PRO.st, where = inApp() ? 'in Google Play' : 'from Account → Manage subscription';
+    if (PRO.busy) return ['One moment…', PRO.err || '', true];
+    if (isPro()) return ['Manage subscription', st && st.trial ? `Your free week is on until ${proDate(st.until)}.` : st && st.until ? `${st.renew ? 'Renews' : 'Ends'} on ${proDate(st.until)}.` : '', false];
+    if (!u) return ['Sign in to go Pro', 'Pro is kept with your Google account, so it works on the website and in the app.', false];
+    if (!PRO.canBuy) return ['Update the app', "This version of the app can't take payments. Update Sub-X (Google Play, or github.com/BlueX7710/sub-x/releases) to go Pro.", false];
+    if (proGH) return ['Subscribe on the website', 'This copy of Sub-X comes from GitHub, so you subscribe on the Sub-X website, signed in with the same Google account. Pro then turns on here too.', false];
+    if (!PRO.plans) return PRO.plansErr ? ['Try again', PRO.plansErr, false] : ['Loading prices…', PRO.err || '', true];
+    if (!sp) return ['Not offered', 'This plan isn\'t offered yet: pick the other one.', true];
+    const days = isoDays(sp.trial), per = pwYearly ? 'year' : 'month';
+    if (PRO.err) return [days ? `Try ${days} days free` : 'Go Pro', PRO.err, false];
+    return days ? [`Try ${days} days free`, `Free for ${days} days, then ${sp.price} a ${per} until you cancel. Cancel before then and you pay nothing. Cancel any time ${where}.`, false]
+      : ['Go Pro', `${sp.price} a ${per} until you cancel. Cancel any time ${where}.`, false];
+  }
+  const proPlanLine = () => { const st = PRO.st; return !st ? '' : st.trial ? ` Your free week is on until ${proDate(st.until)}.` : st.until ? ` ${st.renew ? 'Renews' : 'Ends'} on ${proDate(st.until)}.` : ''; };
+  // open a store page the way the app's other links do (in the app, Android hands it to Google Play or the browser)
+  function proLink(url) { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+  function proManage() {
+    const url = (PRO.st && PRO.st.manage) || (inApp() ? PAY.playSubs : '');
+    if (url) proLink(url); else toast('Your subscription is managed where you bought it (Google Play or the website).');
+  }
+  async function proGo() {
+    const u = proUser();
+    if (isPro()) { proManage(); return; }
+    if (!u) { if (proTest) { proTest.signIn(); proAuth(proTest.user); } else syncSignIn(); return; }   // signing in checks the subscription, then the paywall redraws
+    if (!PRO.canBuy) { proLink(PAY.play); return; }
+    if (proGH) { proLink(PAY.site); return; }
+    if (!PRO.plans) { proLoadPlans(); return; }
+    const p = PRO.plans[pwYearly ? 'annual' : 'monthly']; if (!p) return;
+    PRO.busy = true; PRO.err = ''; pwDraw();
+    try {
+      PRO.st = await STORE.buy(p); PRO.uid = u.uid; PRO.checked = Date.now(); proSave();
+      if (proStoreActive()) { closePaywall(); toast(PRO.st.trial ? 'Your free week of Pro has started. Everything is open.' : 'Pro is on. Everything is open.'); }
+      else PRO.err = "The payment went through, but Pro hasn't switched on yet. Try Restore purchase in a minute.";
+    } catch (e) { if (!proCancelled(e)) PRO.err = "Couldn't finish (" + proErrText(e) + '). You have not been charged.'; }
+    PRO.busy = false; proApply();
+  }
+  async function proRestoreNow() {
+    const u = proUser(); if (!u) { toast('Sign in with Google first: Pro is kept with your Google account.'); return; }
+    try { PRO.st = await STORE.restore(); PRO.uid = u.uid; PRO.checked = Date.now(); PRO.err = ''; proSave(); toast(proStoreActive() ? 'Pro is on.' : 'No Pro subscription found for this account.'); }
+    catch (e) { toast("Couldn't check (" + proErrText(e) + ')'); }
+    proApply();
+  }
+  if (PRO.on) {
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && proUser()) proRefresh(); });
+    if (proTest && proTest.user) proRefresh(true);
+    if (/[?&#]pro=1\b/.test(location.hash)) setTimeout(openPaywall, 0);   // from the GitHub app: straight to the plans
+  }
+
   // the Account button, the paywall and the Pro sheet
   $('acctBtn').addEventListener('click', e => { unfocus(e.currentTarget); location.hash = view === 'account' ? 'timer' : 'account'; });
-  $('goProBtn').addEventListener('click', openPaywall);
-  $('restoreBtn').addEventListener('click', () => toast(PRO_LIVE ? 'Looking for your purchase…' : 'Nothing to restore yet: Pro is coming soon.'));
+  $('goProBtn').addEventListener('click', () => { if (PRO_LIVE && isPro()) proManage(); else openPaywall(); });
+  $('restoreBtn').addEventListener('click', () => { if (PRO_LIVE) proRestoreNow(); else toast('Nothing to restore yet: Pro is coming soon.'); });
   $('proFreeBtn').addEventListener('click', () => { db.pro = false; save(); proChanged(); toast('Testing: back to Free'); });
   $('proTest').addEventListener('change', e => { db.proTest = e.target.checked; if (!db.proTest) db.pro = false; save(); proChanged(); });
   $('pwClose').addEventListener('click', closePaywall);
@@ -7562,7 +7759,7 @@ body.running .acct-btn { visibility: hidden; }
   $('pwGo').addEventListener('click', () => {
     if (!PRO_LIVE && !db.proTest) { toast('Pro is coming soon. Until then every feature is free.'); return; }
     if (!PRO_LIVE) { db.pro = true; save(); closePaywall(); proChanged(); toast('Testing: pretend Pro is on'); return; }
-    toast('Payments are being set up.');   // Google Play Billing (app) or a card checkout (website) goes here
+    proGo();
   });
   for (const id of ['paywall', 'proSheet']) $(id).addEventListener('click', e => { if (e.target === e.currentTarget) (id === 'paywall' ? closePaywall : closeSheet)(); });
   document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!$('proSheet').hidden) closeSheet(); else if (!$('paywall').hidden) closePaywall(); });

@@ -20,15 +20,24 @@ a { color: var(--accent); }
 <body>
 <main>
   <h1>Sub-<span>X</span> privacy policy</h1>
-  <p class="muted">For the Sub-X website (bluex7710.github.io/sub-x), the Sub-X Android app and the Sub-X page on claude.ai. Last updated 31 October 2026.</p>
+  <p class="muted">For the Sub-X website (bluex7710.github.io/sub-x), the Sub-X Android app and the Sub-X page on claude.ai. Last updated 21 November 2026.</p>
 
   <h2>The short version</h2>
-  <p>Sub-X has no accounts, no ads and no analytics. Your times, sessions and settings are stored on your own device and are not sent to us or anyone else.</p>
+  <p>Sub-X has no ads and no analytics. Your times, sessions and settings are stored on your own device. They leave it only if you sign in with Google to sync them between your devices. If you subscribe to Sub-X Pro, the payment is handled by Google Play or Stripe, and RevenueCat keeps a record of your subscription.</p>
 
   <h2>What is stored, and where</h2>
   <ul>
     <li><b>Your solves, sessions, learned cases, trainer times, achievements and settings</b> are saved in your browser's or the app's local storage on your device. Clearing the site's data or uninstalling the app deletes them.</li>
     <li><b>Backups</b> are files you choose to save, and they stay wherever you put them.</li>
+    <li><b>Sync (optional):</b> if you sign in with Google, a copy of your saved data is kept in Google Firebase under your account so your devices can share it. Only you can read it. Sign out and it stops; ask us (see Contact) to delete the copy.</li>
+  </ul>
+
+  <h2>Sub-X Pro subscriptions</h2>
+  <ul>
+    <li>Sub-X Pro needs you to sign in with Google, so your subscription works on every device you use.</li>
+    <li><b>In the Android app</b>, Google Play takes the payment. <b>On the website</b>, Stripe takes the card payment. Sub-X never sees or stores your card details.</li>
+    <li><b>RevenueCat</b> keeps the subscription record: an account id (your Google sign-in's Firebase id), which plan you have, when it started, renews or ends, and your email if you give it at checkout. Sub-X uses this only to know whether Pro is on.</li>
+    <li>Cancel any time in Google Play (app) or from Sub-X Pro → Manage subscription (website). See <a href="https://www.revenuecat.com/privacy">RevenueCat's</a>, <a href="https://stripe.com/privacy">Stripe's</a> and <a href="https://policies.google.com/privacy">Google's</a> privacy policies.</li>
   </ul>
 
   <h2>Permissions the app asks for</h2>
@@ -46,10 +55,10 @@ a { color: var(--accent); }
   </ul>
 
   <h2>Other services</h2>
-  <p>The website is hosted on GitHub Pages, and fonts load from Google Fonts. Like any website, these services can see your IP address when your device downloads files from them. The Android app loads the same website. Sub-X itself doesn't collect anything.</p>
+  <p>The website is hosted on GitHub Pages, and fonts load from Google Fonts. Like any website, these services can see your IP address when your device downloads files from them. The Android app loads the same website. Sub-X itself doesn't collect anything beyond the sync and subscription records above.</p>
 
   <h2>Children</h2>
-  <p>Sub-X doesn't collect personal information from anyone, including children.</p>
+  <p>Sub-X is meant for people 13 and over. Without signing in it collects nothing from anyone. Sync and Sub-X Pro need a Google account.</p>
 
   <h2>Contact</h2>
   <p>Questions or problems: open an issue at <a href="https://github.com/BlueX7710/sub-x/issues">github.com/BlueX7710/sub-x/issues</a>.</p>
