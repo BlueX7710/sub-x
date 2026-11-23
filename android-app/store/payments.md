@@ -74,6 +74,14 @@ Done:
   (roles Pub/Sub Editor, Monitoring Viewer), invited in Play Console with the four permissions RevenueCat needs.
 - **Decisions:** Paddle prices include tax; Pro is free for everyone for two weeks after the website launch
   (`PRO_OPEN_UNTIL`, see "Existing users"); the Android key may go live on its own first.
+- **RevenueCat:** Play Store app "Sub-X (Play Store)" (`app.subx.cubetimer`); products `pro:monthly` (backwards
+  compatible) and `pro:yearly`, both on the `pro` entitlement and in the `default` offering's Monthly and Annual
+  packages next to the Paddle prices. Its public key is in `PAY.android` and live on `main` (23 Nov): Pro locks only
+  in the Play app (internal/closed testers so far); the website, the GitHub APK and older apps stay free until
+  `PAY.web` gets the Paddle setup's `pdl_` public key. Purchases only validate once the service-account key is
+  uploaded (below).
+- **Before the production release:** rebuild the bundle as version code 10 so its offline copy also has the key
+  (version code 9's offline copy has `android: ''`, so Pro is open in the Play app when it starts offline).
 
 Waiting on the owner:
 - Sign in to RevenueCat and Paddle (both logged out), add 11+ more testers to "Sub-X testers", finish the Paddle
