@@ -94,14 +94,15 @@ Don't use "Rubik's" in the name or as a main keyword: it's a trademark.
 ## App content answers
 
 - **Ads:** no ads.
-- **Data safety** (from 1.8; sync and Pro are optional and need Google sign-in):
-  - Data collected: **Personal info → Email address** and **User IDs** (Google sign-in, for sync and Pro;
-    account management, app functionality). **Financial info → Purchase history** (Pro, via Google Play and
-    RevenueCat; app functionality). **App activity → Other user-generated content** (your times and progress,
-    only if you turn on sync; app functionality).
-  - Optional for users: yes (all of it). Encrypted in transit: yes. Users can ask for deletion: yes.
-  - Shared with third parties: no (RevenueCat, Google Firebase and Google Play act as service providers).
-  - The microphone (Stackmat) is used on the device only and nothing is sent.
+- **Data safety** (filled in Play Console on 23 Nov 2026; sync and Pro are optional and need Google sign-in):
+  - Collected, optional, not shared, not processed ephemerally: **Personal info → Name, Email address, User IDs**
+    (app functionality, account management); **Financial info → Purchase history** (Pro, via Google Play and
+    RevenueCat; app functionality); **App activity → Other user-generated content** (times and progress, only with
+    sync; app functionality).
+  - Encrypted in transit: yes. Account creation: OAuth (Google sign-in). Delete-account link:
+    https://bluex7710.github.io/sub-x/privacy.html#delete-account
+  - Not shared or sold (RevenueCat, Google Firebase and Google Play act as service providers). The microphone
+    (Stackmat) is used on the device only and nothing is sent.
 - **Content rating:** fill the IARC questionnaire as a utility/tool with no violence, user content, chat,
   gambling. Answer **yes to digital purchases** (Sub-X Pro). It should come out as Everyone / PEGI 3, with "In-app purchases".
 - **Target audience:** 13 and over is simplest. Including under-13s brings in the Families policy rules.
