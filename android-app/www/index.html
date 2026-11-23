@@ -7707,7 +7707,7 @@ body.running .acct-btn { visibility: hidden; }
   // the Play app's RevenueCat (Google Play Billing)
   async function proApp() {
     const P = proPlugin(), u = SY.user;
-    if (!PRO.app) PRO.app = P.configure(u ? { apiKey: PAY.android, appUserID: u.uid } : { apiKey: PAY.android }).then(() => ({ id: u ? u.uid : null })).catch(e => { PRO.app = null; throw e; });
+    if (!PRO.app) PRO.app = Promise.resolve().then(() => P.configure(u ? { apiKey: PAY.android, appUserID: u.uid } : { apiKey: PAY.android })).then(() => ({ id: u ? u.uid : null })).catch(e => { PRO.app = null; throw e; });
     const a = await PRO.app;
     if (u && a.id !== u.uid) { await P.logIn({ appUserID: u.uid }); a.id = u.uid; }
     else if (!u && a.id) { try { await P.logOut(); } catch (e) {} a.id = null; }
