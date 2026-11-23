@@ -85,8 +85,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .bar-head { margin: 0 0 2px; font-family: var(--font-display); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .bar-group > :not(.bar-head) { border-top: 1px solid var(--line); }
 .bar-group > .bar-head + * { border-top: 0; }
-.bar-rest .bar-group > .ctl { justify-content: space-between; gap: 12px; min-height: 46px; padding: 6px 0; margin: 0; font-family: var(--font-body); font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--ink); }
-.bar-rest .bar-group > .toggle { flex-direction: row-reverse; }
+:is(.bar-rest, .set-body) .bar-group > .ctl { justify-content: space-between; gap: 12px; min-height: 46px; padding: 6px 0; margin: 0; font-family: var(--font-body); font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--ink); }
+:is(.bar-rest, .set-body) .bar-group > .toggle { flex-direction: row-reverse; }
 .bar-group > .ctl select { max-width: 60%; }
 .bar-btns { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0; }
 .bar-group > .sess-panel { border-top: 0; margin: 0 0 10px; background: var(--bg); }
@@ -109,6 +109,56 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   font-family: var(--font-body); text-transform: none; letter-spacing: 0; color: var(--ink);
 }
 .ctl input[type=number] { width: 64px; }
+/* menus: each <select> stays in the page (it holds the value) but is drawn as a button that opens Sub-X's own list */
+.fs-native { position: absolute !important; width: 1px !important; height: 1px !important; min-width: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; opacity: 0; pointer-events: none; }
+.fs-btn { display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; max-width: 46vw; min-height: 36px; padding: 5px 10px 5px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); font: 500 15px/1.2 var(--font-body); letter-spacing: 0; text-transform: none; text-align: left; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.fs-btn .fs-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-btn svg { flex: none; color: var(--muted); transition: transform .2s; }
+.fs-btn[aria-expanded="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.fs-btn[aria-expanded="true"] svg { transform: rotate(180deg); color: var(--accent); }
+@media (hover: hover) { .fs-btn:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); } }
+.fs-btn:disabled { opacity: .5; cursor: default; }
+.bar > .ctl .fs-btn { height: var(--bar-h); min-height: 0; font-size: 14px; }
+.bar-group > .ctl .fs-btn { max-width: 60%; }
+.p3d-ctl .fs-btn { flex: none; margin-left: 6px; font-size: 14px; }
+.prog-bar .fs-btn { margin-left: 4px; font-size: 14px; min-height: 32px; }
+.fs-menu { position: fixed; z-index: 60; overflow-y: auto; overscroll-behavior: contain; padding: 6px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 18px 48px rgb(0 0 0 / .28), 0 2px 8px rgb(0 0 0 / .12); transform-origin: top center; animation: fsIn .16s cubic-bezier(.2, .8, .2, 1); outline: none; }
+.fs-menu.up { transform-origin: bottom center; }
+@keyframes fsIn { from { opacity: 0; transform: translateY(-4px) scale(.97); } }
+.fs-opt { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 44px; padding: 0 12px; border-radius: 10px; font: 15px/1.25 var(--font-body); letter-spacing: 0; text-transform: none; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.fs-opt svg { flex: none; visibility: hidden; color: var(--accent); }
+.fs-opt[aria-selected="true"] { font-weight: 600; color: var(--accent); }
+.fs-opt[aria-selected="true"] svg { visibility: visible; }
+.fs-opt.act { background: var(--sunk); }
+@media (hover: hover) { .fs-opt:hover { background: var(--sunk); } }
+.fs-opt[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+/* the Settings sheet (the gear at the top): a card on wide screens, a sheet from the bottom on phones */
+.set-btn { order: 5; margin-left: auto; }
+.set-btn ~ .acct-btn, .skin-pick ~ .set-btn { margin-left: 4px; }
+body.running .set-btn { visibility: hidden; }
+.set-overlay { position: fixed; inset: 0; z-index: 30; background: rgb(5 8 18 / .5); display: flex; justify-content: center; align-items: center; padding: 16px; animation: setFade .18s ease-out; }
+.set-sheet { width: min(480px, 100%); max-height: min(86vh, 760px); display: flex; flex-direction: column; background: var(--surface); color: var(--ink); border-radius: 24px; box-shadow: 0 24px 64px rgb(0 0 0 / .35); overflow: hidden; animation: setUp .24s cubic-bezier(.2, .8, .2, 1); }
+.set-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 14px 6px 22px; }
+.set-head h2 { margin: 0; font-family: var(--font-display); font-size: 28px; font-weight: 700; }
+.set-x { width: 40px; height: 40px; flex: none; padding: 0; border: 0; border-radius: 50%; background: var(--sunk); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+.set-body { overflow-y: auto; overscroll-behavior: contain; padding: 4px 22px 24px; }
+.set-body .bar-head { margin-top: 6px; }
+.set-body .skin-pick { margin-left: 0; }
+.set-body .ctl input[type=number] { height: 36px; width: 72px; border-radius: 10px; text-align: center; font-size: 15px; }
+@keyframes setFade { from { opacity: 0; } }
+@keyframes setUp { from { opacity: 0; transform: translateY(24px); } }
+@media (max-width: 600px) {
+  .set-overlay { align-items: flex-end; padding: 0; }
+  .set-sheet { width: 100%; max-height: 88vh; border-radius: 24px 24px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .set-sheet::before { content: ''; display: block; width: 40px; height: 5px; margin: 8px auto 0; border-radius: 3px; background: var(--line); }
+  .set-head { padding-top: 10px; }
+}
+/* on/off settings are switches */
+:is(.bar-rest, .set-body) .toggle input[type=checkbox] { appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 46px; height: 28px; margin: 0; border-radius: 999px; background: var(--line); cursor: pointer; transition: background .2s; }
+:is(.bar-rest, .set-body) .toggle input[type=checkbox]::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .3); transition: transform .2s; }
+:is(.bar-rest, .set-body) .toggle input[type=checkbox]:checked { background: var(--accent); }
+:is(.bar-rest, .set-body) .toggle input[type=checkbox]:checked::after { transform: translateX(18px); }
+@media (prefers-reduced-motion: reduce) { .fs-menu, .set-overlay, .set-sheet { animation: none; } .fs-btn svg, :is(.bar-rest, .set-body) .toggle input, :is(.bar-rest, .set-body) .toggle input::after { transition: none; } }
 .toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
 
@@ -869,7 +919,7 @@ body.racing { overflow: hidden; }
 [data-skin="terminal"] :is(.panel, .scramble-card, .stage, .case, .lesson, .note-card, .sess-panel, .tabs, .tabs a, .seg, .seg button, .btn, .pill-btn, .mini-btn, .chip, select, input, .field, .own-scr, .progress, .progress i,
   .cam-box, .hint kbd, .race-pad, .p3d, .p3d canvas, .p3d-moves span, .tr-clock, .toast, .toast button, .notice, .callout, .solve-detail, .vid, .frames img, .l3-grid canvas, .conf, .rec-dot, .example-note, .lights i,
   .chip-group, .pcase, .set-card, .badge, .streak, .ach, .bgn-alg, .fold, .tour, .tour button, .plan-bar, .plan-bar i, .pllr-bar, .pllr-bar i, .insp-bar,
-  .l3-custom input, .learn-tick, .plan-tick, .plan-rm, .step-num, .bar-rest, .avg-box, .stage-stats i) { border-radius: 0; }
+  .l3-custom input, .learn-tick, .plan-tick, .plan-rm, .step-num, .bar-rest, .avg-box, .stage-stats i, .fs-btn, .fs-menu, .fs-opt, .set-sheet, .set-x) { border-radius: 0; }
 [data-skin="terminal"] .learn-tick::before { border-radius: 0; }
 [data-skin="terminal"] .brand::before { content: "> "; color: var(--muted); }
 [data-skin="terminal"] .brand span { color: var(--ink); }
@@ -940,7 +990,7 @@ body.racing { overflow: hidden; }
 [data-skin="speed"] .tabs a, [data-skin="speed"] .seg button { border-radius: 2px; }
 [data-skin="speed"] .tabs a[aria-current="page"], [data-skin="speed"] .seg button[aria-pressed="true"] { background: var(--sunk); color: var(--ink); box-shadow: inset 0 -3px 0 var(--accent); }
 [data-skin="speed"] .chip, [data-skin="speed"] .pill-btn, [data-skin="speed"] .mini-btn, [data-skin="speed"] .btn { border-radius: 3px; }
-[data-skin="speed"] :is(.p3d, .race-pad, .tr-clock, .bar-rest, .toast, .notice, .avg-box, .ach, .bgn-alg, .chip-group, .badge, .streak, .tour, select, .field, .own-scr, .p3d canvas) { border-radius: 4px; }
+[data-skin="speed"] :is(.p3d, .race-pad, .tr-clock, .bar-rest, .toast, .notice, .avg-box, .ach, .bgn-alg, .chip-group, .badge, .streak, .tour, select, .field, .own-scr, .p3d canvas, .fs-btn, .fs-menu, .fs-opt, .set-sheet) { border-radius: 4px; }
 [data-skin="speed"] .chip[aria-pressed="true"], [data-skin="speed"] .mini-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 /* the next scramble move in white with a red underline: red text would read as "wrong move" */
 [data-skin="speed"] .scramble .snext { color: var(--ink); text-decoration-color: var(--accent); }
@@ -1090,6 +1140,12 @@ body.racing { overflow: hidden; }
 [data-skin="sunset"] .legend i.dot { background: var(--ph-cross); }
 </style>
 
+<div class="set-overlay" id="setSheet" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="set-sheet">
+    <div class="set-head"><h2 id="setTitle">Settings</h2><button type="button" class="set-x" id="setClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+    <div class="set-body" id="setBody"></div>
+  </div>
+</div>
 <div class="wrap">
   <header class="top">
     <h1 class="brand">Sub-<span>X</span></h1>
@@ -1102,6 +1158,7 @@ body.racing { overflow: hidden; }
     <label class="ctl skin-pick" for="skin">Look
       <select id="skin"><option value="">Classic</option><option value="minimal">Minimal</option><option value="midnight">Midnight</option><option value="terminal">Terminal</option><option value="speed">Speed</option><option value="dracula">Dracula</option><option value="pink">Pink</option><option value="ocean">Ocean</option><option value="sunset">Sunset</option></select>
     </label>
+    <button type="button" class="acct-btn set-btn" id="setBtn" aria-label="Settings" aria-haspopup="dialog"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
   </header>
 
   <!-- ================= TIMER ================= -->
@@ -1128,7 +1185,7 @@ body.racing { overflow: hidden; }
         <label class="ctl" for="session"><span class="ctl-word">Session</span>
           <select id="session"></select>
         </label>
-        <button type="button" class="mini-btn bar-toggle" id="barMore" aria-controls="barRest" aria-expanded="false"><span class="bar-word">Modes and </span>settings</button>
+        <button type="button" class="mini-btn bar-toggle" id="barMore" aria-controls="barRest" aria-expanded="false"><span class="bar-word">Practice </span>modes</button>
         <div class="bar-rest" id="barRest">
         <div class="bar-group" role="group" aria-labelledby="grpPractice" id="grpPracticeBox">
         <h3 class="bar-head" id="grpPractice">Practice</h3>
@@ -1158,7 +1215,7 @@ body.racing { overflow: hidden; }
         </div>
         </div>
         <div class="bar-group" role="group" aria-labelledby="grpSettings" id="grpSettingsBox">
-        <h3 class="bar-head" id="grpSettings">Settings</h3>
+        <h3 class="bar-head" id="grpSettings">Timer</h3>
         <label class="ctl" for="goal">Goal sub
           <input id="goal" type="number" min="1" max="600" step="1" value="20">
         </label>
@@ -1467,6 +1524,113 @@ body.racing { overflow: hidden; }
     d.shut.forEach(x => { x.inert = false; });
     if (d.back && d.back !== document.body && d.back.isConnected && !d.back.closest('[inert]')) d.back.focus({ preventScroll: true });
   }
+  // ---------- menus: a <select> opens Sub-X's own list instead of the phone's plain picker ----------
+  // The <select> stays (hidden) and keeps the value, so the code that reads it, sets it and listens for "change" is unchanged.
+  const FS = { menu: null, sel: null, btn: null, i: -1, kb: false };
+  const FS_CHEV = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>';
+  const FS_TICK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>';
+  const fsSync = sel => {
+    const b = sel._fsBtn; if (!b) return;
+    const o = sel.options[sel.selectedIndex];
+    b.firstChild.textContent = o ? o.textContent : '';
+    b.disabled = sel.disabled; b.hidden = sel.hidden;
+    if (FS.sel === sel) fsClose();
+  };
+  function fsWrap(sel) {
+    if (sel._fsBtn || sel.multiple || sel.size > 1) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'fs-btn'; b.setAttribute('aria-haspopup', 'listbox'); b.setAttribute('aria-expanded', 'false');
+    b.innerHTML = '<span class="fs-val"></span>' + FS_CHEV;
+    const lab = sel.closest('label') || (sel.id && document.querySelector(`label[for="${CSS.escape(sel.id)}"]`));
+    let name = sel.getAttribute('aria-label') || '';
+    if (!name && lab) { const c = lab.cloneNode(true); c.querySelectorAll('select, .fs-btn').forEach(x => x.remove()); name = c.textContent.replace(/\s+/g, ' ').trim(); }
+    if (name) b.dataset.name = name;
+    if (sel.title) b.title = sel.title;
+    sel._fsBtn = b; sel.after(b); sel.classList.add('fs-native'); sel.tabIndex = -1; sel.setAttribute('aria-hidden', 'true');
+    const label = () => b.setAttribute('aria-label', (name ? name + ': ' : '') + b.firstChild.textContent);
+    for (const p of ['value', 'selectedIndex']) {   // a value set by code redraws the button too
+      const d = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, p);
+      Object.defineProperty(sel, p, { configurable: true, get() { return d.get.call(this); }, set(v) { d.set.call(this, v); fsSync(this); label(); } });
+    }
+    sel.focus = () => b.focus();
+    sel.addEventListener('change', () => { fsSync(sel); label(); });
+    new MutationObserver(() => { fsSync(sel); label(); }).observe(sel, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['disabled', 'hidden', 'selected', 'label'] });
+    b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (FS.sel === sel) fsClose(); else fsOpen(sel, e.detail === 0); });
+    if (lab) lab.addEventListener('click', e => { if (e.target.closest('.fs-btn, input, a, button')) return; e.preventDefault(); b.focus({ preventScroll: true }); fsOpen(sel, false); });
+    fsSync(sel); label();
+  }
+  function fsOpen(sel, kb) {
+    fsClose();
+    const b = sel._fsBtn; if (!b || b.disabled) return;
+    const m = document.createElement('div');
+    m.className = 'fs-menu'; m.setAttribute('role', 'listbox'); m.tabIndex = -1;
+    if (b.dataset.name) m.setAttribute('aria-label', b.dataset.name);
+    [...sel.options].forEach((o, i) => {
+      if (o.hidden) return;
+      const d = document.createElement('div');
+      d.className = 'fs-opt'; d.setAttribute('role', 'option'); d.id = 'fsOpt' + i; d.dataset.i = i;
+      d.setAttribute('aria-selected', String(i === sel.selectedIndex));
+      if (o.disabled) d.setAttribute('aria-disabled', 'true');
+      d.innerHTML = '<span></span>' + FS_TICK; d.firstChild.textContent = o.textContent;
+      m.append(d);
+    });
+    (b.closest('[role="dialog"]') || document.body).append(m);
+    Object.assign(FS, { menu: m, sel, btn: b, kb, i: sel.selectedIndex });
+    b.setAttribute('aria-expanded', 'true');
+    // place it under the button (or above, when there's more room there), inside the screen
+    const r = b.getBoundingClientRect(), W = document.documentElement.clientWidth, H = innerHeight;
+    const w = Math.min(Math.max(r.width, 200), W - 24), below = H - r.bottom - 12, above = r.top - 12, need = m.scrollHeight;
+    const up = below < Math.min(need, 260) && above > below;
+    m.style.width = w + 'px'; m.style.left = Math.min(Math.max(12, r.left), W - w - 12) + 'px';
+    m.style.maxHeight = Math.max(120, Math.min(380, up ? above : below)) + 'px';
+    if (up) { m.classList.add('up'); m.style.bottom = (H - r.top + 6) + 'px'; } else m.style.top = (r.bottom + 6) + 'px';
+    fsMark(FS.i, true);
+    m.focus({ preventScroll: true });
+    m.addEventListener('click', e => { const o = e.target.closest('.fs-opt'); if (o && o.getAttribute('aria-disabled') !== 'true') fsPick(+o.dataset.i); });
+    m.addEventListener('keydown', fsKey);
+  }
+  function fsMark(i, center) {
+    const m = FS.menu; if (!m) return;
+    m.querySelectorAll('.fs-opt.act').forEach(x => x.classList.remove('act'));
+    const o = m.querySelector(`[data-i="${i}"]`); if (!o) return;
+    FS.i = i; o.classList.add('act'); m.setAttribute('aria-activedescendant', o.id);
+    if (center) m.scrollTop = o.offsetTop - (m.clientHeight - o.offsetHeight) / 2; else o.scrollIntoView({ block: 'nearest' });
+  }
+  function fsKey(e) {
+    e.stopPropagation();   // the timer's keys (Space starts a solve) don't see keys meant for the menu
+    const opts = [...FS.menu.querySelectorAll('.fs-opt:not([aria-disabled="true"])')].map(o => +o.dataset.i), at = opts.indexOf(FS.i);
+    if (e.key === 'ArrowDown') { e.preventDefault(); fsMark(opts[Math.min(opts.length - 1, at + 1)] ?? opts[0]); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); fsMark(opts[Math.max(0, at - 1)] ?? opts[0]); }
+    else if (e.key === 'Home' || e.key === 'PageUp') { e.preventDefault(); fsMark(opts[0]); }
+    else if (e.key === 'End' || e.key === 'PageDown') { e.preventDefault(); fsMark(opts[opts.length - 1]); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (FS.i >= 0) fsPick(FS.i); }
+    else if (e.key === 'Escape') { e.preventDefault(); fsClose(true); }
+    else if (e.key === 'Tab') { e.preventDefault(); fsClose(true); }
+    else if (e.key.length === 1) {   // type a letter to jump to the next option starting with it
+      const k = e.key.toLowerCase(), sel = FS.sel, n = sel.options.length;
+      for (let s = 1; s <= n; s++) { const j = (FS.i + s) % n; if (opts.includes(j) && sel.options[j].textContent.trim().toLowerCase().startsWith(k)) { fsMark(j); break; } }
+    }
+  }
+  function fsPick(i) {
+    const sel = FS.sel, kb = FS.kb; fsClose(kb);
+    if (!sel || sel.selectedIndex === i) return;
+    sel.selectedIndex = i;
+    sel.dispatchEvent(new Event('input', { bubbles: true }));
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  function fsClose(refocus) {
+    const { menu, btn } = FS; if (!menu) return;
+    Object.assign(FS, { menu: null, sel: null, btn: null, i: -1 });
+    menu.remove(); btn.setAttribute('aria-expanded', 'false');
+    if (refocus && btn.isConnected) btn.focus({ preventScroll: true });
+  }
+  document.addEventListener('pointerdown', e => { if (FS.menu && !FS.menu.contains(e.target) && !FS.btn.contains(e.target)) fsClose(); }, true);
+  addEventListener('resize', () => fsClose());
+  document.addEventListener('scroll', e => { if (FS.menu && !FS.menu.contains(e.target)) fsClose(); }, true);
+  document.querySelectorAll('select').forEach(fsWrap);
+  new MutationObserver(list => {   // selects drawn later (the case pages' Sort and Show)
+    for (const r of list) for (const n of r.addedNodes) if (n.nodeType === 1) (n.tagName === 'SELECT' ? [n] : n.querySelectorAll ? n.querySelectorAll('select') : []).forEach(fsWrap);
+  }).observe(document.body, { childList: true, subtree: true });
   const calmMQ = matchMedia('(prefers-reduced-motion: reduce)'), calm = () => calmMQ.matches;
   // a short message for screen readers (results, PBs, trainer steps)
   const say = t => { const r = document.getElementById('srSay'); if (!r) return; r.textContent = ''; setTimeout(() => { r.textContent = t; }, 40); };
@@ -5851,15 +6015,18 @@ body.racing { overflow: hidden; }
   }
   $('barMore').addEventListener('click', e => { setDrawer(!$('barRest').classList.contains('open')); unfocus(e.currentTarget); });
   $('barDone').addEventListener('click', e => { unfocus(e.currentTarget); drawerDone(); });
-  // narrow screens: the Look picker goes into the drawer, so the header fits one row
-  {
-    const mq = matchMedia('(max-width: 860px)'), look = document.querySelector('.skin-pick');
-    const place = () => {
-      if (mq.matches) $('grpSettingsBox').insertBefore(look, $('setBtns'));
-      else { const ib = $('installBtn'); ib ? ib.before(look) : document.querySelector('.top').append(look); }
-    };
-    place(); mq.addEventListener ? mq.addEventListener('change', place) : mq.addListener(place);
+  // Settings: the gear at the top opens them in a sheet (the timer settings and the Look picker, moved in with their ids)
+  $('setBody').append($('grpSettingsBox'));
+  $('grpSettingsBox').insertBefore(document.querySelector('.skin-pick'), $('setBtns'));
+  function setOpen() { if (!$('setSheet').hidden) return; fsClose(); $('setSheet').hidden = false; dlgOpen($('setSheet'), $('setClose')); }
+  function setShut() {
+    if ($('setSheet').hidden) return;
+    fsClose(); $('setSheet').hidden = true; $('sessPanel').hidden = true; panelAria(); dlgClose($('setSheet'));
   }
+  $('setBtn').addEventListener('click', e => { unfocus(e.currentTarget); setOpen(); });
+  $('setClose').addEventListener('click', setShut);
+  $('setSheet').addEventListener('click', e => { if (e.target === e.currentTarget) setShut(); });   // a tap outside the sheet
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('setSheet').hidden && DLG[DLG.length - 1]?.el === $('setSheet')) { e.preventDefault(); setShut(); } });
   $('coachMode').addEventListener('change', e => { db.coach = e.target.value; save(); coachShow(); unfocus(e.target); });
   coachShow();
 
@@ -5988,8 +6155,8 @@ body.racing { overflow: hidden; }
     ['#scrCard', 'First, scramble your cube with these moves, holding white on top and green in front. The picture shows how it should look.'],
     ['#stage', () => startHow()],
     ['.tabs a[data-view="learn"]', 'Learn starts from zero with the Beginner method, then has every CFOP and Roux case with a 3D player, trainers, and Today: a short practice plan made from your own times.'],
-    ['#barMore, #compBtn', () => `${phoneLayout() ? 'Settings' : 'Modes and settings'}: Daily 5 and F2L scrambles, comp sim rounds, racing a friend, inspection, voice calls and the coach.`],
-    ['#skin, .backup-panel', el => el.id === 'skin' ? `Pick a look you like. Your times stay on this device, so save a backup now and then (Backup is at the bottom).` : 'Your times stay on this device, so save a backup here now and then.'],
+    ['#barMore, #compBtn', 'Practice modes: Daily 5 and F2L scrambles, comp sim rounds and racing a friend.'],
+    ['#setBtn', 'Settings: inspection, voice calls, the coach and the look. Your times stay on this device, so save a backup now and then (Backup is at the bottom).'],
   ];
   // a step's target: the first of its elements that can show (one in the settings drawer counts: the tour opens it)
   const tourEl = step => [...document.querySelectorAll(step[0])].find(el => el.closest('#barRest') || el.getClientRects().length);
