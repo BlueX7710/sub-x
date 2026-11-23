@@ -7535,7 +7535,14 @@ body.running .acct-btn { visibility: hidden; }
     try {
       const F = await fbLoad(), P = nativeAuth(), google = new F.auth.GoogleAuthProvider();
       if (P) {
-        const r = await P.signInWithGoogle({ skipNativeAuth: true });
+        // Android's newer sign-in (Credential Manager) fails on some phones with "[16] Account reauth failed" even when
+        // the app is set up right; Google's classic sign-in screen still works there, so fall back to it
+        let r;
+        try { r = await P.signInWithGoogle({ skipNativeAuth: true }); }
+        catch (e) {
+          if (/cancel|12501/i.test(String((e && (e.code || e.message)) || e))) throw e;
+          r = await P.signInWithGoogle({ skipNativeAuth: true, useCredentialManager: false });
+        }
         const tok = r && r.credential && r.credential.idToken; if (!tok) throw new Error('Google sent no sign-in token');
         await F.auth.signInWithCredential(F.A, F.auth.GoogleAuthProvider.credential(tok));
       } else {
