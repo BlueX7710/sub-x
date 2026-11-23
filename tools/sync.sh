@@ -11,7 +11,7 @@ CLAUDE=claude-ai/sub-x-cube-timer.html
 
 cp docs/index.html android-app/www/index.html
 echo "Copied docs/index.html to android-app/www/index.html"
-rm -rf android-app/www/vendor && cp -r docs/vendor android-app/www/vendor   # the smart-cube library, for the app's offline start
+rm -rf android-app/www/lib && cp -r docs/lib android-app/www/lib   # the smart-cube library, for the app's offline start
 
 if git diff --quiet "$BASE" -- docs/index.html; then
   echo "docs/index.html has no changes since $BASE: nothing to patch into $CLAUDE"

@@ -6973,10 +6973,10 @@ body.running .acct-btn { visibility: hidden; }
 
   // ---------- smart cube: Bluetooth connection and timer ----------
   var SM = { conn: null, lib: null, cur: Cube.solved(3), T: null, moves: [], raw: [], readySt: null, battery: null, sub: null };
-  // smartcube-web-bluetooth (MIT, github.com/poliva/smartcube-web-bluetooth, commit 2077416d6c), bundled into docs/vendor:
+  // smartcube-web-bluetooth (MIT, github.com/poliva/smartcube-web-bluetooth, commit 2077416d6c), bundled into docs/lib (not "vendor": GitHub Pages leaves that folder out):
   // GAN (all generations), MoYu (AI 2023, WRM, MHC), QiYi, XMD Tornado V4, GiiKER and GoCube / Rubik's Connected.
   // The commit is in the file name, so the offline cache never keeps an old copy.
-  const GAN_URL = new URL('vendor/smartcube-2077416d6c.js', document.baseURI).href;
+  const GAN_URL = new URL('lib/smartcube-2077416d6c.js', document.baseURI).href;
   const SMART_EVENTS = ['333', 'oh'];
   const NATIVE_BT = nativeBluetooth();
   const smartOk = () => NATIVE ? !!NATIVE_BT : !!navigator.bluetooth;
@@ -8362,7 +8362,7 @@ body.running .acct-btn { visibility: hidden; }
     navigator.serviceWorker.register("sw.js").catch(() => {});
     // Once the service worker controls the page, warm its cache with everything offline use needs: the
     // fonts of every look (latin only) and the smart-cube library. Done again whenever the cache version changes.
-    const OFFLINE_VER = 'subx-v4';
+    const OFFLINE_VER = 'subx-v4-sc';   // -sc: warm again for the new smart-cube library
     const warmOffline = async () => {
       if (!navigator.onLine || db.offlineReady === OFFLINE_VER) return;
       try {
