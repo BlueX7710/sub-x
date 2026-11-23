@@ -1767,8 +1767,13 @@ body.running .acct-btn { visibility: hidden; }
   // Live, Pro comes from the store and is never read from saved data, so a backup, a restore or a sync can't turn it on.
   let PRO_LIVE = false;
   const PRICE_M = 2.99, PRICE_Y = 29.99, PRO_SAVE = Math.round((1 - PRICE_Y / (PRICE_M * 12)) * 100);
+  // A thank-you for people who used Sub-X before Pro: until this moment every Pro feature stays open for everyone,
+  // even with payments live. Set it when the website key goes in, e.g. Date.parse('2027-01-14T00:00:00Z') for two weeks
+  // after a launch on 31 December. 0 = no free period. It's a fixed date in the code, not saved data, so it can't be faked.
+  const PRO_OPEN_UNTIL = 0;
+  const proOpenNow = () => PRO_OPEN_UNTIL > Date.now();
   const isPro = () => PRO_LIVE ? proStoreActive() : !!db.pro;
-  const proLocked = () => (PRO_LIVE || !!db.proTest) && !isPro();
+  const proLocked = () => (PRO_LIVE || !!db.proTest) && !isPro() && !(PRO_LIVE && proOpenNow());
   const PRO_ROWS = [['Timer, inspection and every WCA event', true], ['ao5, ao12 and your trend chart', true], ['Sync your times across devices', true],
     ['Connect a smart cube by Bluetooth', true], ['Beginner method, 2-look OLL and PLL', true], ['Smart-cube splits and stats', false],
     ['Full OLL, PLL, COLL and ZBLL trainers', false], ['Memorizing and the X-cross trainer', false]];
@@ -1795,7 +1800,7 @@ body.running .acct-btn { visibility: hidden; }
     }
     const [label, small, dis] = proGoText(sp);
     $('pwGo').textContent = label; $('pwGo').disabled = !!dis;
-    $('pwSmall').textContent = small;
+    $('pwSmall').textContent = (proOpenNow() && !isPro() ? `Every Pro feature is free for everyone until ${proDate(PRO_OPEN_UNTIL)}. ` : '') + small;
     $('pwSmall').classList.toggle('err', !!PRO.err || (!P && !!PRO.plansErr));
   }
   function openPaywall() {
@@ -1816,6 +1821,7 @@ body.running .acct-btn { visibility: hidden; }
     const pro = isPro();
     $('planBadge').textContent = pro ? 'Pro' : 'Free'; $('planBadge').classList.toggle('pro', pro);
     $('planText').textContent = pro ? (PRO_LIVE ? 'Thanks for supporting Sub-X. Every trainer is yours.' + proPlanLine() : 'Testing: pretend Pro is on. Every Pro feature is open.')
+      : PRO_LIVE && proOpenNow() ? `Every Pro feature is free for everyone until ${proDate(PRO_OPEN_UNTIL)}, as a thank-you for using Sub-X. After that, Pro keeps the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and your smart-cube splits.`
       : PRO_LIVE || db.proTest ? 'Pro adds the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and your smart-cube splits.'
       : 'Pro is coming soon, with the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and smart-cube splits. Until then every feature is free.';
     $('goProBtn').textContent = pro ? (PRO_LIVE ? 'Manage subscription' : 'See plans') : 'See Pro plans';
@@ -7642,6 +7648,14 @@ body.running .acct-btn { visibility: hidden; }
   };
   PRO_LIVE = PRO.on;
   if (PRO_LIVE) { db.proTest = false; db.pro = false; }   // the testing switch and pretend Pro end when payments are live
+  // say once per device that the free period is on (only a convenience, so it lives in localStorage, not the backup)
+  if (PRO_LIVE && proOpenNow()) {
+    let seen = false; try { seen = localStorage.getItem(PRO_KEY + '-open') === String(PRO_OPEN_UNTIL); } catch (e) {}
+    if (!seen) {
+      setTimeout(() => toast(`Sub-X Pro is here. Every Pro feature is free for everyone until ${proDate(PRO_OPEN_UNTIL)}.`), 1500);
+      try { localStorage.setItem(PRO_KEY + '-open', String(PRO_OPEN_UNTIL)); } catch (e) {}
+    }
+  }
   const proUser = () => proTest ? proTest.user || null : SY.user;
   if (PRO.on) {   // what the store said last time, for opening offline (asked again once you're signed in)
     try { const c = JSON.parse(localStorage.getItem(PRO_KEY)); if (c && c.st && (proTest || syncState().on)) Object.assign(PRO, { st: c.st, uid: c.uid, checked: c.checked || 0 }); } catch (e) {}

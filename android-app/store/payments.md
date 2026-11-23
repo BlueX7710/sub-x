@@ -69,11 +69,16 @@ Done:
   "Closed testing - Alpha" (all countries; sent for Google's review on 23 Nov). Testers join the closed test at
   https://play.google.com/apps/testing/app.subx.cubetimer. Production needs 12 testers opted in for 14 days.
 
+- **Google Cloud** (project "Sub-x", `sub-x-feb6b`): terms accepted; Google Play Android Developer API, Google Play
+  Developer Reporting API and Pub/Sub API on; service account `revenuecat@sub-x-feb6b.iam.gserviceaccount.com`
+  (roles Pub/Sub Editor, Monitoring Viewer), invited in Play Console with the four permissions RevenueCat needs.
+- **Decisions:** Paddle prices include tax; Pro is free for everyone for two weeks after the website launch
+  (`PRO_OPEN_UNTIL`, see "Existing users"); the Android key may go live on its own first.
+
 Waiting on the owner:
-- Sign in to RevenueCat and Paddle (both logged out), accept Google Cloud's Terms of Service once (needed to
-  enable the APIs below), add 11+ more testers to "Sub-X testers", finish the Paddle live account.
-- The Play service-account key (step 3.5 below): create it and upload it to RevenueCat yourself; it's a credential.
-- Decide: tax included in the Paddle price or added on top, and a grace period for existing users.
+- Sign in to RevenueCat and Paddle (both logged out), add 11+ more testers to "Sub-X testers", finish the Paddle
+  live account.
+- The service account's key (step 3.5 below): create it and upload it to RevenueCat yourself; it's a credential.
 
 ## Your steps (in this order)
 
@@ -98,7 +103,8 @@ The sandbox one is already set up; repeat these steps on the live account when g
 live account and website first):
 
 1. **Catalog → Products → New product** "Sub-X Pro", with two prices: **$2.99 monthly** and **$29.99 yearly**,
-   each with a **7-day free trial** (Trials on, "Free trial", 7 days).
+   each with a **7-day free trial** (Trials on, "Free trial", 7 days). Tax mode **included in price** (decided
+   23 Nov 2026: buyers pay $2.99 / $29.99 everywhere, like Google Play's prices, and Paddle takes the tax out of it).
 2. **Checkout → Checkout settings**: Payment methods: **PayPal** and Apple Pay on (Google Pay needs Paddle's extra
    check first); Default payment link **https://pay.rev.cat**; Recovery (abandoned checkout emails) **off**.
 3. **Checkout → Website approval** (live only): add `pay.rev.cat` and `bluex7710.github.io`.
@@ -168,8 +174,11 @@ Both stay. Google Play Billing only works in the copy installed from Google Play
 
 ## Existing users
 
-When the keys go in, people who already use the CFOP and Roux pages and the stats lose them unless they subscribe.
-You may want to announce it first, or give existing users a grace period (not built yet: ask Claude).
+Decided 23 Nov 2026: when the website key goes in, every Pro feature stays free for **everyone for two weeks**. Set
+`PRO_OPEN_UNTIL` near the top of the Pro section in `docs/index.html` to the end of the free period, e.g.
+`Date.parse('2027-01-14T00:00:00Z')`. Until then nothing locks; the plan card and the paywall say "Every Pro feature
+is free for everyone until <date>", and each device shows that once as a message. It's a date in the code, not saved
+data, so nobody can extend it. `0` turns it off (the Android-only launch uses `0`: nobody has the Play app yet).
 
 ## Testing without real payments
 
