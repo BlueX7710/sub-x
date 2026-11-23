@@ -83,6 +83,10 @@ Done:
 - **Before the production release:** rebuild the bundle as version code 10 so its offline copy also has the key
   (version code 9's offline copy has `android: ''`, so Pro is open in the Play app when it starts offline).
 
+- **Google sign-in in the Play app** needs every Play signing key in Firebase (Project settings → Android app): the
+  upload key 49:35:39…, Play's current key E3:E5:77…, its post-quantum key 69:40:C7… and the previous key
+  4A:D5:BF… that signed version code 9 (missing it gave "[16] Account reauth failed" / error 10). Added 23–24 Nov.
+
 Waiting on the owner:
 - Sign in to RevenueCat and Paddle (both logged out), add 11+ more testers to "Sub-X testers", finish the Paddle
   live account.
