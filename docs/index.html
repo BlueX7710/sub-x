@@ -7629,7 +7629,7 @@ body.running .acct-btn { visibility: hidden; }
   // Console and RevenueCat (android-app/store/payments.md). With no key below, PRO_LIVE stays off and nothing locks.
   const PAY = {
     web: '',        // RevenueCat public API key of the Paddle web setup (pdl_...)
-    android: '',    // RevenueCat Google Play public API key: goog_fYSKnpIDBinoOSmAHGDRkElpRPB, put back once RevenueCat validates Play purchases
+    android: 'goog_fYSKnpIDBinoOSmAHGDRkElpRPB',    // RevenueCat Google Play public API key (public by design; locks Pro only in the Play app)
     ent: 'pro',     // the entitlement both plans unlock
     sdk: 'https://cdn.jsdelivr.net/npm/@revenuecat/purchases-js@1.73.2/dist/Purchases.es.js',
     play: 'https://play.google.com/store/apps/details?id=app.subx.cubetimer',
