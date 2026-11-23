@@ -61,7 +61,7 @@ Done:
 - **Play Console** (developer account Blue_X, app Sub-X `app.subx.cubetimer`): store listing with text, icon,
   feature graphic and 7 screenshots; category Sports; contact email and website; every App content form
   (content rating Everyone / PEGI 3, target age 13+, Data safety, sign-in details, trader status).
-- **Payments:** merchant profile (MILA's payments profile, statement name SUBX), the 15% service fee (account
+- **Payments:** merchant profile (linked to the account's payments profile, statement name SUBX), the 15% service fee (account
   group Blue_X), subscription `pro` with base plans `monthly` $2.99 and `yearly` $29.99, each with an active
   `trial-7d` offer (7 days free, new subscribers only).
 - **Testing:** email list "Sub-X testers" (the owner's Gmail) used for license testing, the internal test
