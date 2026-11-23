@@ -1467,7 +1467,7 @@ body.running .acct-btn { visibility: hidden; }
     <aside class="side">
       <section class="panel hw" id="smartPanel">
         <h2>Smart cube <span class="h2-right"><b id="smartState">not connected</b><button type="button" class="fold" data-fold="smart" aria-expanded="true" aria-label="Fold the smart cube panel">▾</button></span></h2>
-        <p class="lead" id="smartInfo">Connect a GAN or MoYu AI smart cube. The timer starts on your first turn, stops when the cube is solved, and every solve gets exact cross, F2L, OLL and PLL splits.</p>
+        <p class="lead" id="smartInfo">Connect a GAN, MoYu, QiYi, XMD Tornado, GiiKER or GoCube smart cube (3×3). The timer starts on your first turn, stops when the cube is solved, and every solve gets exact cross, F2L, OLL and PLL splits.</p>
         <div class="row-btns">
           <button type="button" class="pill-btn" id="smartConnect">Connect smart cube</button>
           <button type="button" class="pill-btn" id="smartReset" hidden>My cube is solved</button>
@@ -6584,7 +6584,7 @@ body.running .acct-btn { visibility: hidden; }
     else if (a === 'skip' || a === 'next') pickQuiz();
     else if (a === 'got' || a === 'miss') { memoGrade(a === 'got'); quiz.shown = true; if (!memoSmart() || quiz.phase === 'done') pickQuiz(); }
     else if (a === 'reset' && memoSmart()) {
-      try { SM.conn.sendCubeCommand({ type: 'REQUEST_RESET' }); } catch (e) {}
+      try { if (SM.conn.capabilities?.reset !== false) SM.conn.sendCommand({ type: 'REQUEST_RESET' }).catch(() => {}); } catch (e) {}
       SM.cur = Cube.solved(3); quiz.T = null; quiz.phase = 'setup';
       try { smartScramble(); if (live3dOn()) live3dSync(); } catch (e) {}
     }
@@ -6773,9 +6773,10 @@ body.running .acct-btn { visibility: hidden; }
 
 
   // ---------- Android app: Bluetooth LE plugin dressed up as Web Bluetooth ----------
-  // gan-web-bluetooth calls navigator.bluetooth.requestDevice, device.gatt.connect/getPrimaryServices,
-  // service.getCharacteristic, characteristic start/stopNotifications + 'characteristicvaluechanged',
-  // writeValue and the 'gattserverdisconnected' event. This provides exactly those on top of the plugin.
+  // smartcube-web-bluetooth calls navigator.bluetooth.requestDevice, device.gatt.connect/getPrimaryService(s),
+  // service.getCharacteristic(s), characteristic.properties / .service.device, start/stopNotifications +
+  // 'characteristicvaluechanged', readValue, writeValue(WithResponse/WithoutResponse) and 'gattserverdisconnected'.
+  // This provides exactly those on top of the plugin. (No watchAdvertisements: the library then asks Sub-X for the address.)
   function nativeBluetooth() {
     const BLE = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BluetoothLe;
     if (!NATIVE || !BLE || (window.Capacitor.isPluginAvailable && !window.Capacitor.isPluginAvailable('BluetoothLe'))) return null;
@@ -6818,8 +6819,12 @@ body.running .acct-btn { visibility: hidden; }
       try { if (!(await BLE.isEnabled()).value) await BLE.requestEnable(); } catch (e) {}
       ready = true;
     }
-    function makeChar(id, svc, chr) {
-      const ch = new Emitter(); ch.uuid = chr; ch.value = null; let sub = null;
+    const uuid128 = u => { const t = String(u).toLowerCase(); return typeof u === 'number' ? '0000' + u.toString(16).padStart(4, '0') + '-0000-1000-8000-00805f9b34fb' : /^[0-9a-f]{4}$/.test(t) ? '0000' + t + '-0000-1000-8000-00805f9b34fb' : /^[0-9a-f]{8}$/.test(t) ? t + '-0000-1000-8000-00805f9b34fb' : t; };
+    function makeChar(id, svc, chr, props, service) {
+      const ch = new Emitter(); ch.uuid = chr; ch.value = null; ch.service = service; let sub = null;
+      const p = props || {};
+      ch.properties = { read: !!p.read, write: !!p.write, writeWithoutResponse: !!p.writeWithoutResponse, notify: !!p.notify, indicate: !!p.indicate };
+      if (!props) ch.properties.write = ch.properties.writeWithoutResponse = ch.properties.notify = ch.properties.read = true;   // unknown: allow all
       const where = { deviceId: id, service: svc, characteristic: chr };
       ch.startNotifications = async () => {
         smartStep('starting move updates');
@@ -6836,12 +6841,17 @@ body.running .acct-btn { visibility: hidden; }
     }
     function makeDevice(id, name, adMac) {
       const dev = new Emitter(); dev.id = id; dev.name = name; dev.adMac = adMac || null;
-      let gone = null;
+      let gone = null, linking = null, services = null;
       dev.gatt = {
         connected: false, device: dev,
         // Android's first connection often fails (GATT error 133 or a timeout), and connecting right after a scan
         // makes that likelier. So pause first, and before each new try let go and see the cube advertise again.
-        connect: async () => {
+        connect: () => {   // one connection at a time; already connected is a no-op
+          if (dev.gatt.connected) return Promise.resolve(dev.gatt);
+          return linking || (linking = dev.gatt._link().finally(() => { linking = null; }));
+        },
+        _link: async () => {
+          services = null;
           await wait(600);
           for (let i = 1; ; i++) {
             smartStep(i > 1 ? `connecting over Bluetooth (try ${i} of 4)` : 'connecting over Bluetooth');
@@ -6856,18 +6866,33 @@ body.running .acct-btn { visibility: hidden; }
           gone = await BLE.addListener('disconnected|' + id, () => { dev.gatt.connected = false; if (gone) gone.remove(); gone = null; dev._emit('gattserverdisconnected', { target: dev }); });
           dev.gatt.connected = true; return dev.gatt;
         },
-        disconnect: () => { BLE.disconnect({ deviceId: id }).catch(() => {}); },
+        disconnect: () => {   // marked at once, so a quick reconnect (the library retries) really connects again
+          const was = dev.gatt.connected; dev.gatt.connected = false; services = null;
+          if (gone) { gone.remove(); gone = null; }
+          BLE.disconnect({ deviceId: id }).catch(() => {});
+          if (was) setTimeout(() => dev._emit('gattserverdisconnected', { target: dev }), 0);
+        },
         getPrimaryServices: async () => {
+          if (services) return services;
           smartStep("reading the cube's services");
-          const { services } = await BLE.getServices({ deviceId: id });
-          return services.map(s => {
-            const svc = s.uuid.toLowerCase();
-            return { uuid: svc, getCharacteristic: async u => {
-              const c = s.characteristics.find(c => c.uuid.toLowerCase() === String(u).toLowerCase());
-              if (!c) throw new Error('Characteristic not found: ' + u);
-              return makeChar(id, svc, c.uuid.toLowerCase());
-            } };
+          const res = await BLE.getServices({ deviceId: id });
+          services = (res.services || []).map(s => {
+            const svc = s.uuid.toLowerCase(), service = { uuid: svc, device: dev, isPrimary: true }, chars = new Map();
+            const charFor = c => { const u = c.uuid.toLowerCase(); if (!chars.has(u)) chars.set(u, makeChar(id, svc, u, c.properties, service)); return chars.get(u); };
+            service.getCharacteristic = async u => {
+              const c = (s.characteristics || []).find(c => c.uuid.toLowerCase() === uuid128(u));
+              if (!c) throw Object.assign(new Error('Characteristic not found: ' + u), { name: 'NotFoundError' });
+              return charFor(c);
+            };
+            service.getCharacteristics = async u => (s.characteristics || []).filter(c => u == null || c.uuid.toLowerCase() === uuid128(u)).map(charFor);
+            return service;
           });
+          return services;
+        },
+        getPrimaryService: async u => {
+          const svc = (await dev.gatt.getPrimaryServices()).find(s => s.uuid === uuid128(u));
+          if (!svc) throw Object.assign(new Error('Service not found: ' + u), { name: 'NotFoundError' });
+          return svc;
         },
       };
       return dev;
@@ -6895,7 +6920,10 @@ body.running .acct-btn { visibility: hidden; }
     };
     // The plugin's own picker takes only one name prefix, and cubes use several, so list them here.
     function requestDevice(opts) {
-      const prefixes = ((opts && opts.filters) || []).map(f => f.namePrefix).filter(Boolean);
+      const filters = (opts && opts.filters) || [];
+      const prefixes = filters.map(f => f.namePrefix).filter(Boolean), names = filters.map(f => f.name).filter(Boolean);
+      const companies = new Set(filters.flatMap(f => (f.manufacturerData || []).map(m => m.companyIdentifier)));
+      const wanted = (name, md) => prefixes.some(p => name.startsWith(p)) || names.includes(name) || Object.keys(md || {}).some(k => companies.has(Number(k)));
       const box = $('smartPick');
       return new Promise(async (resolve, reject) => {
         const found = new Map(); let listener = null, timer = 0, settled = false;
@@ -6929,9 +6957,9 @@ body.running .acct-btn { visibility: hidden; }
             let name = r.localName || (r.device && r.device.name) || '';
             try { name = name || advertName(r.rawAdvertisement); } catch (e) {}
             const mac = advertMac(r.manufacturerData), old = found.get(id);
-            if (!prefixes.some(p => name.startsWith(p)) && !(mac && !name)) return;
+            if (!wanted(name, r.manufacturerData) && !(mac && !name)) return;
             if (old && (old.name === name || !name) && (old.mac || !mac)) return;
-            found.set(id, { name: name || (old && old.name) || 'GAN cube', mac: mac || (old && old.mac) }); draw();
+            found.set(id, { name: name || (old && old.name) || 'Smart cube', mac: mac || (old && old.mac) }); draw();
           });
           await BLE.requestLEScan({ allowDuplicates: true });
           timer = setTimeout(() => { if (!found.size) finish(null, notFound('No cube found nearby.')); }, 25000);
@@ -6945,7 +6973,10 @@ body.running .acct-btn { visibility: hidden; }
 
   // ---------- smart cube: Bluetooth connection and timer ----------
   var SM = { conn: null, lib: null, cur: Cube.solved(3), T: null, moves: [], raw: [], readySt: null, battery: null, sub: null };
-  const GAN_URL = 'https://cdn.jsdelivr.net/npm/gan-web-bluetooth@3.0.2/+esm';
+  // smartcube-web-bluetooth (MIT, github.com/poliva/smartcube-web-bluetooth, commit 2077416d6c), bundled into docs/vendor:
+  // GAN (all generations), MoYu (AI 2023, WRM, MHC), QiYi, XMD Tornado V4, GiiKER and GoCube / Rubik's Connected.
+  // The commit is in the file name, so the offline cache never keeps an old copy.
+  const GAN_URL = new URL('vendor/smartcube-2077416d6c.js', document.baseURI).href;
   const SMART_EVENTS = ['333', 'oh'];
   const NATIVE_BT = nativeBluetooth();
   const smartOk = () => NATIVE ? !!NATIVE_BT : !!navigator.bluetooth;
@@ -7184,12 +7215,12 @@ body.running .acct-btn { visibility: hidden; }
   }
   function l3GyroNote() {
     const n = $('l3GyroNote'), b = $('l3GyroReset'); if (!n) return;
-    const msg = !SM.conn ? '' : SM.gyroSeen ? 'Gyroscope on. Hold your cube the way you solve and tap Reset orientation, so the 3D cube sits the same way. Each solve also counts your cube rotations.'
+    const msg = !SM.conn ? '' : SM.gyroOther && !SM.gyroSeen ? 'Your cube has a gyroscope, but following your hands works with GAN cubes only for now, so the 3D cube shows your turns.' : SM.gyroSeen ? 'Gyroscope on. Hold your cube the way you solve and tap Reset orientation, so the 3D cube sits the same way. Each solve also counts your cube rotations.'
       : SM.gyroOk === false ? 'Your cube has no gyroscope, so the 3D cube shows your turns only (and rotations are not counted).' : '';
     n.hidden = !msg; n.textContent = msg; b.hidden = !SM.gyroSeen;
   }
   function smartCleanup() {
-    SM.gq = SM.gbase = SM.rot = null; SM.gyroSeen = false; SM.gyroOk = null; L3.gt = L3.gq = null;
+    SM.gq = SM.gbase = SM.rot = null; SM.gyroSeen = false; SM.gyroOk = null; SM.gyroOther = false; L3.gt = L3.gq = null;
     try { if (SM.sub) SM.sub.unsubscribe(); } catch (e) {}
     SM.sub = null; SM.conn = null; SM.T = null; SM.battery = null; SM.fSerial = null; smartUI();
     $('smartNote').hidden = true;
@@ -7207,6 +7238,7 @@ body.running .acct-btn { visibility: hidden; }
       smartMove(ev.move, ev.localTimestamp != null ? ev.localTimestamp : ev.timestamp, ev);
     }
     else if (ev.type === 'FACELETS') {
+      if (ev.facelets && ev.facelets.length !== 54) { smartNot3x3(); return; }   // a 2×2 smart cube
       if (state === 'running') return;
       SM.cur = SmartCore.fromFacelets(ev.facelets); SM.fSerial = ev.serial ? ev.serial : null;   // 0 is unknown: some GAN cubes (iCarry 2) report 0 at move 255 if (live3dOn()) live3dSync();
       if (SM.T) { SmartCore.step(SM.T, SM.cur, null); smartShow(); if (SM.T.done) smartReadyGo(); }
@@ -7214,9 +7246,20 @@ body.running .acct-btn { visibility: hidden; }
       else if (exampleActive() && workedExamples[learnSet].track) { SmartCore.step(workedExamples[learnSet].track, SM.cur, null); renderExample(learnSet); }
     }
     else if (ev.type === 'BATTERY') { SM.battery = ev.batteryLevel; smartUI(); }
-    else if (ev.type === 'GYRO') smartGyro(ev);
+    else if (ev.type === 'GYRO') {
+      // GAN's axes are known (see smartGyro). Other brands report theirs differently and aren't mapped yet,
+      // so their gyroscope isn't used: a 3D cube tilting the wrong way, or miscounted rotations, would be worse.
+      if (/^gan/.test((SM.conn && SM.conn.protocol && SM.conn.protocol.id) || 'gan')) smartGyro(ev);
+      else if (!SM.gyroOther) { SM.gyroOther = true; smartUI(); }
+    }
     else if (ev.type === 'HARDWARE') { SM.gyroOk = !!ev.gyroSupported; smartUI(); }
     else if (ev.type === 'DISCONNECT') { smartCleanup(); toast('Smart cube disconnected'); }
+  }
+  // Sub-X's smart-cube features are for the 3×3: a 2×2 smart cube connects, but is let go with a note
+  function smartNot3x3() {
+    const c = SM.conn; if (!c) return;
+    smartCleanup(); try { c.disconnect(); } catch (e) {}
+    smartInfo(`${c.deviceName || 'This cube'} is a 2×2. Sub-X's smart-cube timer and trainers are for the 3×3 for now, so it was disconnected.`);
   }
   // GAN cubes need their MAC address for encryption. Chrome can often read it; otherwise ask once.
   let macDevice = null;   // the cube whose saved address was just used, so a failed connection can forget it
@@ -7226,8 +7269,10 @@ body.running .acct-btn { visibility: hidden; }
     macDevice = device && device.name;
     try { saved = JSON.parse(localStorage.getItem('subx-macs') || '{}')[device.name] || null; } catch (e) {}
     smartStep("reading the cube's address");
-    if (NATIVE && device.adMac) return Promise.resolve(device.adMac);   // the address the cube itself advertises
-    if (NATIVE && /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(device.id || '')) return Promise.resolve(device.id.toUpperCase());
+    const idMac = NATIVE && /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(device.id || '') ? device.id.toUpperCase() : null;
+    const otherBrand = /^(QY|XMD|WCU_|MHC|MY|Gi|Mi Smart|Hi-|GoCube|Rubik)/i.test(device.name || '');
+    if (NATIVE && device.adMac && !otherBrand) return Promise.resolve(device.adMac);   // the address a GAN cube advertises (GAN's advert format)
+    if (idMac) return Promise.resolve(idMac);   // Android: the device id is the cube's address (any brand)
     if (saved || !isFallback) return Promise.resolve(saved);
     return new Promise(resolve => {
       $('smartMac').hidden = false; smartSetupShow(true); $('smartMacInput').focus();
@@ -7255,7 +7300,7 @@ body.running .acct-btn { visibility: hidden; }
       macDevice = null; smartStep(NATIVE ? 'looking for your cube' : 'waiting for you to pick the cube');
       // a hung Bluetooth connection gives up after 40 seconds on one step (time spent picking the cube or typing its address doesn't count)
       let timer, waited = 0, onStep = ''; const limit = new Promise((_, no) => { timer = setInterval(() => { if (onStep !== smartStepNow) { onStep = smartStepNow; waited = 0; } if ($('smartMac').hidden && $('smartPick').hidden && smartStepNow !== 'waiting for you to pick the cube' && (waited += 500) >= 40000) no(new Error('the cube took too long to answer')); }, 500); });
-      const conn = await Promise.race([SM.lib.connectGanCube(macProvider), limit]).finally(() => clearInterval(timer));
+      const conn = await Promise.race([SM.lib.connectSmartCube({ macAddressProvider: macProvider }), limit]).finally(() => clearInterval(timer));
       if (!conn) throw new Error('no cube');
       SM.conn = conn; SM.cur = Cube.solved(3);
       SM.sub = conn.events$.subscribe(onSmartEvent);
@@ -7263,7 +7308,9 @@ body.running .acct-btn { visibility: hidden; }
       // some cubes don't answer these: that's fine, the connection stays
       smartScramble();   // track from now: the cube's answers below can take a while
       // (and one that never answers mustn't hold up the rest: wait at most 1.5 s for each)
-      const ask = type => Promise.race([Promise.resolve().then(() => conn.sendCubeCommand({ type })).catch(() => {}), new Promise(r => setTimeout(r, 1500))]);
+      // only what this cube's driver says it can answer (GiiKER and GoCube have no hardware request, for example)
+      const can = { REQUEST_FACELETS: 'facelets', REQUEST_BATTERY: 'battery', REQUEST_HARDWARE: 'hardware' }, cap = conn.capabilities || {};
+      const ask = type => cap[can[type]] === false ? Promise.resolve() : Promise.race([Promise.resolve().then(() => conn.sendCommand({ type })).catch(() => {}), new Promise(r => setTimeout(r, 1500))]);
       await ask('REQUEST_FACELETS'); await ask('REQUEST_BATTERY');
       await ask('REQUEST_HARDWARE');   // says whether it has a gyroscope
       smartScramble();
@@ -7277,7 +7324,7 @@ body.running .acct-btn { visibility: hidden; }
       $('smartMac').hidden = true;
       smartCleanup();
       smartInfo(e && e.name === 'NotFoundError' ? 'No cube was chosen. Wake the cube up by turning a face, then try again.'
-        : `Couldn't connect: it stopped at “${smartStepNow}” (${e && e.message ? e.message : e}). Turn a face to wake the cube, close GAN's own app, turn your phone's Bluetooth off and on, then try again.`);
+        : `Couldn't connect: it stopped at “${smartStepNow}” (${e && e.message ? e.message : e}). Turn a face to wake the cube, close the cube maker's own app, turn your phone's Bluetooth off and on, then try again.`);
     } finally { $('smartConnect').disabled = false; }
   }
   // load the library as soon as the button is touched, so the Bluetooth picker opens straight from the click
@@ -7288,7 +7335,7 @@ body.running .acct-btn { visibility: hidden; }
   $('smartDisc').addEventListener('click', async () => { const c = SM.conn; smartCleanup(); try { await c.disconnect(); } catch (e) {} });
   $('smartReset').addEventListener('click', async () => {
     if (!SM.conn) return;
-    try { await SM.conn.sendCubeCommand({ type: 'REQUEST_RESET' }); } catch (e) {}
+    try { if (SM.conn.capabilities?.reset !== false) await SM.conn.sendCommand({ type: 'REQUEST_RESET' }); } catch (e) {}
     SM.cur = Cube.solved(3); SM.fSerial = null; smartScramble(); toast('Cube marked as solved'); if (live3dOn()) live3dSync();
     if (TR.track) SmartCore.step(TR.track, SM.cur, null);
     for (const E of Object.values(workedExamples)) if (E.track) SmartCore.step(E.track, SM.cur, null);
@@ -8068,7 +8115,7 @@ body.running .acct-btn { visibility: hidden; }
   planUI();
 
   // test hook for simulated cubes; only on a local development server
-  if (location.hostname === 'localhost') window.__subxSmart = { SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, savingsCheck, caseTable, mergeData, SY, db, drillDone, startDrill, caseById, SmartCore, getDrill: () => drill };
+  if (location.hostname === 'localhost') window.__subxSmart = { connect: smartConnect, state: () => state, SM, onSmartEvent, smartUI, smartScramble, toCube, TR, L3, stackDecoder, stackPacket, Solver, CrossSolver, coachCheck, stepTimes, savingsCheck, caseTable, mergeData, SY, db, drillDone, startDrill, caseById, SmartCore, getDrill: () => drill };
 
   // ---------- splits ----------
   const PHASES = ['Cross', 'F2L', 'OLL', 'PLL'], TYPICAL = [0.13, 0.5, 0.17, 0.2];   // usual share of a CFOP solve
