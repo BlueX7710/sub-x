@@ -84,12 +84,12 @@ Don't use "Rubik's" in the name or as a main keyword: it's a trademark.
 • A welcome tour for new cubers
 ```
 
-## Graphics (need making)
+## Graphics (ready in `store/graphics/`)
 
-- App icon 512×512: `docs/icon-512.png` already fits.
-- Feature graphic 1024×500: brand name and a cube, on the app's dark blue (#0D1117).
-- Phone screenshots, at least 2 (up to 8), 16:9 or 9:16, e.g. 1080×1920: take them on the phone (Timer
-  mid-solve, Learn → F2L cases, the 3D player, a trainer, comp sim result, achievements).
+- App icon 512×512: `graphics/icon-512.png` (same as `docs/icon-512.png`).
+- Feature graphic 1024×500: `graphics/feature-1024x500.png`.
+- Phone screenshots 1080×1920: `graphics/phone-1-welcome.png` to `phone-7-oll.png`, taken from the live site
+  with the app's user agent. Swap in real phone shots later (a solve in progress, stats with real times).
 
 ## App content answers
 
