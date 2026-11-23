@@ -27,7 +27,10 @@ claude.ai page. It's the owner's own project; `README.md` lists everything it do
   smart cube: `tools/sync.sh` rejects those hunks for the claude.ai copy on purpose.
 - Pro ($2.99 a month or $29.99 a year, a free week; RevenueCat with Google Play Billing in the Play app and Paddle
   on the web (card, PayPal, Apple Pay); setup in `android-app/store/payments.md`): `PRO_LIVE` turns on once `PAY` has a key, and then Pro
-  comes only from the store (`proStoreActive`), never from `db`. The claude.ai copy has no paywall or payments:
+  comes only from the store (`proStoreActive`), never from `db`. Each copy checks its own key: the Play app 1.8+
+  uses `PAY.android`; the website, the GitHub APK and older apps use `PAY.web`. So the Android key alone locks Pro
+  only in the Play app. The payments work is on branch `pro-payments` (not merged); its status list is at the top
+  of `payments.md`. The claude.ai copy has no paywall or payments:
   drop the "Pro payments" block when syncing (it needs sign-in).
 - App versions: the app adds `SubX/<version>` to its user agent (`appendUserAgent` in
   `capacitor.config.json`). The site gives scrambles that cancel out to apps older than 1.4 (`OLD_APP` in

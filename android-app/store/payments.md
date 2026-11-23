@@ -55,6 +55,26 @@ The app shows whatever the store says, including local prices in other countries
   say "Update the app to subscribe" to everyone else.
 - Whether Pro is on is never saved in the backup or synced data, so a backup or restore can't turn it on.
 
+## Where it stands (23 November 2026)
+
+Done:
+- **Play Console** (developer account Blue_X, app Sub-X `app.subx.cubetimer`): store listing with text, icon,
+  feature graphic and 7 screenshots; category Sports; contact email and website; every App content form
+  (content rating Everyone / PEGI 3, target age 13+, Data safety, sign-in details, trader status).
+- **Payments:** merchant profile (MILA's payments profile, statement name SUBX), the 15% service fee (account
+  group Blue_X), subscription `pro` with base plans `monthly` $2.99 and `yearly` $29.99, each with an active
+  `trial-7d` offer (7 days free, new subscribers only).
+- **Testing:** email list "Sub-X testers" (the owner's Gmail) used for license testing, the internal test
+  (1.8, version code 9, live: https://play.google.com/apps/internaltest/4700828412526386314) and the closed test
+  "Closed testing - Alpha" (all countries; sent for Google's review on 23 Nov). Testers join the closed test at
+  https://play.google.com/apps/testing/app.subx.cubetimer. Production needs 12 testers opted in for 14 days.
+
+Waiting on the owner:
+- Sign in to RevenueCat and Paddle (both logged out), accept Google Cloud's Terms of Service once (needed to
+  enable the APIs below), add 11+ more testers to "Sub-X testers", finish the Paddle live account.
+- The Play service-account key (step 3.5 below): create it and upload it to RevenueCat yourself; it's a credential.
+- Decide: tax included in the Paddle price or added on top, and a grace period for existing users.
+
 ## Your steps (in this order)
 
 ### 1. Google Play
@@ -100,9 +120,21 @@ be deleted.)
 2. **Product catalog → Products → Sub-X (Paddle) → Import** both Paddle prices.
 3. Attach them to the `pro` entitlement, and add them to the `default` offering's Monthly and Annual packages.
 4. The Paddle setup's **Public API Key** (starts with `pdl_`) is what goes in `PAY.web`.
-5. **Add app → Google Play**: package `app.subx.cubetimer`. Follow RevenueCat's guide to give it a Google Cloud
-   service account with Play Console access. Copy the **public API key** (starts with `goog_`) for `PAY.android`,
-   and attach the Play products (`pro:monthly`, `pro:yearly`) to `pro` and the offering's packages.
+5. **Add app → Google Play**: package `app.subx.cubetimer`. Copy the **public API key** (starts with `goog_`) for
+   `PAY.android`, and attach the Play products (`pro:monthly`, `pro:yearly`) to `pro` and the offering's packages.
+   Then give RevenueCat a Google Cloud service account (RevenueCat's checklist, read 23 Nov 2026):
+   - Google Cloud project "Sub-x" (`sub-x-feb6b`): enable **Google Play Android Developer API**, **Google Play
+     Developer Reporting API** and **Pub/Sub API**.
+   - **IAM → Service accounts → Create**, e.g. `revenuecat`, with roles **Pub/Sub Editor** and **Monitoring Viewer**.
+   - Play Console → **Users and permissions → Invite new users**: the service account's email; add the app; account
+     permissions **View app information and download bulk reports**, **View financial data, orders, and
+     cancellation survey responses**, **Manage orders and subscriptions**, **Manage store presence**.
+   - Service account → **Keys → Add key → Create new key → JSON**; upload it in RevenueCat under the Play app's
+     **Service Account Credentials JSON**, save, and delete the downloaded file. It can take up to 36 hours to
+     validate (errors 503/521 until then).
+   - After that: RevenueCat → Play app → **Connect to Google** (it can create the Pub/Sub topic), paste the topic in
+     Play Console → **Monetize with Play → Monetization setup** (Real-time developer notifications, "Subscriptions,
+     voided purchases, and all one-time products"), then **Send test notification**.
 
 ### 4. Turn it on
 
@@ -117,9 +149,8 @@ be deleted.)
 
 - **Data safety:** see `listing.md` (it now declares purchase history, user ids and synced data).
 - **Content rating:** answer yes to "digital purchases".
-- **Account deletion:** apps that let people sign in must offer a way to delete the account and its data. Add
-  the URL https://github.com/BlueX7710/sub-x/issues (or an email) under App content → Data deletion, and delete
-  the person's Firestore document and RevenueCat customer when asked.
+- **Account deletion:** done: Data safety links to https://bluex7710.github.io/sub-x/privacy.html#delete-account.
+  When someone asks, delete their Firestore document, their Firebase sign-in record and their RevenueCat customer.
 - **Store listing:** the description now says "Free to start" and lists Pro (in `listing.md`).
 
 ## Google Play and the GitHub APK
