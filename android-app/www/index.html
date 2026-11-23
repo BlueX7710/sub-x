@@ -179,6 +179,15 @@ body.running .set-btn { visibility: hidden; }
   .set-sheet::before { content: ''; display: block; width: 40px; height: 5px; margin: 8px auto 0; border-radius: 3px; background: var(--line); }
   .set-head { padding-top: 10px; }
 }
+/* Your subscription (Manage subscription), in the same sheet as Settings */
+.sub-body { display: flex; flex-direction: column; gap: 10px; }
+.sub-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: var(--sunk); }
+.sub-card > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sub-card b { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
+.sub-card span:not(.plan-badge) { color: var(--muted); font-size: 15px; }
+.sub-status { margin: 4px 0 6px; line-height: 1.5; }
+.sub-body .btn { width: 100%; min-height: 48px; }
+.sub-small { margin: -2px 0 8px; font-size: 13px; line-height: 1.45; color: var(--muted); }
 /* on/off settings are switches */
 :is(.bar-rest, .set-body) .toggle input[type=checkbox] { appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 46px; height: 28px; margin: 0; border-radius: 999px; background: var(--line); cursor: pointer; transition: background .2s; }
 :is(.bar-rest, .set-body) .toggle input[type=checkbox]::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .3); transition: transform .2s; }
@@ -1650,6 +1659,19 @@ body.running .acct-btn { visibility: hidden; }
   <div class="set-sheet">
     <div class="set-head"><h2 id="setTitle">Settings</h2><button type="button" class="set-x" id="setClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
     <div class="set-body" id="setBody"></div>
+  </div>
+</div>
+<div class="set-overlay" id="subSheet" hidden role="dialog" aria-modal="true" aria-labelledby="subTitle">
+  <div class="set-sheet">
+    <div class="set-head"><h2 id="subTitle">Your subscription</h2><button type="button" class="set-x" id="subClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+    <div class="set-body sub-body">
+      <div class="sub-card"><span class="plan-badge pro">Pro</span><div><b id="subPlan"></b><span id="subPrice"></span></div></div>
+      <p class="sub-status" id="subStatus" role="status"></p>
+      <button type="button" class="btn" id="subSwitch" hidden></button>
+      <p class="sub-small" id="subSwitchNote" hidden></p>
+      <button type="button" class="btn ghost" id="subStore"></button>
+      <p class="sub-small" id="subStoreNote"></p>
+    </div>
   </div>
 </div>
 <div class="pw-overlay" id="paywall" hidden role="dialog" aria-modal="true" aria-labelledby="pwTitle">
@@ -7807,7 +7829,7 @@ body.running .acct-btn { visibility: hidden; }
     ent: 'pro',     // the entitlement both plans unlock
     sdk: 'https://cdn.jsdelivr.net/npm/@revenuecat/purchases-js@1.73.2/dist/Purchases.es.js',
     play: 'https://play.google.com/store/apps/details?id=app.subx.cubetimer',
-    playSubs: 'https://play.google.com/store/account/subscriptions?package=app.subx.cubetimer',
+    playSubs: 'https://play.google.com/store/account/subscriptions?sku=pro&package=app.subx.cubetimer',   // straight to Sub-X's subscription in the Play Store app
     site: 'https://bluex7710.github.io/sub-x/#account?pro=1',   // where the GitHub app sends people to subscribe
   };
   const PRO_KEY = 'subx-pro';
@@ -7842,7 +7864,9 @@ body.running .acct-btn { visibility: hidden; }
   function proFrom(ci) {
     const e = ci && ci.entitlements && ci.entitlements.active && ci.entitlements.active[PAY.ent], manage = (ci && ci.managementURL) || '';
     if (!e || e.isActive === false) return { active: false, manage };
-    return { active: true, until: e.expirationDate ? +new Date(e.expirationDate) : 0, trial: /trial/i.test(e.periodType || ''), renew: e.willRenew !== false, manage };
+    // which plan: Play gives the base plan ("monthly" or "yearly"); the website's product ids say it too
+    const pid = String(e.productIdentifier || ''), plan = /year|annual/i.test((e.productPlanIdentifier || '') + pid) ? 'yearly' : /month/i.test((e.productPlanIdentifier || '') + pid) ? 'monthly' : '';
+    return { active: true, until: e.expirationDate ? +new Date(e.expirationDate) : 0, trial: /trial/i.test(e.periodType || ''), renew: e.willRenew !== false, manage, plan, product: pid, store: e.store || '' };
   }
   // a plan from either store: its price, the price in micros and currency (for the saving) and the free trial
   function planFrom(pkg) {
@@ -7903,6 +7927,7 @@ body.running .acct-btn { visibility: hidden; }
     const now = isPro();
     if (now !== proWas) { proWas = now; proChanged(); } else planUI();
     if (!$('paywall').hidden) pwDraw();
+    if (!$('subSheet').hidden) subDraw();
   }
   // ask the store again: Pro every 6 hours, no Pro every 10 minutes (it may have been bought on another device)
   async function proRefresh(force) {
@@ -7947,10 +7972,51 @@ body.running .acct-btn { visibility: hidden; }
   const proPlanLine = () => { const st = PRO.st; return !st ? '' : st.trial ? ` Your free week is on until ${proDate(st.until)}.` : st.until ? ` ${st.renew ? 'Renews' : 'Ends'} on ${proDate(st.until)}.` : ''; };
   // open a store page the way the app's other links do (in the app, Android hands it to Google Play or the browser)
   function proLink(url) { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-  function proManage() {
-    const url = (PRO.st && PRO.st.manage) || (inApp() ? PAY.playSubs : '');
-    if (url) proLink(url); else toast('Your subscription is managed where you bought it (Google Play or the website).');
+  // Manage subscription: the plan, its dates and switching plans happen here in the app. Cancelling and the payment
+  // method stay with the store (Google requires its own subscription page for Play subscriptions), one tap away.
+  function proManage() { closePaywall(); subDraw(); $('subSheet').hidden = false; dlgOpen($('subSheet'), $('subClose')); if (!PRO.plans) proLoadPlans(); }
+  function subShut() { if ($('subSheet').hidden) return; $('subSheet').hidden = true; dlgClose($('subSheet')); }
+  const subPlay = () => inApp() && (!PRO.st || !PRO.st.store || /play/i.test(PRO.st.store));   // bought in this Play app
+  function subDraw() {
+    const st = PRO.st || {}, P = PRO.plans, sub = proStoreActive(), yearly = st.plan === 'yearly';
+    const p = P && (st.plan ? P[yearly ? 'annual' : 'monthly'] : null), per = yearly ? 'year' : 'month';
+    $('subPlan').textContent = !sub ? 'No subscription' : st.plan ? (yearly ? 'Yearly' : 'Monthly') : 'Pro';
+    $('subPrice').textContent = sub && p ? `${p.price} a ${per}` : '';
+    $('subStatus').textContent = !sub ? (proOpenNow() ? `Every Pro feature is free for everyone until ${proDate(PRO_OPEN_UNTIL)}, so you don't need one yet.` : 'Pro is off on this account.')
+      : st.trial && st.renew ? `Your free week runs until ${proDate(st.until)}. After that it's ${p ? p.price + ' a ' + per : 'the plan price'} until you cancel. Cancel before then and you pay nothing.`
+      : !st.renew ? `Cancelled. Pro stays on until ${proDate(st.until)}, then it ends. You can turn it back on before then.`
+      : st.until ? `Renews on ${proDate(st.until)}.` : 'Pro is on.';
+    // switching between monthly and yearly is a Play purchase, done right here
+    const other = P && st.plan && P[yearly ? 'monthly' : 'annual'], canSwitch = sub && subPlay() && st.renew && !!other && !!st.product;
+    $('subSwitch').hidden = $('subSwitchNote').hidden = !canSwitch;
+    if (canSwitch) {
+      $('subSwitch').textContent = yearly ? `Switch to monthly (${other.price} a month)` : `Switch to yearly (${other.price} a year)`;
+      $('subSwitchNote').textContent = yearly ? 'Monthly starts when your current year ends.' : 'Google counts the time left on this month toward the year.';
+    }
+    $('subSwitch').disabled = !!PRO.busy;
+    const play = sub ? subPlay() : inApp(), url = play ? PAY.playSubs : st.manage;
+    $('subStore').hidden = $('subStoreNote').hidden = !url;
+    $('subStore').textContent = play ? (st.renew === false ? 'Turn it back on in Google Play' : 'Cancel or change payment') : 'Change payment or cancel';
+    $('subStoreNote').textContent = play ? "Google handles cancelling and payment cards for Play subscriptions, so this opens Sub-X's page in the Play Store app. After cancelling, Pro stays on until the end of the time you paid for."
+      : 'Opens the secure billing page for the website subscription.';
   }
+  async function subSwitch() {
+    const st = PRO.st, toYear = st.plan !== 'yearly', p = PRO.plans && PRO.plans[toYear ? 'annual' : 'monthly'], u = proUser();
+    if (!p || !u || PRO.busy) return;
+    PRO.busy = true; subDraw();
+    try {
+      // Play replaces the old base plan: up to yearly at once (with credit for the time left), down to monthly when the year ends
+      const r = await (await proApp()).purchasePackage({ aPackage: p.pkg, googleProductChangeInfo: { oldProductIdentifier: st.product.split(':')[0], prorationMode: toYear ? 1 : 6 } });
+      PRO.st = proFrom(r.customerInfo); PRO.uid = u.uid; PRO.checked = Date.now(); proSave();
+      toast(toYear ? 'You are on the yearly plan now.' : 'Done: monthly starts when your current year ends.');
+    } catch (e) { if (!proCancelled(e)) toast("Couldn't switch (" + proErrText(e) + '). Nothing was charged.'); }
+    PRO.busy = false; proApply(); subDraw();
+  }
+  $('subClose').addEventListener('click', subShut);
+  $('subSheet').addEventListener('click', e => { if (e.target === e.currentTarget) subShut(); });
+  $('subSwitch').addEventListener('click', subSwitch);
+  $('subStore').addEventListener('click', () => { const st = PRO.st || {}, play = proStoreActive() ? subPlay() : inApp(); proLink(play ? PAY.playSubs : st.manage); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('subSheet').hidden && DLG[DLG.length - 1]?.el === $('subSheet')) { e.preventDefault(); subShut(); } });
   async function proGo() {
     const u = proUser();
     if (isPro()) { proManage(); return; }
