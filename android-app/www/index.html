@@ -187,6 +187,11 @@ body.running .set-btn { visibility: hidden; }
 .sub-card span:not(.plan-badge) { color: var(--muted); font-size: 15px; }
 .sub-status { margin: 4px 0 6px; line-height: 1.5; }
 .sub-body .btn { width: 100%; min-height: 48px; }
+.sub-confirm { padding: 14px 16px; border-radius: 16px; background: var(--sunk); }
+.sub-confirm p { margin: 0 0 12px; line-height: 1.5; }
+.sub-row { display: flex; gap: 8px; }
+.sub-row .btn { flex: 1; min-height: 48px; }
+.btn.ghost.danger { color: var(--hold); border-color: var(--hold); }
 .sub-small { margin: -2px 0 8px; font-size: 13px; line-height: 1.45; color: var(--muted); }
 /* on/off settings are switches */
 :is(.bar-rest, .set-body) .toggle input[type=checkbox] { appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 46px; height: 28px; margin: 0; border-radius: 999px; background: var(--line); cursor: pointer; transition: background .2s; }
@@ -1669,6 +1674,8 @@ body.running .acct-btn { visibility: hidden; }
       <p class="sub-status" id="subStatus" role="status"></p>
       <button type="button" class="btn" id="subSwitch" hidden></button>
       <p class="sub-small" id="subSwitchNote" hidden></p>
+      <button type="button" class="btn ghost" id="subCancel" hidden>Cancel subscription</button>
+      <div class="sub-confirm" id="subConfirm" hidden><p id="subConfirmText"></p><div class="sub-row"><button type="button" class="btn" id="subKeep">Keep Pro</button><button type="button" class="btn ghost danger" id="subCancelYes">Yes, cancel</button></div></div>
       <button type="button" class="btn ghost" id="subStore"></button>
       <p class="sub-small" id="subStoreNote"></p>
     </div>
@@ -7876,6 +7883,7 @@ body.running .acct-btn { visibility: hidden; }
     ent: 'pro',     // the entitlement both plans unlock
     sdk: 'https://cdn.jsdelivr.net/npm/@revenuecat/purchases-js@1.73.2/dist/Purchases.es.js',
     play: 'https://play.google.com/store/apps/details?id=app.subx.cubetimer',
+    cancelUrl: (location.hostname === 'localhost' && window.SUBX_CANCEL_URL) || '',   // the cancel server (server/cancel): its workers.dev address + '/cancel'. Empty: Cancel opens Google Play instead
     playSubs: 'https://play.google.com/store/account/subscriptions?sku=pro&package=app.subx.cubetimer',   // straight to Sub-X's subscription in the Play Store app
     site: 'https://bluex7710.github.io/sub-x/#account?pro=1',   // where the GitHub app sends people to subscribe
   };
@@ -8022,7 +8030,26 @@ body.running .acct-btn { visibility: hidden; }
   // Manage subscription: the plan, its dates and switching plans happen here in the app. Cancelling and the payment
   // method stay with the store (Google requires its own subscription page for Play subscriptions), one tap away.
   function proManage() { closePaywall(); subDraw(); $('subSheet').hidden = false; dlgOpen($('subSheet'), $('subClose')); if (!PRO.plans) proLoadPlans(); }
-  function subShut() { if ($('subSheet').hidden) return; $('subSheet').hidden = true; dlgClose($('subSheet')); }
+  function subShut() { if ($('subSheet').hidden) return; subAsk = false; $('subSheet').hidden = true; dlgClose($('subSheet')); }
+  let subAsk = false;   // the "Cancel Pro?" question is showing
+  async function subCancel() {
+    const u = proUser(); if (!u || PRO.busy) return;
+    PRO.busy = true; subDraw();
+    try {
+      const token = proTest ? proTest.idToken : await SY.user.getIdToken();
+      const r = await fetch(PAY.cancelUrl, { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.message || 'the server said ' + r.status);
+      PRO.st = Object.assign({}, PRO.st, { renew: false, trial: false }); proSave();
+      subAsk = false;
+      toast(`Cancelled. Pro stays on until ${PRO.st.until ? proDate(PRO.st.until) : 'the end of the time you paid for'}.`);
+      setTimeout(() => proRefresh(true), 1500);   // the store's own record, once it has caught up
+    } catch (e) { toast(navigator.onLine ? "Couldn't cancel (" + String((e && e.message) || e).slice(0, 100) + '). Nothing changed.' : "You're offline. Nothing changed."); }
+    PRO.busy = false; subDraw();
+  }
+  $('subCancel').addEventListener('click', () => { subAsk = true; subDraw(); $('subKeep').focus(); });
+  $('subKeep').addEventListener('click', () => { subAsk = false; subDraw(); $('subCancel').focus(); });
+  $('subCancelYes').addEventListener('click', subCancel);
   const subPlay = () => inApp() && (!PRO.st || !PRO.st.store || /play/i.test(PRO.st.store));   // bought in this Play app
   function subDraw() {
     const st = PRO.st || {}, P = PRO.plans, sub = proStoreActive(), yearly = st.plan === 'yearly';
@@ -8042,9 +8069,15 @@ body.running .acct-btn { visibility: hidden; }
     }
     $('subSwitch').disabled = !!PRO.busy;
     const play = sub ? subPlay() : inApp(), url = play ? PAY.playSubs : st.manage;
+    const here = play && sub && st.renew !== false && !!PAY.cancelUrl;   // cancelling right here, through the cancel server
+    $('subCancel').hidden = !here || subAsk; $('subConfirm').hidden = !here || !subAsk;
+    $('subCancel').disabled = $('subCancelYes').disabled = !!PRO.busy;
+    if (subAsk) $('subConfirmText').textContent = `Cancel Pro? It won't renew, and everything stays open until ${st.until ? proDate(st.until) : 'the end of the time you paid for'}. You won't be charged again.`;
     $('subStore').hidden = $('subStoreNote').hidden = !url;
-    $('subStore').textContent = play ? (st.renew === false ? 'Turn it back on in Google Play' : 'Cancel or change payment') : 'Change payment or cancel';
-    $('subStoreNote').textContent = play ? "Google handles cancelling and payment cards for Play subscriptions, so this opens Sub-X's page in the Play Store app. After cancelling, Pro stays on until the end of the time you paid for."
+    $('subStore').textContent = play ? (st.renew === false ? 'Turn it back on in Google Play' : here ? 'Change payment card' : 'Cancel or change payment') : 'Change payment or cancel';
+    $('subStoreNote').textContent = play && sub && st.renew === false ? "Google keeps a cancelled Play subscription, so turning it back on before it ends happens on Sub-X's page in the Play Store app."
+      : play ? (here ? "Google keeps the card for Play subscriptions, so this opens Sub-X's page in the Play Store app."
+        : "Google handles cancelling and payment cards for Play subscriptions, so this opens Sub-X's page in the Play Store app. After cancelling, Pro stays on until the end of the time you paid for.")
       : 'Opens the secure billing page for the website subscription.';
   }
   async function subSwitch() {

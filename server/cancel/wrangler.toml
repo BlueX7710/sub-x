@@ -1,0 +1,4 @@
+name = "subx-cancel"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+# secret (not in this file): RC_SECRET, set with `npx wrangler secret put RC_SECRET`
