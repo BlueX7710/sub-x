@@ -31,7 +31,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Chivo+Mono:wght@400;500;700&family=Inter:wght@200;400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&family=Orbitron:wght@700;900&family=Outfit:wght@400;500;600;700&display=swap">
 <script>try { var skin = (JSON.parse(localStorage.getItem('subx-cube-timer-v1')) || {}).skin; if (skin) document.documentElement.dataset.skin = skin; } catch (e) {}</script>
 <style>
-/* Layout: one header with three views (Timer, Learn, AI Review). Timer = stage left + session panel right; stacks on phones. */
+/* Layout: one header with two views (Timer, Learn), plus the Account page. Timer = stage left + session panel right; stacks on phones. */
 :root {
   --bg: #EDF0F4;
   --surface: #FFFFFF;
@@ -528,7 +528,6 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .solve-row .a { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
 .solve-row.pb .t { color: var(--accent); font-weight: 700; }
 .solve-row.goal .t::before { content: "•"; color: var(--ready); margin-right: 6px; }
-.solve-row .rv { font-family: var(--font-display); font-size: 11px; letter-spacing: .06em; color: var(--accent); margin-right: 6px; }
 #solves .list-more { text-align: center; padding: 6px 0; }
 .solve-detail { padding: 10px 4px 12px; border-bottom: 1px solid var(--line); background: var(--sunk); display: flex; flex-direction: column; gap: 8px; }
 .solve-detail p { margin: 0; font-family: var(--font-mono); font-size: 13px; overflow-wrap: anywhere; padding: 0 6px; }
@@ -730,27 +729,11 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .drill-box .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .drill-stats { font-size: 13px; color: var(--muted); margin-top: 10px; }
 
-/* ---- review view ---- */
-.review { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 900px) { .review { grid-template-columns: minmax(0, 1fr); } }
-.steps { display: flex; flex-direction: column; gap: 16px; }
-.step-num { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--bg); font-family: var(--font-mono); font-size: 11px; margin-right: 8px; }
 .panel .lead { margin: 0 0 10px; font-size: 14px; color: var(--muted); line-height: 1.5; }
 .field { width: 100%; }
-.vid { width: 100%; max-height: 260px; border-radius: 8px; background: var(--plastic); display: block; }
-.trim { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin-top: 8px; font-size: 13px; color: var(--muted); }
-.trim b { font-family: var(--font-mono); font-weight: 500; color: var(--ink); }
 .row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .notice { font-size: 14px; border-radius: 8px; padding: 10px 12px; background: var(--sunk); color: var(--muted); line-height: 1.45; }
 .notice.err { background: color-mix(in srgb, var(--hold) 12%, transparent); color: var(--ink); }
-.frames { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
-.frames figure { margin: 0; position: relative; }
-.frames img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 5px; display: block; background: var(--plastic); }
-.frames figcaption { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
-.result-empty { color: var(--muted); padding: 30px 10px; text-align: center; line-height: 1.6; }
-.result-empty svg { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto 14px; }
-.timeline { width: 100%; display: block; height: auto; }
-.timeline text { font-family: var(--font-mono); font-size: 10px; fill: var(--muted); }
 .phase-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
 .phase-table th, .phase-table td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .phase-table th { font-family: var(--font-display); font-weight: 500; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--muted); }
@@ -765,20 +748,6 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .callout.warn b { color: var(--hold); }
 .callout.plan-win { border-left-color: var(--ready); background: color-mix(in srgb, var(--ready) 10%, transparent); }
 .callout.plan-win b { color: var(--ready); }
-.tips { margin: 8px 0 0; padding-left: 20px; line-height: 1.55; }
-.tips li + li { margin-top: 4px; }
-.conf { font-family: var(--font-display); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 2px 10px; border: 1px solid var(--line); color: var(--muted); }
-.conf.high { color: var(--ready); border-color: var(--ready); }
-.conf.low { color: var(--warn); border-color: var(--warn); }
-.res-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 10px; }
-@media (max-width: 640px) { .res-grid { grid-template-columns: minmax(0, 1fr); } }
-.res-grid h3 { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
-.pauses { list-style: none; margin: 0; padding: 0; font-size: 14px; }
-.pauses li { padding: 5px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 5.5em minmax(0, 1fr); gap: 8px; }
-.pauses li span:first-child { font-family: var(--font-mono); font-size: 13px; color: var(--hold); }
-.thinking { display: flex; align-items: center; gap: 10px; color: var(--muted); }
-.thinking i { width: 10px; height: 10px; border-radius: 2px; background: var(--accent); animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* storage full: stays at the top of the page (in the flow, so it covers nothing) until a save works again */
 .save-warn { max-width: 820px; margin: 0 auto 12px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; background: var(--surface); color: var(--ink); border: 2px solid var(--warn); border-radius: 10px; padding: 10px 14px; font-size: 14px; line-height: 1.4; }
@@ -1116,7 +1085,7 @@ body.running .acct-btn { visibility: hidden; }
 }
 [data-skin="terminal"] body { font-size: 14px; background: repeating-linear-gradient(0deg, rgb(76 255 122 / .03) 0 1px, transparent 1px 3px), var(--bg); }
 [data-skin="terminal"] :is(.panel, .scramble-card, .stage, .case, .lesson, .note-card, .sess-panel, .tabs, .tabs a, .seg, .seg button, .btn, .pill-btn, .mini-btn, .chip, select, input, .field, .own-scr, .progress, .progress i,
-  .cam-box, .hint kbd, .race-pad, .p3d, .p3d canvas, .p3d-moves span, .tr-clock, .toast, .toast button, .notice, .callout, .solve-detail, .vid, .frames img, .l3-grid canvas, .conf, .rec-dot, .example-note, .lights i,
+  .cam-box, .hint kbd, .race-pad, .p3d, .p3d canvas, .p3d-moves span, .tr-clock, .toast, .toast button, .notice, .callout, .solve-detail, .l3-grid canvas, .rec-dot, .example-note, .lights i,
   .chip-group, .pcase, .set-card, .badge, .streak, .ach, .bgn-alg, .fold, .tour, .tour button, .plan-bar, .plan-bar i, .pllr-bar, .pllr-bar i, .insp-bar,
   .l3-custom input, .learn-tick, .plan-tick, .plan-rm, .step-num, .bar-rest, .avg-box, .stage-stats i, .fs-btn, .fs-menu, .fs-opt, .set-sheet, .set-x) { border-radius: 0; }
 [data-skin="terminal"] .learn-tick::before { border-radius: 0; }
@@ -1993,7 +1962,9 @@ body.running .acct-btn { visibility: hidden; }
   // A thank-you for people who used Sub-X before Pro: until this moment every Pro feature stays open for everyone,
   // even with payments live. Set it when the website key goes in, e.g. Date.parse('2027-01-14T00:00:00Z') for two weeks
   // after a launch on 31 December. 0 = no free period. It's a fixed date in the code, not saved data, so it can't be faked.
-  const PRO_OPEN_UNTIL = 0;
+  // Now: free for the closed-test testers (Google Play's 14-day test), to 31 Jan 2027. Before the public launch,
+  // set it back to 0 or to the launch thank-you date.
+  const PRO_OPEN_UNTIL = Date.parse('2027-01-31T12:00:00Z');   // midday UTC, so it reads "Jan 31" in nearly every time zone
   const proOpenNow = () => PRO_OPEN_UNTIL > Date.now();
   const isPro = () => PRO_LIVE ? proStoreActive() : !!db.pro;
   const proLocked = () => (PRO_LIVE || !!db.proTest) && !isPro() && !(PRO_LIVE && proOpenNow());
@@ -2044,7 +2015,7 @@ body.running .acct-btn { visibility: hidden; }
     const pro = isPro();
     $('planBadge').textContent = pro ? 'Pro' : 'Free'; $('planBadge').classList.toggle('pro', pro);
     $('planText').textContent = pro ? (PRO_LIVE ? 'Thanks for supporting Sub-X. Every trainer is yours.' + proPlanLine() : 'Testing: pretend Pro is on. Every Pro feature is open.')
-      : PRO_LIVE && proOpenNow() ? `Every Pro feature is free for everyone until ${proDate(PRO_OPEN_UNTIL)}, as a thank-you for using Sub-X. After that, Pro keeps the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and your smart-cube splits.`
+      : PRO_LIVE && proOpenNow() ? `Every Pro feature is free for everyone until ${proDate(PRO_OPEN_UNTIL)}, as a thank-you for trying Sub-X early. After that, Pro keeps the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and your smart-cube splits.`
       : PRO_LIVE || db.proTest ? 'Pro adds the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and your smart-cube splits.'
       : 'Pro is coming soon, with the full OLL, PLL, COLL and ZBLL trainers, memorizing, the X-cross trainer and smart-cube splits. Until then every feature is free.';
     $('goProBtn').textContent = pro ? (PRO_LIVE ? 'Manage subscription' : 'See plans') : 'See Pro plans';
@@ -2985,7 +2956,7 @@ body.running .acct-btn { visibility: hidden; }
     for (let i = list.length - 1; i >= from; i--) {
       const s = list[i], e = eff(s);
       const cls = ['solve-row', i === pbIdx ? 'pb' : '', e < goal ? 'goal' : ''].join(' ');
-      html += `<li><button type="button" class="${cls}" data-row="${i}" aria-expanded="${openIdx === i}"><span class="n">${i + 1}</span><span class="t">${s.review ? '<span class="rv">AI</span>' : ''}${fmtList(s)}</span><span class="a">${fmt(avgOf(list, 5, i + 1))}</span></button>`;
+      html += `<li><button type="button" class="${cls}" data-row="${i}" aria-expanded="${openIdx === i}"><span class="n">${i + 1}</span><span class="t">${fmtList(s)}</span><span class="a">${fmt(avgOf(list, 5, i + 1))}</span></button>`;
       if (openIdx === i) {
         const solBtn = solvable(s) ? `<button type="button" class="pill-btn" data-sol="${i}" aria-pressed="${solIdx === i}">${solIdx === i ? 'Hide solution' : 'Solution'}</button>` : '', tt = turnsText(s);
         html += `<div class="solve-detail"><p>${esc(s.scr)}</p><p class="meta">${shortDate(s.t)}${s.ex ? ' · example' : ''}</p>${s.splits ? `<p class="meta">${splitsText(s)}</p>` : tt ? `<p class="meta">${tt}</p>` : ''}` +

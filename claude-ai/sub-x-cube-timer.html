@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Chivo+Mono:wght@400;500;700&family=Inter:wght@200;400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&family=Orbitron:wght@700;900&family=Outfit:wght@400;500;600;700&display=swap">
 <script>try { var skin = (JSON.parse(localStorage.getItem('subx-cube-timer-v1')) || {}).skin; if (skin) document.documentElement.dataset.skin = skin; } catch (e) {}</script>
 <style>
-/* Layout: one header with three views (Timer, Learn, AI Review). Timer = stage left + session panel right; stacks on phones. */
+/* Layout: one header with two views (Timer, Learn), plus the Account page. Timer = stage left + session panel right; stacks on phones. */
 :root {
   --bg: #EDF0F4;
   --surface: #FFFFFF;
@@ -467,7 +467,6 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .solve-row .a { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
 .solve-row.pb .t { color: var(--accent); font-weight: 700; }
 .solve-row.goal .t::before { content: "•"; color: var(--ready); margin-right: 6px; }
-.solve-row .rv { font-family: var(--font-display); font-size: 11px; letter-spacing: .06em; color: var(--accent); margin-right: 6px; }
 #solves .list-more { text-align: center; padding: 6px 0; }
 .solve-detail { padding: 10px 4px 12px; border-bottom: 1px solid var(--line); background: var(--sunk); display: flex; flex-direction: column; gap: 8px; }
 .solve-detail p { margin: 0; font-family: var(--font-mono); font-size: 13px; overflow-wrap: anywhere; padding: 0 6px; }
@@ -669,27 +668,11 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .drill-box .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .drill-stats { font-size: 13px; color: var(--muted); margin-top: 10px; }
 
-/* ---- review view ---- */
-.review { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 900px) { .review { grid-template-columns: minmax(0, 1fr); } }
-.steps { display: flex; flex-direction: column; gap: 16px; }
-.step-num { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--bg); font-family: var(--font-mono); font-size: 11px; margin-right: 8px; }
 .panel .lead { margin: 0 0 10px; font-size: 14px; color: var(--muted); line-height: 1.5; }
 .field { width: 100%; }
-.vid { width: 100%; max-height: 260px; border-radius: 8px; background: var(--plastic); display: block; }
-.trim { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin-top: 8px; font-size: 13px; color: var(--muted); }
-.trim b { font-family: var(--font-mono); font-weight: 500; color: var(--ink); }
 .row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .notice { font-size: 14px; border-radius: 8px; padding: 10px 12px; background: var(--sunk); color: var(--muted); line-height: 1.45; }
 .notice.err { background: color-mix(in srgb, var(--hold) 12%, transparent); color: var(--ink); }
-.frames { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
-.frames figure { margin: 0; position: relative; }
-.frames img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 5px; display: block; background: var(--plastic); }
-.frames figcaption { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
-.result-empty { color: var(--muted); padding: 30px 10px; text-align: center; line-height: 1.6; }
-.result-empty svg { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto 14px; }
-.timeline { width: 100%; display: block; height: auto; }
-.timeline text { font-family: var(--font-mono); font-size: 10px; fill: var(--muted); }
 .phase-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
 .phase-table th, .phase-table td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .phase-table th { font-family: var(--font-display); font-weight: 500; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--muted); }
@@ -704,20 +687,6 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .callout.warn b { color: var(--hold); }
 .callout.plan-win { border-left-color: var(--ready); background: color-mix(in srgb, var(--ready) 10%, transparent); }
 .callout.plan-win b { color: var(--ready); }
-.tips { margin: 8px 0 0; padding-left: 20px; line-height: 1.55; }
-.tips li + li { margin-top: 4px; }
-.conf { font-family: var(--font-display); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 2px 10px; border: 1px solid var(--line); color: var(--muted); }
-.conf.high { color: var(--ready); border-color: var(--ready); }
-.conf.low { color: var(--warn); border-color: var(--warn); }
-.res-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 10px; }
-@media (max-width: 640px) { .res-grid { grid-template-columns: minmax(0, 1fr); } }
-.res-grid h3 { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
-.pauses { list-style: none; margin: 0; padding: 0; font-size: 14px; }
-.pauses li { padding: 5px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 5.5em minmax(0, 1fr); gap: 8px; }
-.pauses li span:first-child { font-family: var(--font-mono); font-size: 13px; color: var(--hold); }
-.thinking { display: flex; align-items: center; gap: 10px; color: var(--muted); }
-.thinking i { width: 10px; height: 10px; border-radius: 2px; background: var(--accent); animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* storage full: stays at the top of the page (in the flow, so it covers nothing) until a save works again */
 .save-warn { max-width: 820px; margin: 0 auto 12px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; background: var(--surface); color: var(--ink); border: 2px solid var(--warn); border-radius: 10px; padding: 10px 14px; font-size: 14px; line-height: 1.4; }
@@ -917,7 +886,7 @@ body.racing { overflow: hidden; }
 }
 [data-skin="terminal"] body { font-size: 14px; background: repeating-linear-gradient(0deg, rgb(76 255 122 / .03) 0 1px, transparent 1px 3px), var(--bg); }
 [data-skin="terminal"] :is(.panel, .scramble-card, .stage, .case, .lesson, .note-card, .sess-panel, .tabs, .tabs a, .seg, .seg button, .btn, .pill-btn, .mini-btn, .chip, select, input, .field, .own-scr, .progress, .progress i,
-  .cam-box, .hint kbd, .race-pad, .p3d, .p3d canvas, .p3d-moves span, .tr-clock, .toast, .toast button, .notice, .callout, .solve-detail, .vid, .frames img, .l3-grid canvas, .conf, .rec-dot, .example-note, .lights i,
+  .cam-box, .hint kbd, .race-pad, .p3d, .p3d canvas, .p3d-moves span, .tr-clock, .toast, .toast button, .notice, .callout, .solve-detail, .l3-grid canvas, .rec-dot, .example-note, .lights i,
   .chip-group, .pcase, .set-card, .badge, .streak, .ach, .bgn-alg, .fold, .tour, .tour button, .plan-bar, .plan-bar i, .pllr-bar, .pllr-bar i, .insp-bar,
   .l3-custom input, .learn-tick, .plan-tick, .plan-rm, .step-num, .bar-rest, .avg-box, .stage-stats i, .fs-btn, .fs-menu, .fs-opt, .set-sheet, .set-x) { border-radius: 0; }
 [data-skin="terminal"] .learn-tick::before { border-radius: 0; }
@@ -1153,7 +1122,6 @@ body.racing { overflow: hidden; }
     <nav class="tabs" aria-label="Sections">
       <a href="#timer" data-view="timer">Timer</a>
       <a href="#learn" data-view="learn">Learn</a>
-      <a href="#review" data-view="review">AI Review</a>
     </nav>
     <label class="ctl skin-pick" for="skin">Look
       <select id="skin"><option value="">Classic</option><option value="minimal">Minimal</option><option value="midnight">Midnight</option><option value="terminal">Terminal</option><option value="speed">Speed</option><option value="dracula">Dracula</option><option value="pink">Pink</option><option value="ocean">Ocean</option><option value="sunset">Sunset</option></select>
@@ -1340,44 +1308,6 @@ body.racing { overflow: hidden; }
     <div id="learnBody"></div>
   </main>
 
-  <!-- ================= REVIEW ================= -->
-  <main id="view-review" hidden>
-    <div class="review">
-      <div class="steps">
-        <section class="panel">
-          <div class="label"><span><span class="step-num">1</span>Which solve?</span></div>
-          <select id="rvSolve" class="field" aria-label="Solve to review"></select>
-        </section>
-        <section class="panel">
-          <div class="label"><span><span class="step-num">2</span>Add a video of it</span></div>
-          <p class="lead">From the Sub-X app: tap <b>Choose video</b> and pick the newest <i>subx-…</i> clip (in Documents/Sub-X or Downloads). The review starts by itself. Otherwise, prop your phone up so the cube and your hands are in frame, record the solve and add the clip here. On a phone, Record opens the camera.</p>
-          <div class="row-btns">
-            <label class="btn" for="rvRecord" style="cursor:pointer">Record</label>
-            <input id="rvRecord" type="file" accept="video/*" capture="environment" hidden>
-            <label class="btn ghost" for="rvFile" style="cursor:pointer">Choose video</label>
-            <input id="rvFile" type="file" accept="video/*" hidden>
-          </div>
-          <div id="rvVideoWrap" hidden style="margin-top:12px">
-            <video id="rvVideo" class="vid" controls playsinline muted></video>
-            <div class="trim">
-              <button type="button" class="mini-btn" id="rvSetStart">Set start here</button>
-              <button type="button" class="mini-btn" id="rvSetEnd">Set end here</button>
-              <span>Clip <b id="rvClip">–</b></span>
-            </div>
-          </div>
-        </section>
-        <section class="panel">
-          <div class="label"><span><span class="step-num">3</span>Ask Claude</span></div>
-          <div id="rvAvail" class="notice" style="margin-bottom:10px">Checking whether AI review is available here…</div>
-          <div class="row-btns">
-            <button type="button" class="btn" id="rvGo" disabled>Analyze solve</button>
-            <button type="button" class="btn ghost" id="rvStop" hidden>Stop</button>
-          </div>
-        </section>
-      </div>
-      <section class="panel" id="rvResult" aria-live="polite"></section>
-    </div>
-  </main>
 </div>
 <div class="p3d-overlay" id="p3d" hidden role="dialog" aria-modal="true" aria-labelledby="p3dTitle">
   <div class="p3d">
@@ -2201,14 +2131,13 @@ body.racing { overflow: hidden; }
   $('skin').addEventListener('change', e => { db.skin = e.target.value; save(); applySkin(); unfocus(e.target); });
   function phoneLayout() { return matchMedia('(max-width: 860px)').matches; }
   function showView(v) {
-    if (!['timer', 'learn', 'review'].includes(v)) v = 'timer';   // an old #stats link opens the Timer page, where the stats are
+    if (!['timer', 'learn'].includes(v)) v = 'timer';   // an old #stats link opens the Timer page, where the stats are
     if (view === 'timer' && v !== 'timer') cancel();
     if (view === 'learn' && v !== 'learn') { trLeave(); learnShown = null; }
     view = v;
-    for (const k of ['timer', 'learn', 'review']) $('view-' + k).hidden = k !== v;
+    for (const k of ['timer', 'learn']) $('view-' + k).hidden = k !== v;
     document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.view === v ? 'page' : 'false'));
     if (v === 'learn') renderLearn();
-    if (v === 'review') renderReviewSetup();
   }
   // a shared scramble arrives as #timer?e=333&s=R%20U...
   function readHash() {
@@ -2545,11 +2474,11 @@ body.racing { overflow: hidden; }
     for (let i = list.length - 1; i >= from; i--) {
       const s = list[i], e = eff(s);
       const cls = ['solve-row', i === pbIdx ? 'pb' : '', e < goal ? 'goal' : ''].join(' ');
-      html += `<li><button type="button" class="${cls}" data-row="${i}" aria-expanded="${openIdx === i}"><span class="n">${i + 1}</span><span class="t">${s.review ? '<span class="rv">AI</span>' : ''}${fmtList(s)}</span><span class="a">${fmt(avgOf(list, 5, i + 1))}</span></button>`;
+      html += `<li><button type="button" class="${cls}" data-row="${i}" aria-expanded="${openIdx === i}"><span class="n">${i + 1}</span><span class="t">${fmtList(s)}</span><span class="a">${fmt(avgOf(list, 5, i + 1))}</span></button>`;
       if (openIdx === i) {
         const solBtn = solvable(s) ? `<button type="button" class="pill-btn" data-sol="${i}" aria-pressed="${solIdx === i}">${solIdx === i ? 'Hide solution' : 'Solution'}</button>` : '', tt = turnsText(s);
         html += `<div class="solve-detail"><p>${esc(s.scr)}</p><p class="meta">${shortDate(s.t)}${s.ex ? ' · example' : ''}</p>${s.splits ? `<p class="meta">${splitsText(s)}</p>` : tt ? `<p class="meta">${tt}</p>` : ''}` +
-          (ex ? (solBtn ? `<div class="row">${solBtn}</div>` : '') : `<div class="row">${penButtons(s, i)}${saveBtn(s, i)}<button type="button" class="pill-btn" data-review="${i}">${s.review ? 'See AI review' : 'Review with AI'}</button>${solBtn}${delButton(i)}</div>`) +
+          (ex ? (solBtn ? `<div class="row">${solBtn}</div>` : '') : `<div class="row">${penButtons(s, i)}${saveBtn(s, i)}${solBtn}${delButton(i)}</div>`) +
           (solIdx === i && solBtn ? solutionHtml(s, i, ex) : '') + '</div>';
       }
       html += '</li>';
@@ -2566,7 +2495,7 @@ body.racing { overflow: hidden; }
     if (!list.length || !justSolved) { box.innerHTML = ''; return; }
     const i = list.length - 1;
     $('pbTag').hidden = !(list.length > 1 && eff(list[i]) !== Infinity && list.every((s, k) => k === i || eff(s) > eff(list[i])));   // a tie isn't a PB
-    box.innerHTML = penButtons(list[i], i) + '<span class="la-break"></span>' + saveBtn(list[i], i) + `<button type="button" class="pill-btn" data-review="${i}">Review with AI</button>` + delButton(i);
+    box.innerHTML = penButtons(list[i], i) + '<span class="la-break"></span>' + saveBtn(list[i], i) + delButton(i);
   }
 
   // ---------- saved solves: copies kept in Learn → My solves, to do again and learn from ----------
@@ -2958,7 +2887,6 @@ body.racing { overflow: hidden; }
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.pen) setPen(+b.dataset.i, b.dataset.pen);
     else if (b.dataset.del !== undefined) del(+b.dataset.del);
-    else if (b.dataset.review !== undefined) { rvPick = `${db.event}:${b.dataset.review}`; location.hash = 'review'; }
     else if (b.dataset.row !== undefined) { const i = +b.dataset.row; openIdx = openIdx === i ? -1 : i; renderList(solvesFor(db.event), db.goal * 1000); }
     else if (b.dataset.listall !== undefined) { listAll = true; renderList(solvesFor(db.event), db.goal * 1000); }
     else if (b.id === 'clearAsk') { confirmClear = true; renderStats(); }
@@ -5584,239 +5512,6 @@ body.racing { overflow: hidden; }
       try { smartScramble(); if (live3dOn()) live3dSync(); } catch (e) {}
     }
     renderMemo();
-  }
-
-  // =====================================================================
-  // AI REVIEW
-  // =====================================================================
-  let sampleFn = null, imgLimits = null, availChecked = false;
-  let rvFileObj = null, rvStart = 0, rvEnd = null, rvDur = 0, rvPick = null, rvCtl = null, rvFrames = [];
-  const vid = $('rvVideo');
-
-  if (window.claude && typeof window.claude.use === 'function') {
-    window.claude.use('sample').then(async s => {
-      sampleFn = s;
-      if (s) { const l = await s.limits().catch(() => null); imgLimits = l && l.images ? l.images : null; }
-      availChecked = true; updateAvail();
-    }).catch(() => { availChecked = true; updateAvail(); });
-  } else { availChecked = true; }
-
-  function updateAvail() {
-    const box = $('rvAvail');
-    if (!availChecked) return;
-    if (!sampleFn) { box.className = 'notice err'; box.textContent = 'AI review only works when this page is open on claude.ai or in the Claude app. The timer and Learn pages work anywhere.'; }
-    else if (!imgLimits) { box.className = 'notice err'; box.textContent = "This view can't send images to Claude, so video review isn't available here. Try the Claude app or claude.ai in a browser."; }
-    else if (!rvFileObj) { box.className = 'notice'; box.textContent = `Claude will look at up to ${Math.min(imgLimits.maxCount, 20)} still frames from your clip. It uses your own Claude usage, and the first time it asks your permission.`; }
-    else { box.className = 'notice'; box.textContent = `Ready. ${frameCount()} frames, one every ${(clipLen() / Math.max(1, frameCount() - 1)).toFixed(1)}s.`; }
-    $('rvGo').disabled = !(sampleFn && imgLimits && rvFileObj && clipLen() > 0.5) || !!rvCtl;
-  }
-  const clipLen = () => Math.max(0, (rvEnd ?? rvDur) - rvStart);
-  const frameCount = () => Math.max(2, Math.min(imgLimits ? imgLimits.maxCount : 12, 20, Math.ceil(clipLen() * 2) + 1));
-
-  function solveOptions() {
-    const opts = ['<option value="">Not timed here (I will just upload a clip)</option>'];
-    for (const ev of Object.keys(db.solves)) {
-      const list = db.solves[ev];
-      for (let i = list.length - 1; i >= Math.max(0, list.length - 25); i--) {
-        const s = list[i];
-        opts.push(`<option value="${ev}:${i}">${sessLabel(ev)} · #${i + 1} · ${fmtSolve(s)}${s.review ? ' · reviewed' : ''}</option>`);
-      }
-    }
-    return opts.join('');
-  }
-  function pickedSolve() {
-    const v = $('rvSolve').value; if (!v) return null;
-    const [ev, i] = v.split(':'); const s = db.solves[ev] && db.solves[ev][+i];
-    return s ? { ev, i: +i, s } : null;
-  }
-  function renderReviewSetup() {
-    const sel = $('rvSolve');
-    sel.innerHTML = solveOptions();
-    if (rvPick && [...sel.options].some(o => o.value === rvPick)) sel.value = rvPick;
-    else if (rvPick === null) { const l = db.solves[db.event]; if (l.length) sel.value = `${db.event}:${l.length - 1}`; }
-    rvPick = sel.value;
-    updateAvail();
-    const p = pickedSolve();
-    if (rvCtl) return;
-    if (p && p.s.review) renderResult(p.s.review, p.s);
-    else renderEmptyResult();
-  }
-  $('rvSolve').addEventListener('change', e => { rvPick = e.target.value; renderReviewSetup(); });
-
-  // Clips saved by the Sub-X camera site are named subx-<event>-t<timer secs>-s<secs into clip when the timer started>-….
-  let clipMeta = null;
-  function onVideo(file) {
-    if (!file) return;
-    rvFileObj = file; rvStart = 0; rvEnd = null; rvDur = 0;
-    const m = (file.name || '').match(/subx-([a-z0-9]+)-t(\d+(?:\.\d+)?)-s(\d+(?:\.\d+)?)/);
-    clipMeta = m && EVENTS[m[1]] ? { ev: m[1], sec: +m[2], off: +m[3] } : null;
-    if (clipMeta) { $('rvSolve').value = ''; rvPick = ''; }
-    if (vid.src) URL.revokeObjectURL(vid.src);
-    vid.src = URL.createObjectURL(file);
-    $('rvVideoWrap').hidden = false;
-    const ready = () => {
-      if (clipMeta) { rvStart = Math.max(0, clipMeta.off - 0.4); rvEnd = Math.min(rvDur, clipMeta.off + clipMeta.sec + 0.4); }
-      showClip(); updateAvail();
-      if (!rvDur) { $('rvAvail').className = 'notice err'; $('rvAvail').textContent = "Can't read this video's length. Try an MP4 or MOV file."; }
-      // A clip from the Sub-X app is already lined up with its solve, so start right away.
-      else if (clipMeta && !$('rvGo').disabled) $('rvGo').click();
-    };
-    vid.onloadedmetadata = () => {
-      if (isFinite(vid.duration)) { rvDur = vid.duration; ready(); return; }
-      // Browser-recorded WebM often has no duration until the end has been seeked once.
-      const fix = () => { if (!isFinite(vid.duration)) return; vid.removeEventListener('durationchange', fix); rvDur = vid.duration; vid.currentTime = 0; ready(); };
-      vid.addEventListener('durationchange', fix);
-      vid.currentTime = 1e7;
-    };
-    vid.onerror = () => { $('rvAvail').className = 'notice err'; $('rvAvail').textContent = "This browser can't play that video. Try an MP4 or MOV file."; };
-  }
-  function showClip() { $('rvClip').textContent = `${rvStart.toFixed(1)}s → ${(rvEnd ?? rvDur).toFixed(1)}s (${clipLen().toFixed(1)}s)`; }
-  $('rvRecord').addEventListener('change', e => onVideo(e.target.files[0]));
-  $('rvFile').addEventListener('change', e => onVideo(e.target.files[0]));
-  $('rvSetStart').addEventListener('click', () => { rvStart = Math.min(vid.currentTime, (rvEnd ?? rvDur) - 0.5); if (rvStart < 0) rvStart = 0; showClip(); updateAvail(); });
-  $('rvSetEnd').addEventListener('click', () => { rvEnd = Math.max(vid.currentTime, rvStart + 0.5); if (rvEnd > rvDur) rvEnd = rvDur; showClip(); updateAvail(); });
-
-  async function extractFrames(n) {
-    const v = document.createElement('video');
-    v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = vid.src;
-    await new Promise((res, rej) => { v.onloadeddata = res; v.onerror = () => rej(new Error('load')); });
-    const seek = t => new Promise(res => { const h = () => { v.removeEventListener('seeked', h); res(); }; v.addEventListener('seeked', h); v.currentTime = t; });
-    const scale = Math.min(1, 960 / Math.max(v.videoWidth, v.videoHeight));
-    const cv = document.createElement('canvas'); cv.width = Math.round(v.videoWidth * scale); cv.height = Math.round(v.videoHeight * scale);
-    const cx = cv.getContext('2d'), out = [], len = clipLen();
-    for (let k = 0; k < n; k++) {
-      const rel = len * k / (n - 1), t = Math.min(rvStart + rel, (rvEnd ?? rvDur) - 0.05);
-      await seek(Math.max(0, t));
-      cx.drawImage(v, 0, 0, cv.width, cv.height);
-      const fs = Math.max(18, Math.round(cv.height / 14)), label = `#${k + 1}  +${rel.toFixed(1)}s`;
-      cx.font = `bold ${fs}px ui-monospace, Consolas, monospace`;
-      const w = cx.measureText(label).width + fs * 0.8;
-      cx.fillStyle = 'rgba(0,0,0,.72)'; cx.fillRect(0, 0, w, fs * 1.5);
-      cx.fillStyle = '#fff'; cx.fillText(label, fs * 0.4, fs * 1.1);
-      const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.82));
-      out.push({ blob, t: rel, url: URL.createObjectURL(blob) });
-      status(`Pulling frames from the video… ${k + 1}/${n}`);
-    }
-    return out;
-  }
-
-  function status(msg) { $('rvResult').innerHTML = `<div class="thinking"><i></i><span>${esc(msg)}</span></div>` + framesHtml(rvFrames); }
-  const framesHtml = fr => fr.length ? `<h3 class="label" style="margin-top:18px">Frames sent to Claude</h3><div class="frames">${fr.map((f, k) => `<figure><img src="${f.url}" alt="Frame ${k + 1}"><figcaption>+${f.t.toFixed(1)}s</figcaption></figure>`).join('')}</div>` : '';
-
-  const ERR = {
-    not_granted: 'Claude access was not allowed for this page. You can change that from the page\'s Permissions menu.',
-    sampling_disabled: 'Claude is not available on this account.',
-    rate_limited: 'Too many requests right now, or your usage limit was reached. Try again in a little while.',
-    image_rejected: 'Claude could not read those frames. Try a shorter clip or a different video file.',
-    images_unavailable: 'This view cannot send images to Claude.',
-    refused: 'Claude declined to analyze this clip.',
-    invalid_json: 'The answer came back in an unexpected shape. Press Analyze to try again.',
-    session_expired: 'Your Claude session expired. Sign in again and retry.',
-  };
-
-  $('rvGo').addEventListener('click', async () => {
-    if (!sampleFn || !rvFileObj) return;
-    const picked = pickedSolve();
-    rvCtl = new AbortController(); const ctl = rvCtl;
-    $('rvGo').disabled = true; $('rvStop').hidden = false;
-    rvFrames.forEach(f => URL.revokeObjectURL(f.url)); rvFrames = [];
-    try {
-      status('Pulling frames from the video…');
-      rvFrames = await extractFrames(frameCount());
-      if (ctl.signal.aborted) throw { code: 'canceled' };
-      status('Claude is watching your solve… this usually takes 20–60 seconds.');
-      const len = clipLen(), s = picked && picked.s, ev = picked ? evOfKey(picked.ev) : clipMeta ? clipMeta.ev : '333';
-      const metaLine = !s && clipMeta ? `The timer recorded ${clipMeta.sec.toFixed(2)}s for this solve; it started ${(clipMeta.off - rvStart).toFixed(1)}s into this clip and stopped at ${(clipMeta.off - rvStart + clipMeta.sec).toFixed(1)}s. Frames before the start are the end of inspection.` : '';
-      const prompt = [
-        `You are an experienced speedcubing coach reviewing one ${EVENTS[ev].name} Rubik's cube solve.`,
-        `The ${rvFrames.length} images are frames from a video of the solve, in order, evenly spaced across a ${len.toFixed(1)}-second clip (one every ${(len / (rvFrames.length - 1)).toFixed(2)}s).`,
-        `Each frame has its number and its time from the start of the clip burned into the top-left corner: ${rvFrames.map((f, k) => `#${k + 1}=${f.t.toFixed(1)}s`).join(', ')}.`,
-        s ? `The timer recorded ${fmtSolve(s)} for this solve${s.pen ? ` (penalty: ${s.pen})` : ''}. Scramble: ${s.scr}. The clip may include a little time before and after the solve.` : metaLine || 'No timer reading is linked to this clip.',
-        'Assume CFOP (cross, four F2L pairs, OLL, PLL) unless the frames clearly show another method; for 2x2 use whatever phases fit (e.g. first layer, OLL, PBL).',
-        'From the frames, estimate when each phase started and ended, where the solver paused, looked around or regripped, and which phase cost the most time compared with a typical solver at this speed.',
-        'Frames are sparse, so give your best estimates, round times to 0.1s, and lower your confidence when the cube is hard to see.',
-        'Reply with ONLY a JSON object of this shape:',
-        '{"method":"CFOP","solveStart":0.4,"solveEnd":19.8,"phases":[{"name":"Cross","start":0.4,"end":3.1,"note":"short observation"}],"slowest":{"phase":"F2L 3","why":"one sentence"},"pauses":[{"at":7.2,"seconds":1.1,"what":"searched for the next pair"}],"summary":"2-3 sentences in plain language","tips":["specific, actionable tip","another tip"],"confidence":"low|medium|high","visibility":"one sentence about how well the cube could be seen"}',
-        'Use phase names like "Cross", "F2L 1", "F2L 2", "F2L 3", "F2L 4", "OLL", "PLL", "AUF". All times are seconds from the start of the clip. Give 2 to 4 tips.',
-      ].join('\n');
-      const out = await sampleFn.json(prompt, { images: rvFrames.map(f => f.blob), signal: ctl.signal, onText: () => status('Writing up the breakdown…') });
-      const res = cleanResult(out, len);
-      if (picked) { picked.s.review = res; save(); renderStats(); }
-      renderResult(res, s);
-    } catch (e) {
-      if (e && e.code === 'canceled') renderEmptyResult('Stopped.');
-      else if (e && e.message === 'load') renderEmptyResult("Couldn't read frames from that video. Try an MP4 or MOV file.", true);
-      else renderEmptyResult((e && ERR[e.code]) || 'Something went wrong talking to Claude. Press Analyze to try again.', true);
-    } finally {
-      rvCtl = null; $('rvStop').hidden = true; updateAvail();
-      $('rvSolve').innerHTML = solveOptions(); if (rvPick) $('rvSolve').value = rvPick;
-    }
-  });
-  $('rvStop').addEventListener('click', () => rvCtl && rvCtl.abort());
-
-  function num(v, d = 0) { const n = Number(v); return isFinite(n) ? n : d; }
-  function cleanResult(o, len) {
-    o = o && typeof o === 'object' ? o : {};
-    const phases = (Array.isArray(o.phases) ? o.phases : []).map(p => ({ name: String(p.name || 'Phase'), start: Math.max(0, num(p.start)), end: Math.max(0, num(p.end)), note: String(p.note || '') })).filter(p => p.end > p.start).sort((a, b) => a.start - b.start);
-    return {
-      method: String(o.method || ''), phases, clip: len,
-      solveStart: num(o.solveStart, phases[0] ? phases[0].start : 0), solveEnd: num(o.solveEnd, phases.length ? phases[phases.length - 1].end : len),
-      slowest: o.slowest && typeof o.slowest === 'object' ? { phase: String(o.slowest.phase || ''), why: String(o.slowest.why || '') } : null,
-      pauses: (Array.isArray(o.pauses) ? o.pauses : []).map(p => ({ at: num(p.at), seconds: num(p.seconds), what: String(p.what || '') })),
-      summary: String(o.summary || ''), tips: (Array.isArray(o.tips) ? o.tips : []).map(String).slice(0, 5),
-      confidence: ['low', 'medium', 'high'].includes(o.confidence) ? o.confidence : 'medium', visibility: String(o.visibility || ''), at: Date.now(),
-    };
-  }
-  const phaseColor = (name, i) => /insp/i.test(name) ? 'var(--ph-insp)' : /cross|first|layer/i.test(name) ? 'var(--ph-cross)' : /f2l|pair/i.test(name) ? 'var(--ph-f2l)' : /oll|orient/i.test(name) ? 'var(--ph-oll)' : /pll|pbl|auf|perm/i.test(name) ? 'var(--ph-pll)' : 'var(--muted)';
-
-  function timelineSvg(r) {
-    const W = 600, H = 74, pl = 4, pr = 4, top = 14, bh = 28;
-    const t0 = Math.min(r.solveStart, r.phases[0] ? r.phases[0].start : r.solveStart);
-    const t1 = Math.max(r.solveEnd, r.phases.length ? r.phases[r.phases.length - 1].end : r.solveEnd, t0 + 0.5);
-    const X = t => pl + (W - pl - pr) * (t - t0) / (t1 - t0);
-    let g = `<rect x="${pl}" y="${top}" width="${W - pl - pr}" height="${bh}" rx="4" fill="var(--sunk)"/>`;
-    let f2l = 0;
-    r.phases.forEach((p, i) => {
-      const x = X(p.start), w = Math.max(1.5, X(p.end) - x), isF2l = /f2l|pair/i.test(p.name);
-      const op = isF2l ? (f2l++ % 2 ? 0.7 : 1) : 1;
-      g += `<rect x="${x.toFixed(1)}" y="${top}" width="${w.toFixed(1)}" height="${bh}" fill="${phaseColor(p.name, i)}" opacity="${op}"/>`;
-      if (w > 34) g += `<text x="${(x + w / 2).toFixed(1)}" y="${top + bh / 2 + 4}" text-anchor="middle" style="fill:#fff;font-weight:700">${esc(p.name.replace(/^F2L\s*/i, 'F2L '))}</text>`;
-    });
-    for (const p of r.pauses) {
-      if (p.at < t0 || p.at > t1) continue;
-      const x = X(p.at);
-      g += `<path d="M${x.toFixed(1)} ${top - 2} l-5 -8 h10 z" style="fill:var(--hold)"/>`;
-    }
-    const step = (t1 - t0) > 30 ? 10 : (t1 - t0) > 12 ? 5 : 2;
-    for (let t = Math.ceil(t0 / step) * step; t <= t1 + 0.001; t += step) g += `<line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="${top + bh}" y2="${top + bh + 5}" stroke="var(--muted)"/><text x="${X(t).toFixed(1)}" y="${top + bh + 17}" text-anchor="middle">${t}s</text>`;
-    return `<svg class="timeline" viewBox="0 0 ${W} ${H}" role="img" aria-label="Solve timeline by phase">${g}</svg>`;
-  }
-
-  function renderResult(r, s) {
-    const box = $('rvResult');
-    if (!r.phases.length) { renderEmptyResult(r.summary || 'Claude could not make out the phases in this clip. Try filming closer, with good light and the cube facing the camera.', true); return; }
-    const total = r.phases.reduce((a, p) => a + (p.end - p.start), 0);
-    const slowName = r.slowest ? r.slowest.phase.toLowerCase() : '';
-    const rows = r.phases.map((p, i) => `<tr class="${p.name.toLowerCase() === slowName ? 'slow' : ''}"><td><span class="sw" style="background:${phaseColor(p.name, i)}"></span>${esc(p.name)}</td><td class="num">${(p.end - p.start).toFixed(1)}s</td><td class="num">${total ? Math.round((p.end - p.start) / total * 100) : 0}%</td><td>${esc(p.note)}</td></tr>`).join('');
-    box.innerHTML = `
-      <h2>Where the time went <span class="conf ${r.confidence}">${r.confidence} confidence</span></h2>
-      ${s ? `<p class="lead">Timer: <b style="font-family:var(--font-mono)">${fmtSolve(s)}</b>${r.method ? ` · Method: ${esc(r.method)}` : ''} · Reviewed ${new Date(r.at).toLocaleString()}</p>` : ''}
-      ${timelineSvg(r)}
-      <div style="overflow-x:auto"><table class="phase-table"><thead><tr><th>Phase</th><th style="text-align:right">Time</th><th style="text-align:right">Share</th><th>What Claude saw</th></tr></thead><tbody>${rows}</tbody></table></div>
-      ${r.slowest && r.slowest.phase ? `<div class="callout"><b>Biggest time sink · ${esc(r.slowest.phase)}</b>${esc(r.slowest.why)}</div>` : ''}
-      ${r.summary ? `<p style="line-height:1.55;max-width:70ch">${esc(r.summary)}</p>` : ''}
-      <div class="res-grid">
-        <div><h3>Pauses</h3>${r.pauses.length ? `<ul class="pauses">${r.pauses.map(p => `<li><span>+${p.at.toFixed(1)}s · ${p.seconds.toFixed(1)}s</span><span>${esc(p.what)}</span></li>`).join('')}</ul>` : '<p class="lead">No clear pauses spotted.</p>'}</div>
-        <div><h3>What to practice</h3><ul class="tips">${r.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
-      </div>
-      ${r.visibility ? `<p class="lead" style="margin-top:14px">${esc(r.visibility)} Timings come from still frames, so treat them as estimates.</p>` : '<p class="lead" style="margin-top:14px">Timings come from still frames, so treat them as estimates.</p>'}
-      ${framesHtml(rvFrames)}`;
-  }
-
-  function renderEmptyResult(msg, isErr) {
-    const demo = { solveStart: 0.6, solveEnd: 21.4, phases: [{ name: 'Cross', start: 0.6, end: 3.4 }, { name: 'F2L 1', start: 3.4, end: 6.9 }, { name: 'F2L 2', start: 6.9, end: 10.1 }, { name: 'F2L 3', start: 10.1, end: 14.8 }, { name: 'F2L 4', start: 14.8, end: 17.2 }, { name: 'OLL', start: 17.2, end: 19.1 }, { name: 'PLL', start: 19.1, end: 21.4 }], pauses: [{ at: 10.4, seconds: 1.4 }] };
-    $('rvResult').innerHTML = (msg ? `<div class="notice${isErr ? ' err' : ''}" style="margin-bottom:12px">${esc(msg)}</div>` : '') +
-      `<div class="result-empty">${timelineSvg(demo)}<b>Example of a review.</b> Claude splits your solve into cross, F2L pairs, OLL and PLL, marks pauses (red arrows) and tells you which step cost the most time.<br>Add a video of a solve and press <b>Analyze solve</b>.</div>` + framesHtml(rvFrames);
   }
 
   // ---------- boot ----------

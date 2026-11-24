@@ -9,7 +9,7 @@ claude.ai page. It's the owner's own project; `README.md` lists everything it do
   `docs/` from `main`, and the Android app loads that site, so a push to `main` updates both.
 - `android-app/www/index.html` is an exact copy of the website (for the app's offline start).
 - `claude-ai/sub-x-cube-timer.html` is the claude.ai page, https://claude.ai/artifact/SBNFEGir43uePASXE5h3N9.
-  It has no camera or smart cube, an AI Review tab instead of Recordings, and no `<html>` skeleton.
+  It has no camera, smart cube or Recordings, and no `<html>` skeleton.
 - Files use LF line endings. Each copy is one HTML file with no build step.
 - To ship a change, use `/effortless` (`.claude/skills/effortless/SKILL.md`): `tools/sync.sh` copies
   the change into the other two copies, `tools/smoke.js` tests a copy in a browser, then commit,

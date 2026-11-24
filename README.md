@@ -54,7 +54,7 @@ Solves are stored on your own device, and in your own Google account only if you
 | --- | --- |
 | `docs/` | The web app, served by GitHub Pages: one `index.html`, plus the manifest, offline service worker and icons. |
 | `android-app/` | Capacitor project that wraps the site as an Android app (`npx cap sync android`, then build with Gradle). |
-| `claude-ai/` | The claude.ai artifact version, which adds the AI Review tab. |
+| `claude-ai/` | The claude.ai artifact version (no camera, smart cube, Stackmat or payments). |
 | `tools/` | `sync.sh` copies website changes into the other two copies; `smoke.js` tests a copy in a browser. |
 | `.claude/skills/effortless/` | The `/effortless` Claude Code skill: sync, test, commit, push and republish in one go. |
 

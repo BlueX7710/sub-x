@@ -14,7 +14,7 @@ Sub-X has three copies of one app:
 | claude.ai page | `claude-ai/sub-x-cube-timer.html` | republishing https://claude.ai/artifact/SBNFEGir43uePASXE5h3N9 |
 
 Make code changes in `docs/index.html` first. The claude.ai copy has no camera or smart cube,
-has an AI Review tab instead of Recordings, and has no `<html>` skeleton, so it can't just be copied over.
+has no Recordings, and has no `<html>` skeleton, so it can't just be copied over.
 Files use LF line endings.
 
 ## Steps

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copies the shared changes in docs/index.html (the website) to the other two copies:
 #   - android-app/www/index.html is identical to the website, so it is copied as is
-#   - claude-ai/sub-x-cube-timer.html differs (no camera or smart cube, an AI Review tab and no
+#   - claude-ai/sub-x-cube-timer.html differs (no camera, smart cube or Recordings, and no
 #     <html> skeleton), so the website's changes since BASE (default HEAD) are applied as a patch
 # Hunks that touch website-only parts can't apply; they are listed so you can port them by hand.
 set -euo pipefail
