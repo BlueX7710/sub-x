@@ -10,6 +10,9 @@ and calls RevenueCat's "Google Play: Cancel a Subscription". It stops renewing a
 the end of the time paid for. Nobody can cancel someone else's subscription. Changing the payment card
 still opens Google Play (Google has no API for it). Website (Paddle) subscriptions aren't handled yet.
 
+It also serves **Delete account** (`POST /delete`): the same sign-in check, then it stops a renewing Play
+subscription and deletes the user's RevenueCat record. The app then deletes the synced copy and the sign-in.
+
 Cost: free (Cloudflare Workers free plan: 100,000 requests a day, no card needed).
 
 ## Setup (once, about 5 minutes)

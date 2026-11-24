@@ -187,6 +187,10 @@ body.running .set-btn { visibility: hidden; }
 .sub-card span:not(.plan-badge) { color: var(--muted); font-size: 15px; }
 .sub-status { margin: 4px 0 6px; line-height: 1.5; }
 .sub-body .btn { width: 100%; min-height: 48px; }
+.del-list { margin: 0 0 4px; padding-left: 20px; line-height: 1.6; }
+.fb-kinds { display: flex; flex-wrap: wrap; gap: 6px; }
+.fb-text { width: 100%; resize: vertical; min-height: 120px; font: 15px/1.45 var(--font-body); padding: 10px 12px; border-radius: 12px; }
+#delOpen { margin-top: 6px; }
 .sub-confirm { padding: 14px 16px; border-radius: 16px; background: var(--sunk); }
 .sub-confirm p { margin: 0 0 12px; line-height: 1.5; }
 .sub-row { display: flex; gap: 8px; }
@@ -1595,6 +1599,7 @@ body.running .acct-btn { visibility: hidden; }
         <div class="sync-row" id="syncRow" hidden>
           <p class="lead" id="syncInfo"></p>
           <div class="row-btns"><button type="button" class="btn" id="syncBtn">Sign in with Google</button><button type="button" class="pill-btn" id="syncNow" hidden>Sync now</button><button type="button" class="pill-btn" id="syncOut" hidden>Sign out</button></div>
+          <button type="button" class="text-btn danger" id="delOpen" hidden>Delete account</button>
         </div>
       </section>
       <section class="panel acct-plan">
@@ -1614,7 +1619,7 @@ body.running .acct-btn { visibility: hidden; }
           <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" hidden>
         </div>
       </section>
-      <p class="acct-links"><a href="privacy.html">Privacy</a></p>
+      <p class="acct-links"><button type="button" class="text-btn" id="fbOpen">Send feedback</button> · <a href="privacy.html">Privacy</a></p>
     </div>
   </main>
 
@@ -1664,6 +1669,31 @@ body.running .acct-btn { visibility: hidden; }
   <div class="set-sheet">
     <div class="set-head"><h2 id="setTitle">Settings</h2><button type="button" class="set-x" id="setClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
     <div class="set-body" id="setBody"></div>
+  </div>
+</div>
+<div class="set-overlay" id="delSheet" hidden role="dialog" aria-modal="true" aria-labelledby="delTitle">
+  <div class="set-sheet">
+    <div class="set-head"><h2 id="delTitle">Delete account</h2><button type="button" class="set-x" id="delClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+    <div class="set-body sub-body">
+      <p class="sub-status">This deletes your Sub-X account for good:</p>
+      <ul class="del-list"><li>the synced copy of your times, sessions, learning and settings</li><li>your Sub-X sign-in (your Google account itself stays)</li><li id="delPro">your Sub-X Pro record</li></ul>
+      <p class="sub-status" id="delNote"></p>
+      <p class="sub-small">The times on this device stay here. Google Play keeps its own purchase records, as tax law requires.</p>
+      <button type="button" class="btn ghost danger" id="delGo">Delete my account</button>
+      <button type="button" class="btn ghost" id="delSub" hidden>Manage subscription</button>
+    </div>
+  </div>
+</div>
+<div class="set-overlay" id="fbSheet" hidden role="dialog" aria-modal="true" aria-labelledby="fbTitle">
+  <div class="set-sheet">
+    <div class="set-head"><h2 id="fbTitle">Send feedback</h2><button type="button" class="set-x" id="fbClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+    <div class="set-body sub-body">
+      <p class="sub-status">What works, what doesn't, what you'd like next. It goes straight to the developer.</p>
+      <div class="fb-kinds" role="group" aria-label="Kind"><button type="button" class="chip" data-fbk="idea" aria-pressed="true">Idea</button><button type="button" class="chip" data-fbk="bug" aria-pressed="false">Something's wrong</button><button type="button" class="chip" data-fbk="love" aria-pressed="false">I like it</button></div>
+      <textarea id="fbText" class="field fb-text" rows="6" maxlength="4000" placeholder="Your feedback" aria-label="Your feedback"></textarea>
+      <p class="sub-small" id="fbWhere"></p>
+      <button type="button" class="btn" id="fbSend">Send</button>
+    </div>
   </div>
 </div>
 <div class="set-overlay" id="subSheet" hidden role="dialog" aria-modal="true" aria-labelledby="subTitle">
@@ -7804,6 +7834,95 @@ body.running .acct-btn { visibility: hidden; }
     await F.auth.signOut(F.A); SY.pushed = ''; SY.seen = null;
     toast('Signed out. Your times stay on this device.');
   }
+  // ---------- Delete account (Google Play requires it in the app as well as on the web: privacy.html#delete-account) ----------
+  // 1. The cancel server (if set up) stops a renewing Play subscription and deletes the RevenueCat record.
+  // 2. The synced copy in Firestore (users/<uid>, its parts and feedback) is deleted.
+  // 3. The Firebase sign-in record is deleted (Firebase may ask to sign in again first), then Sub-X signs out.
+  // Without the server, someone with a renewing subscription is asked to cancel it first (deleting the sign-in
+  // would otherwise leave a subscription nobody can reach); the RevenueCat record is then deleted on request.
+  const delRenewing = () => PRO_LIVE && proStoreActive() && PRO.st && PRO.st.renew !== false;
+  function delDraw() {
+    const block = delRenewing() && !PAY.cancelUrl;
+    $('delPro').hidden = !PRO_LIVE;
+    $('delNote').textContent = block ? 'Your Pro subscription is still renewing. Cancel it first (Manage subscription), then come back here.'
+      : delRenewing() ? "Your Pro subscription will be cancelled too: it won't renew, and you won't be charged again."
+      : PRO_LIVE && proStoreActive() ? 'Pro ends now, even though it was paid until ' + proDate(PRO.st.until) + '.' : '';
+    $('delNote').hidden = !$('delNote').textContent;
+    $('delGo').hidden = block; $('delSub').hidden = !block;
+    $('delGo').disabled = !!SY.delBusy;
+    $('delGo').textContent = SY.delBusy ? 'Deleting…' : SY.delSure ? 'Tap again to delete for good' : 'Delete my account';
+  }
+  function delShut() { if ($('delSheet').hidden || SY.delBusy) return; SY.delSure = false; $('delSheet').hidden = true; dlgClose($('delSheet')); }
+  async function delAccount() {
+    if (!SY.user || !SY.fb || SY.delBusy) return;
+    if (!SY.delSure) { SY.delSure = true; delDraw(); return; }   // two taps, so it can't happen by accident
+    SY.delBusy = true; delDraw();
+    const { fs, D, auth, A } = SY.fb, uid = SY.user.uid, ref = (...p) => fs.doc(D, 'users', uid, ...p);
+    try {
+      if (PAY.cancelUrl) {
+        const r = await fetch(PAY.cancelUrl.replace(/\/cancel$/, '/delete'), { method: 'POST', headers: { Authorization: 'Bearer ' + await SY.user.getIdToken() } });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) throw new Error(j.message || 'the server said ' + r.status);
+      }
+      clearTimeout(SY.timer); SY.busy = true;   // no sync puts it back while it goes
+      const meta = await fs.getDoc(ref()), n = meta.exists() ? (meta.data().parts || 0) : 0;
+      const fb = await fs.getDocs(fs.collection(D, 'users', uid, 'feedback')).catch(() => null);
+      await Promise.all([...Array.from({ length: Math.max(n, 8) }, (_, i) => fs.deleteDoc(ref('parts', String(i))).catch(() => {})), ...(fb ? fb.docs.map(d => fs.deleteDoc(d.ref).catch(() => {})) : [])]);
+      await fs.deleteDoc(ref());
+      try { await auth.deleteUser(SY.user); }
+      catch (e) {
+        if (!/requires-recent-login/.test(e && e.code)) throw e;
+        toast('Google asks you to sign in once more to finish.'); await syncSignIn();
+        if (SY.user && SY.user.uid === uid) await auth.deleteUser(SY.user); else throw new Error('signing in again was cancelled');
+      }
+      try { const P = nativeAuth(); if (P) await P.signOut(); } catch (e) {}
+      try { await auth.signOut(A); } catch (e) {}
+      SY.pushed = ''; SY.seen = null; setSyncState({ on: false }); PRO.st = null; PRO.uid = null; try { proSave(); } catch (e) {}
+      SY.busy = false; SY.delBusy = false; SY.delSure = false; delShut(); syncUI(); proApply();
+      toast('Your Sub-X account is deleted. The times on this device are still here.');
+    } catch (e) {
+      SY.busy = false; SY.delBusy = false; SY.delSure = false; delDraw();
+      toast(navigator.onLine ? "Couldn't delete the account (" + String((e && (e.code || e.message)) || e).replace(/^auth\//, '').slice(0, 100) + '). Try again.' : "You're offline. Nothing was deleted.");
+    }
+  }
+  $('delOpen').addEventListener('click', e => { unfocus(e.currentTarget); SY.delSure = false; delDraw(); $('delSheet').hidden = false; dlgOpen($('delSheet'), $('delClose')); });
+  $('delClose').addEventListener('click', delShut);
+  $('delSheet').addEventListener('click', e => { if (e.target === e.currentTarget) delShut(); });
+  $('delGo').addEventListener('click', delAccount);
+  $('delSub').addEventListener('click', () => { delShut(); proManage(); });
+
+  // ---------- Send feedback: saved under your account when signed in (only the developer reads it in the
+  // Firebase console: Firestore → users → <uid> → feedback), or a prefilled GitHub issue (public) otherwise ----------
+  let fbKind = 'idea';
+  const fbInfo = () => `Sub-X ${NATIVE ? 'app ' + ((navigator.userAgent.match(/SubX(?:GitHub)?\/([\d.]+)/) || [])[1] || '?') : 'website'} · ${(navigator.userAgent.match(/Android [\d.]+|iPhone OS [\d_]+|Windows NT [\d.]+|Mac OS X [\d_]+|CrOS|Linux/) || [''])[0]} · ${innerWidth}×${innerHeight} · look ${db.skin || 'classic'}`;
+  function fbOpenSheet() {
+    $('fbWhere').textContent = SY.user ? 'Sent with your account, so the developer can follow up. Only the developer sees it.'
+      : "You're not signed in, so this opens a public GitHub issue page with your text filled in. Sign in first to send it privately.";
+    $('fbSend').textContent = SY.user ? 'Send' : 'Continue on GitHub';
+    $('fbSheet').hidden = false; dlgOpen($('fbSheet'), $('fbText'));
+  }
+  function fbShut() { if ($('fbSheet').hidden) return; $('fbSheet').hidden = true; dlgClose($('fbSheet')); }
+  async function fbSend() {
+    const text = $('fbText').value.trim(); if (!text) { $('fbText').focus(); return; }
+    if (!SY.user || !SY.fb) {
+      const body = encodeURIComponent(text + '\n\n---\n' + fbInfo()), title = encodeURIComponent((fbKind === 'bug' ? 'Bug: ' : fbKind === 'love' ? 'Feedback: ' : 'Idea: ') + text.split('\n')[0].slice(0, 60));
+      proLink(`https://github.com/BlueX7710/sub-x/issues/new?title=${title}&body=${body}`); fbShut(); return;
+    }
+    $('fbSend').disabled = true;
+    try {
+      const { fs, D } = SY.fb;
+      await fs.addDoc(fs.collection(D, 'users', SY.user.uid, 'feedback'), { kind: fbKind, text: text.slice(0, 4000), info: fbInfo(), at: Date.now() });
+      $('fbText').value = ''; fbShut(); toast('Thanks! Your feedback was sent.');
+    } catch (e) { toast(navigator.onLine ? "Couldn't send it (" + String((e && (e.code || e.message)) || e).slice(0, 80) + ')' : "You're offline. Try again when you're connected."); }
+    $('fbSend').disabled = false;
+  }
+  $('fbOpen').addEventListener('click', e => { unfocus(e.currentTarget); fbOpenSheet(); });
+  $('fbClose').addEventListener('click', fbShut);
+  $('fbSheet').addEventListener('click', e => { if (e.target === e.currentTarget) fbShut(); });
+  $('fbSend').addEventListener('click', fbSend);
+  document.querySelectorAll('[data-fbk]').forEach(b => b.addEventListener('click', () => { fbKind = b.dataset.fbk; document.querySelectorAll('[data-fbk]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
+  document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; const top = DLG[DLG.length - 1]?.el; if (top === $('delSheet')) { e.preventDefault(); delShut(); } else if (top === $('fbSheet')) { e.preventDefault(); fbShut(); } });
+
   // JSON with every character above ASCII escaped, so each character is one byte when it's stored
   const asciiJson = o => JSON.stringify(o).replace(/[\u007f-￿]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
   function syncSoon() {
@@ -7853,7 +7972,7 @@ body.running .acct-btn { visibility: hidden; }
     const ago = at ? (Date.now() - at < 60000 ? 'just now' : new Date(at).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit', day: 'numeric', month: 'short' })) : 'not yet';
     $('syncInfo').innerHTML = u ? `<b>Synced with ${esc(u.email || 'your Google account')}</b> · ${SY.busy ? 'syncing…' : SY.err ? `<span style="color:var(--warn)">${esc(SY.err)}</span>` : 'last sync ' + ago}`
       : 'Everything works without an account. Sign in with Google to keep the same times, sessions and learning progress on your phone and computer.';
-    $('syncBtn').hidden = !!u; $('syncNow').hidden = $('syncOut').hidden = !u;
+    $('syncBtn').hidden = !!u; $('syncNow').hidden = $('syncOut').hidden = $('delOpen').hidden = !u;
     acctAvatar();
   }
   function acctAvatar() {
