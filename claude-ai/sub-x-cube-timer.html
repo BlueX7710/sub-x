@@ -1001,16 +1001,16 @@ body.racing { overflow: hidden; }
 /* the header never wraps: on the narrowest phones (or with large text) the round buttons and tabs shrink instead,
    so the account button doesn't drop onto a line of its own and push the timer down */
 .top { flex-wrap: nowrap; }
-.top > .tabs { min-width: 0; }
+.top > .tabs { flex: none; }   /* never squeezed: Learn would slide under the buttons */
 .top > .brand { white-space: nowrap; flex: none; }
-/* phones: the streak pill would squeeze the tabs, so it sits at the right end of the event/session row below the header */
-@media (max-width: 520px) {
+/* phones and small tablets: the streak pill would squeeze the tabs, so it sits at the right end of the event/session row below the header */
+@media (max-width: 760px) {
   .top { position: relative; }
   .top > .streak { position: absolute; right: 0; top: calc(100% + 16px + (var(--bar-h, 32px) - 24px) / 2); line-height: 18px; }
   body.running .top > .streak { visibility: hidden; }
   body:has(#view-timer[hidden]) .top > .streak { display: none; }   /* only the Timer page has that row (the streak is in Achievements too) */
 }
-@media (max-width: 520px) { .top > .streak .s-long { display: none; } .top > .streak { padding: 3px 10px 3px 4px; gap: 6px; } }
+@media (max-width: 760px) { .top > .streak .s-long { display: none; } .top > .streak { padding: 3px 10px 3px 4px; gap: 6px; } }
 @media (max-width: 335px) { .top .acct-btn { width: 34px; height: 34px; } .tabs a { padding: 6px 5px; letter-spacing: .02em; } .top { column-gap: 4px; } }
 @media (max-width: 370px) {
   .top { column-gap: 6px; }
