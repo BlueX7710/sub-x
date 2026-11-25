@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Chivo+Mono:wght@400;500;700&family=Inter:wght@200;400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&family=Orbitron:wght@700;900&family=Outfit:wght@400;500;600;700&display=swap">
-<script>try { var skin = (JSON.parse(localStorage.getItem('subx-cube-timer-v1')) || {}).skin; if (skin) document.documentElement.dataset.skin = skin; } catch (e) {}</script>
+<script>try { var skin = (JSON.parse(localStorage.getItem('subx-cube-timer-v1')) || {}).skin, ph; if (skin === 'photo') { ph = JSON.parse(localStorage.getItem('subx-photo')); if (ph && ph.vars) { for (var k in ph.vars) document.documentElement.style.setProperty(k, ph.vars[k]); if (ph.img) document.documentElement.style.setProperty('--photo', 'url("' + ph.img + '")'); } else skin = ''; } if (skin) document.documentElement.dataset.skin = skin; } catch (e) {}</script>
 <style>
 /* Layout: one header with two views (Timer, Learn), plus the Account page. Timer = stage left + session panel right; stacks on phones. */
 :root {
@@ -247,9 +247,62 @@ body.running .set-btn { visibility: hidden; }
 .scramble.long { font-size: clamp(14px, 1.7vw, 17px); }
 @media (min-width: 1100px) { .scramble { font-size: clamp(21px, 1.75vw, 26px); } .scramble.long { font-size: clamp(17px, 1.35vw, 21px); } }
 @media (max-width: 520px) { .scramble-card { padding: 10px 12px; } }
+@media (max-width: 860px) { .scramble { font-size: clamp(19px, 5.6vw, 25px); word-spacing: .18em; } .scramble.long { font-size: clamp(15px, 4vw, 18px); } }   /* phones: big enough to read at arm's length while you scramble */
 .drill-note { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
 .sess-panel { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .sess-panel .field { width: auto; flex: 1 1 180px; }
+/* arranging the boxes (Settings → Arrange boxes): the page itself, boxes shortened, each with a handle and arrows; the timer is off */
+body.arranging .stage-col, body.arranging .top, body.arranging .bar { opacity: .35; pointer-events: none; }
+body.arranging .side > * { position: relative; max-height: 210px; overflow: hidden; outline: 2px dashed var(--line); outline-offset: -1px; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+body.arranging .side > [hidden] { display: block !important; opacity: .6; }
+body.arranging .side > *::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: linear-gradient(transparent, var(--surface)); pointer-events: none; }
+body.arranging .side > * > :not(.arr-head) { pointer-events: none; }
+body.arranging .side > .arr-drag { z-index: 5; cursor: grabbing; box-shadow: 0 18px 44px rgb(0 0 0 / .4); outline: 2px solid var(--accent); }
+body.arranging .side > .arr-moved { outline-color: var(--accent); }
+body.arranging .wrap { padding-bottom: 120px; }
+.arr-head { display: flex; align-items: center; gap: 6px; margin: -6px -8px 10px; padding: 4px; background: var(--sunk); border-radius: 8px; position: relative; z-index: 2; }
+.arr-head span { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; }
+.arr-head small { color: var(--muted); font-weight: 400; font-size: 12px; }
+.arr-head button { width: 40px; height: 36px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1; flex: none; }
+.arr-head button:disabled { opacity: .3; }
+.arr-head { touch-action: none; }   /* the bar on top picks the box up at once, without scrolling */
+.arr-head .arr-grip { width: 32px; text-align: center; font-size: 20px; color: var(--muted); }
+.arr-bar { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 20; width: min(560px, calc(100% - 24px)); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; padding: 10px 12px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 36px rgb(0 0 0 / .3); }
+.arr-bar p { margin: 0; flex: 1 1 220px; font-size: 13px; color: var(--muted); }
+.arr-btns { display: flex; gap: 8px; align-items: center; }
+@media (prefers-reduced-motion: reduce) { body.arranging .side > * { transition: none; } }
+.photo-box { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.photo-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.photo-pick { cursor: pointer; }
+.photo-sw { display: inline-flex; gap: 4px; }
+.photo-sw i { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); }
+.photo-dim input { flex: 1; accent-color: var(--accent); }
+.photo-row:has(input:focus-visible) .photo-pick { outline: 2px solid var(--accent); outline-offset: 2px; }
+.photo-mode button { font-size: 14px; padding: 6px 14px; }
+.pc-list { display: flex; flex-direction: column; gap: 4px; }
+.pc-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; text-align: left; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; font: inherit; }
+.pc-row[aria-expanded="true"] { border-color: var(--accent); }
+.pc-row i { width: 28px; height: 28px; flex: none; border-radius: 50%; border: 1px solid rgb(128 128 128 / .5); }
+.pc-row span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pc-row small { color: var(--muted); font-size: 12px; }
+.pc-row code { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.pc-wheel { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
+.pc-disc { position: relative; width: 200px; height: 200px; flex: none; touch-action: none; }
+.pc-disc canvas { width: 200px; height: 200px; border-radius: 50%; display: block; cursor: crosshair; }
+.pc-dot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / .5), 0 2px 6px rgb(0 0 0 / .4); pointer-events: none; }
+.pc-side { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.pc-v input { width: 100%; accent-color: var(--accent); }
+.pc-hex { width: 7.5em; font-family: var(--font-mono); text-transform: uppercase; }
+.pc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pc-chips button { width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 1px solid rgb(128 128 128 / .5); }
+.pc-chips small { width: 100%; color: var(--muted); font-size: 12px; }
+/* My photo: your picture behind everything (dimmed with its own background color), and the colors Sub-X took from it */
+:root[data-skin="photo"] { background: var(--bg); }
+:root[data-skin="photo"] body { background: transparent; }
+:root[data-skin="photo"] body::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(var(--photo-dim), var(--photo-dim)), var(--photo) center / cover no-repeat; }
+:root[data-skin="photo"] .timer-view :is(.panel, .scramble-card, .stage:not(body.timing .stage), .kpis) { background-color: var(--glass); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }   /* the timer's boxes are frosted glass over the photo; sheets and menus stay solid */
+:root[data-skin="photo"] .brand span { color: var(--accent); }
+.box-list li.moved { border-color: var(--accent); transition: border-color .4s; }
 .sess-note { font-size: 13px; color: var(--muted); }
 .drill-note.err { color: var(--hold); }
 .cross-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; max-width: 980px; }
@@ -481,7 +534,7 @@ body.running .kpis { opacity: .12; transition: opacity .2s; }
 /* hardware most people don't have goes near the bottom (Backup is last), and moves to the top while it's in use */
 .side > .backup-panel { order: 2; }
 .side > .hw { order: 1; }
-.side > .hw.live { order: -4; }
+.side > .hw.live { order: -99 !important; }   /* above your own arrangement too (Settings → Arrange boxes) */
 /* the session stats, then your splits, then the goal splits */
 .side > .session-panel { order: -3; }
 .side > #splitsPanel { order: -2; }
@@ -594,7 +647,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .h2-right { display: inline-flex; align-items: center; gap: 6px; }
 .fold { background: none; border: 0; border-radius: 999px; color: var(--muted); font-size: 13px; line-height: 1; width: 26px; height: 22px; padding: 0; }
 @media (hover: hover) { .fold:hover { color: var(--ink); background: var(--sunk); } }
-.panel.shut > :not(h2) { display: none !important; }
+.panel.shut > :not(h2, .arr-head) { display: none !important; }
 .panel.shut h2 { margin: 0; }
 .goal-table td small { display: block; color: var(--muted); font-size: 12px; }
 .goal-table .over { color: var(--hold); }
@@ -911,6 +964,20 @@ body.running .side > :not(.cam-panel) { opacity: .12; }
 .acct-btn[aria-current="page"] { border: 2px solid var(--accent); color: var(--accent); }
 .acct-btn img { width: 100%; height: 100%; object-fit: cover; }
 body.running .acct-btn { visibility: hidden; }
+/* the smart cube button, left of Settings: connect from the top instead of scrolling down to the panel */
+.hw-btn[hidden] ~ #setBtn { margin-left: auto; }
+.hw-btn { position: relative; overflow: visible; }
+.hw-dot { position: absolute; top: 2px; right: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); border: 2px solid var(--bg); display: none; }
+.hw-btn.busy .hw-dot { display: block; background: var(--hold); animation: hwPulse 1s ease-in-out infinite alternate; }
+.hw-btn.on { color: var(--accent); border-color: var(--accent); }
+.hw-btn.on .hw-dot { display: block; background: var(--ready); }
+@keyframes hwPulse { to { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .hw-btn.busy .hw-dot { animation: none; } }
+@media (max-width: 400px) {   /* three round buttons beside the tabs on a narrow phone, without wrapping */
+  .top:has(.hw-btn:not([hidden])) { column-gap: 6px; }
+  .top:has(.hw-btn:not([hidden])) .acct-btn { width: 40px; height: 40px; }
+  .top:has(.hw-btn:not([hidden])) .set-btn ~ .acct-btn { margin-left: 0; }
+}
 .acct { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 .acct-title { margin: 4px 0 0; font-family: var(--font-display); font-size: 30px; font-weight: 700; }
 .acct .panel { border-radius: 20px; }
@@ -1319,10 +1386,11 @@ body.running .acct-btn { visibility: hidden; }
       <a href="#learn" data-view="learn">Learn</a>
     </nav>
     <label class="ctl skin-pick" for="skin">Look
-      <select id="skin"><option value="">Classic</option><option value="minimal">Minimal</option><option value="midnight">Midnight</option><option value="terminal">Terminal</option><option value="speed">Speed</option><option value="dracula">Dracula</option><option value="pink">Pink</option><option value="ocean">Ocean</option><option value="sunset">Sunset</option></select>
+      <select id="skin"><option value="">Classic</option><option value="minimal">Minimal</option><option value="midnight">Midnight</option><option value="terminal">Terminal</option><option value="speed">Speed</option><option value="dracula">Dracula</option><option value="pink">Pink</option><option value="ocean">Ocean</option><option value="sunset">Sunset</option><option value="photo">Custom</option></select>
     </label>
     <button type="button" class="pill-btn" id="installBtn" hidden>Install app</button>
     <p class="install-hint" id="iosHint" hidden>To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.</p>
+    <button type="button" class="acct-btn set-btn hw-btn" id="hwBtn" aria-label="Connect smart cube" title="Connect smart cube" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7l10 10-5 5V2l5 5L7 17"></path></svg><i class="hw-dot" aria-hidden="true"></i></button>
     <button type="button" class="acct-btn set-btn" id="setBtn" aria-label="Settings" aria-haspopup="dialog"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
     <button type="button" class="acct-btn" id="acctBtn" aria-label="Account" aria-current="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="4"></circle><path d="M4.5 20c1.4-3.6 4.2-5.4 7.5-5.4s6.1 1.8 7.5 5.4"></path></svg></button>
   </header>
@@ -1382,7 +1450,7 @@ body.running .acct-btn { visibility: hidden; }
         </div>
         <div class="bar-group" role="group" aria-labelledby="grpSettings" id="grpSettingsBox">
         <h3 class="bar-head" id="grpSettings">Timer</h3>
-        <label class="ctl" for="goal">Goal sub
+        <label class="ctl" for="goal" title="Your 3×3 goal: the goal lines, the sub-X share and the Goal splits use it">Goal sub (3×3)
           <input id="goal" type="number" min="1" max="600" step="1" value="20">
         </label>
         <label class="ctl toggle" for="insp"><input id="insp" type="checkbox" checked> 15s inspection</label>
@@ -1391,9 +1459,30 @@ body.running .acct-btn { visibility: hidden; }
         <label class="ctl" for="coachMode" title="After a slow step, Sub-X shows what to practice">Coach
           <select id="coachMode"><option value="suggest">Suggest</option><option value="force">Must practice</option><option value="off">Off</option></select>
         </label>
+        <div class="photo-box" id="photoBox" hidden>
+          <div class="photo-row">
+            <label class="pill-btn photo-pick" for="photoFile">Add a photo</label>
+            <input id="photoFile" type="file" accept="image/*" class="sr-only">
+            <button type="button" class="text-btn" id="photoDel" hidden>Remove photo</button>
+          </div>
+          <label class="ctl photo-dim" for="photoDim">Photo <input id="photoDim" type="range" min="20" max="90" step="5" value="60" aria-label="How much the photo is dimmed"></label>
+          <div class="seg photo-mode" id="photoMode" role="group" aria-label="Where the colors come from"><button type="button" data-pmode="auto" aria-pressed="true">From the photo</button><button type="button" data-pmode="own" aria-pressed="false">My colors</button></div>
+          <div class="pc-list" id="pcList"></div>
+          <div class="pc-wheel" id="pcWheel" hidden>
+            <div class="pc-disc"><canvas id="pcCanvas" width="200" height="200" aria-label="Color wheel: drag to pick a color" role="img"></canvas><i class="pc-dot" id="pcDot"></i></div>
+            <div class="pc-side">
+              <label class="ctl pc-v" for="pcV">Brightness <input id="pcV" type="range" min="0" max="100" value="100"></label>
+              <label class="ctl" for="pcHex">Code <input id="pcHex" class="field pc-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off"></label>
+              <div class="pc-chips" id="pcChips"></div>
+              <button type="button" class="btn ghost" id="pcDone">Done</button>
+            </div>
+          </div>
+          <p class="sess-note" id="photoNote"></p>
+        </div>
         <div class="bar-btns" id="setBtns">
           <button type="button" class="pill-btn" id="sessMore" aria-controls="sessPanel" aria-expanded="false">Sessions…</button>
           <button type="button" class="pill-btn" id="tourAgain">Show the tour again</button>
+          <button type="button" class="pill-btn" id="boxMore">Arrange boxes</button>
         </div>
         <div class="sess-panel" id="sessPanel" hidden>
           <input id="sessName" class="field" type="text" maxlength="30" placeholder="Session name, e.g. Comp sim" aria-label="Session name">
@@ -1510,13 +1599,13 @@ body.running .acct-btn { visibility: hidden; }
       <section class="panel">
         <h2>Trend <span class="ex-tag" hidden>· example</span> <span class="trend-range" id="trendRange"></span></h2>
         <svg class="trend" id="trend" viewBox="0 0 320 120" role="img" aria-label="Solve times over the session"></svg>
-        <div class="legend"><span><i style="background:var(--muted)"></i>single</span><span><i style="background:var(--accent)"></i>ao5</span><span><i style="background:repeating-linear-gradient(90deg, var(--ph-oll) 0 5px, transparent 5px 8px)"></i>ao12</span><span><i class="dot"></i>new PB</span><span><i style="background:var(--ready)"></i>goal</span></div>
+        <div class="legend"><span><i style="background:var(--muted)"></i>single</span><span><i style="background:var(--accent)"></i>ao5</span><span><i style="background:repeating-linear-gradient(90deg, var(--ph-oll) 0 5px, transparent 5px 8px)"></i>ao12</span><span><i class="dot"></i>new PB</span><span class="goal-key"><i style="background:var(--ready)"></i>goal</span></div>
         <p class="lead" id="trendNote" style="margin:6px 0 0"></p>
       </section>
       <section class="panel" id="spreadPanel" hidden>
         <h2>Time spread <span class="ex-tag" hidden>· example</span> <b id="spreadSub"></b></h2>
         <svg class="trend" id="spread" viewBox="0 0 320 140" role="img" aria-label="How many solves fell in each time band"></svg>
-        <div class="legend"><span><i class="sq" style="background:var(--accent)"></i>solves</span><span><i style="background:var(--ink)"></i>mean</span><span><i style="background:var(--ready)"></i>goal</span></div>
+        <div class="legend"><span><i class="sq" style="background:var(--accent)"></i>solves</span><span><i style="background:var(--ink)"></i>mean</span><span class="goal-key"><i style="background:var(--ready)"></i>goal</span></div>
       </section>
       <section class="panel" id="splitsPanel" hidden>
         <h2>CFOP steps <b id="splitsCount"></b></h2>
@@ -1633,6 +1722,10 @@ body.running .acct-btn { visibility: hidden; }
     <div class="row-btns"><button type="button" class="btn" id="raceNext">Next scramble</button><button type="button" class="pill-btn" id="raceReset">Reset score</button></div>
     <p class="drill-note">Both of you scramble with the same moves. Hold your side until it turns green, let go to start, and touch it again to stop. <span class="race-keys">On a keyboard, player 1 uses <b>A</b> and player 2 uses <b>L</b>.</span> Race times are not saved.</p>
   </div>
+</div>
+<div class="arr-bar" id="arrBar" hidden role="region" aria-label="Arranging the boxes">
+  <p>Hold a box and drag it, or drag its top bar. The arrows move it one place. The timer is off until you're done.</p>
+  <div class="arr-btns"><button type="button" class="pill-btn" id="arrReset">Usual order</button><button type="button" class="btn" id="arrDone">Done</button></div>
 </div>
 <div class="set-overlay" id="setSheet" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="set-sheet">
@@ -2590,20 +2683,241 @@ body.running .acct-btn { visibility: hidden; }
 
   // ---------- views ----------
   let view = 'timer';
+  // ---------- My photo: a picture of yours behind the timer, and a palette taken from it (both kept on this device only) ----------
+  const PHOTO_VARS = ['--bg', '--surface', '--sunk', '--ink', '--muted', '--line', '--accent', '--accent-ink', '--hold', '--ready', '--warn', '--ll-off', '--ph-insp', '--ph-cross', '--plastic', '--photo', '--photo-dim', '--glass', 'color-scheme'];
+  function photoGet() { try { const P = JSON.parse(localStorage.getItem('subx-photo')); return P && ((P.img && P.pal) || P.own) ? P : null; } catch (e) { return null; } }
+  // saved with its CSS values too, so the page's first paint (in <head>) has the right colors
+  function photoSave(P) {
+    const vars = photoVars(P); delete vars['--photo'];   // the picture itself is saved once, in img
+    try { localStorage.setItem('subx-photo', JSON.stringify({ ...P, vars })); }
+    catch (e) { throw new Error('there is no room for it on this device'); }
+  }
+  const hslHex = (h, s, l) => {
+    const f = n => { const k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, '0'); };
+    return '#' + f(0) + f(8) + f(4);
+  };
+  function rgbHsl(r, g, b) {
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    if (!d) return [0, 0, l];
+    const s = d / (1 - Math.abs(2 * l - 1)), h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [h * 60, s, l];
+  }
+  // the palette: a background tinted with the photo's overall color (dark for a dark photo, light for a light one),
+  // and the accent from its most vivid color, made light or dark enough to read on that background
+  function photoPalette(img) {
+    const n = 48, c = document.createElement('canvas'); c.width = c.height = n;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, n, n);
+    const d = x.getImageData(0, 0, n, n).data, B = Array.from({ length: 12 }, () => ({ w: 0, x: 0, y: 0, s: 0 }));
+    let R = 0, G = 0, Bl = 0, lum = 0; const N = d.length / 4;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255, [h, s, l] = rgbHsl(r, g, b);
+      R += r; G += g; Bl += b; lum += .2126 * r + .7152 * g + .0722 * b;
+      const m = s * (1 - Math.abs(l - .5) * 1.6); if (m <= 0) continue; const w = m * m;   // vivid mid-tones count most; grey, black and white not at all
+      const k = B[Math.floor(h / 30) % 12]; k.w += w; k.x += w * Math.cos(h * Math.PI / 180); k.y += w * Math.sin(h * Math.PI / 180); k.s += w * s;
+    }
+    const dark = lum / N < .56, [bh, bs] = rgbHsl(R / N, G / N, Bl / N), tint = Math.min(bs * 1.3, .55);   // strong enough that the page looks like the photo
+    // neighbouring hues count together (an orange sun's two shades shouldn't split), and a color that stands out from the
+    // background's hue counts a bit more than one that blends into it
+    const hueOff = h => { const d = Math.abs(h - bh) % 360; return Math.min(d, 360 - d) / 180; };
+    const top = B.map((b, i) => {
+      const nb = [B[(i + 11) % 12], b, B[(i + 1) % 12]], t = { w: 0, x: 0, y: 0, s: 0 };
+      nb.forEach((q, j) => { const f = j === 1 ? 1 : .5; t.w += q.w * f; t.x += q.x * f; t.y += q.y * f; t.s += q.s * f; });
+      t.score = t.w * (.6 + .8 * (bs > .08 ? hueOff(i * 30 + 15) : .5));
+      return t;
+    }).reduce((a, b) => b.score > a.score ? b : a);
+    let accent;
+    if (top.w > N * .004) {
+      const ah = (Math.atan2(top.y, top.x) * 180 / Math.PI + 360) % 360, as = Math.max(.55, Math.min(.92, top.s / top.w));
+      accent = hslHex(ah, as, dark ? .66 : .40);
+    } else accent = dark ? '#7B93FF' : '#2346D8';   // a black-and-white photo: Sub-X's own blue
+    const bg = hslHex(bh, tint, dark ? .08 : .94);
+    // the photo's own main colors, for the color picker's quick picks
+    const chips = B.map(b => ({ w: b.w, h: (Math.atan2(b.y, b.x) * 180 / Math.PI + 360) % 360, s: b.w ? b.s / b.w : 0 })).filter(b => b.w > N * .002)
+      .sort((a, b) => b.w - a.w).slice(0, 6).map(b => hslHex(b.h, Math.min(.9, b.s), .5));
+    return {
+      dark, bg, chips: [...new Set([accent, ...chips, hslHex(bh, tint, dark ? .2 : .85)])].slice(0, 8),
+      surface: hslHex(bh, tint * .85, dark ? .13 : .985), sunk: hslHex(bh, tint, dark ? .18 : .89), line: hslHex(bh, tint * .9, dark ? .3 : .76),
+      ink: hslHex(bh, Math.min(.14, tint), dark ? .93 : .10), muted: hslHex(bh, Math.min(.12, tint), dark ? .70 : .36), accent, accentInk: dark ? bg : '#FFFFFF',
+    };
+  }
+  // your own colors, picked per part: the rest (the pressed-in boxes, the grey words) is mixed from them
+  const PC_CATS = [['bg', 'Background', 'behind the boxes'], ['box', 'Boxes', 'the cards and the timer'], ['border', 'Borders', 'the lines around boxes'],
+    ['text', 'Numbers and words', 'the time, the scramble, all text'], ['accent', 'Buttons and highlights', 'buttons, links, PBs']];
+  const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const lumHex = h => { const [r, g, b] = hexRgb(h).map(v => { v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+  const mixHex = (a, b, t) => { const A = hexRgb(a), B2 = hexRgb(b); return '#' + A.map((v, i) => Math.round(v + (B2[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+  const okHex = h => typeof h === 'string' && /^#[0-9a-f]{6}$/i.test(h);
+  function ownPal(o) {
+    const dark = lumHex(o.bg) < .3;
+    return { dark, bg: o.bg, surface: o.box, sunk: mixHex(o.box, o.text, .08), line: o.border, ink: o.text, muted: mixHex(o.text, o.box, .38),
+      accent: o.accent, accentInk: lumHex(o.accent) > .35 ? '#111111' : '#FFFFFF' };
+  }
+  const photoPal = P => (P.mode === 'own' || !P.pal) && P.own ? ownPal(P.own) : P.pal;
+  function photoVars(P) {
+    const p = photoPal(P), dk = p.dark, rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(' ');
+    return {
+      '--bg': p.bg, '--surface': p.surface, '--glass': `rgb(${rgb(p.surface)} / .84)`, '--sunk': p.sunk, '--ink': p.ink, '--muted': p.muted, '--line': p.line,
+      '--accent': p.accent, '--accent-ink': p.accentInk, '--ph-cross': p.accent,
+      '--hold': dk ? '#FF6A5E' : '#C93030', '--ready': dk ? '#3DD68C' : '#0A7445', '--warn': dk ? '#F0B03A' : '#8F5A00',
+      '--ll-off': dk ? '#3C4555' : '#9AA2AF', '--ph-insp': p.muted, '--plastic': dk ? '#050608' : '#16181C',
+      '--photo': P.img ? `url("${P.img}")` : 'none', '--photo-dim': P.img ? `rgb(${rgb(p.bg)} / ${P.dim ?? .6})` : 'transparent', 'color-scheme': dk ? 'dark' : 'light',
+    };
+  }
+  // the photo is made smaller (at most 1600 px across, as a JPEG) so it fits in the browser's storage
+  function photoMake(file) {
+    return new Promise((ok, no) => {
+      if (!/^image\//.test(file.type)) return no(new Error("it isn't a picture"));
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        const old = photoGet();
+        ok({ img: c.toDataURL('image/jpeg', .8), pal: photoPalette(c), dim: old && old.dim != null ? old.dim : .6, mode: 'auto' });   // a new photo: its colors (My colors then starts from them too)
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); no(new Error("this browser can't open it")); };
+      img.src = url;
+    });
+  }
+  function photoBoxUI(P) {
+    if (PC.cat) pcClose(); else if ($('pcWheel').parentElement !== $('photoBox')) $('photoBox').append($('pcWheel'));   // the list is redrawn: the wheel mustn't be in it
+    const has = !!(P && P.img), own = !!P && (P.mode === 'own' || !P.pal);
+    document.querySelector('.photo-pick').textContent = has ? 'Change the photo' : 'Add a photo';
+    $('photoDel').hidden = !has; $('photoDim').parentElement.hidden = !has; $('photoMode').hidden = !has;
+    $('photoDim').value = Math.round((P && P.dim != null ? P.dim : .6) * 100);
+    $('photoMode').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', (b.dataset.pmode === 'own') === own));
+    $('photoNote').textContent = !P ? '' : own ? 'Tap a part to pick its color on the wheel.' + (has ? ' The photo stays on this device.' : ' Add a photo to put it behind the timer.')
+      : 'The colors come from your photo. Tap My colors to change any of them. The photo stays on this device.';
+    const pal = P && photoPal(P), cur = { bg: pal?.bg, box: pal?.surface, border: pal?.line, text: pal?.ink, accent: pal?.accent };
+    $('pcList').innerHTML = !P ? '' : PC_CATS.map(([k, name, what]) => `<button type="button" class="pc-row" data-pc="${k}" aria-expanded="${PC.cat === k}"${own ? '' : ' disabled'}>`
+      + `<i style="background:${cur[k]}"></i><span>${name}<small>${what}</small></span><code>${(cur[k] || '').toUpperCase()}</code></button>`).join('');
+    $('pcList').classList.toggle('pc-auto', !own);
+    if (!own) pcClose();
+  }
+  // ---------- the color wheel: around is the hue, outwards the strength, and the slider the brightness ----------
+  const PC = { cat: null, h: 0, s: 0, v: 1, drawnV: -1, saveT: 0 };
+  const hsvHex = (h, s, v) => { const f = n => { const k = (n + h / 60) % 6; return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1)))).toString(16).padStart(2, '0'); }; return '#' + f(5) + f(3) + f(1); };
+  function hexHsv(hex) {
+    const [r, g, b] = hexRgb(hex).map(v => v / 255), mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+    const h = !d ? 0 : mx === r ? 60 * (((g - b) / d + 6) % 6) : mx === g ? 60 * ((b - r) / d + 2) : 60 * ((r - g) / d + 4);
+    return [h, mx ? d / mx : 0, mx];
+  }
+  function pcDraw() {
+    if (PC.drawnV === PC.v) return; PC.drawnV = PC.v;
+    const c = $('pcCanvas'), x = c.getContext('2d'), n = c.width, r = n / 2, img = x.createImageData(n, n), d = img.data;
+    for (let y = 0; y < n; y++) for (let i = 0; i < n; i++) {
+      const dx = i + .5 - r, dy = y + .5 - r, rr = Math.hypot(dx, dy) / r, o = (y * n + i) * 4; if (rr > 1) continue;
+      const [R2, G2, B2] = hexRgb(hsvHex((Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360, rr, PC.v));
+      d[o] = R2; d[o + 1] = G2; d[o + 2] = B2; d[o + 3] = rr > .985 ? 255 * (1 - rr) / .015 : 255;
+    }
+    x.putImageData(img, 0, 0);
+  }
+  function pcDot() {
+    const a = PC.h * Math.PI / 180, r = 100; $('pcDot').style.left = (r + Math.cos(a) * PC.s * r) + 'px'; $('pcDot').style.top = (r + Math.sin(a) * PC.s * r) + 'px';
+    $('pcDot').style.background = hsvHex(PC.h, PC.s, PC.v);
+  }
+  function pcOpen(cat) {
+    const P = PC.P || photoGet();   // still open on another part: its unsaved picks if (!P || !P.own) return;
+    if (PC.cat === cat) { pcClose(); return; }
+    PC.cat = cat; PC.P = P; [PC.h, PC.s, PC.v] = hexHsv(P.own[cat]);
+    const row = $('pcList').querySelector(`[data-pc="${cat}"]`); row.after($('pcWheel')); $('pcWheel').hidden = false;
+    $('pcList').querySelectorAll('.pc-row').forEach(b => b.setAttribute('aria-expanded', b === row));
+    $('pcV').value = Math.round(PC.v * 100); $('pcHex').value = P.own[cat].toUpperCase();
+    const chips = (P.pal && P.pal.chips) || [];
+    $('pcChips').innerHTML = (chips.length ? '<small>From your photo</small>' : '') + chips.map(c => `<button type="button" data-pchip="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')
+      + '<small>Basics</small>' + ['#000000', '#FFFFFF', '#1E1E24', '#F5F5F0', '#FF4FA3', '#FFD23F', '#3DD68C', '#4F8BFF'].map(c => `<button type="button" data-pchip="${c}" style="background:${c}" aria-label="${c}"></button>`).join('');
+    pcDraw(); pcDot();
+    $('pcWheel').scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+  }
+  function pcClose() {
+    if (!PC.cat) return; if (PC.saveT) { clearTimeout(PC.saveT); PC.saveT = 0; try { photoSave(PC.P); } catch (e) {} }
+    PC.cat = null; PC.P = null; $('pcWheel').hidden = true; $('photoBox').append($('pcWheel'));
+    $('pcList').querySelectorAll('.pc-row').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  }
+  // a pick shows at once everywhere; saving (the photo is big) waits until you pause
+  function pcSet(hex, fromWheel) {
+    const P = PC.P; if (!P || !P.own || !PC.cat) return;
+    P.own[PC.cat] = hex.toLowerCase();
+    if (!fromWheel) { [PC.h, PC.s, PC.v] = hexHsv(hex); $('pcV').value = Math.round(PC.v * 100); pcDraw(); }
+    pcDot(); if (document.activeElement !== $('pcHex')) $('pcHex').value = hex.toUpperCase();
+    clearTimeout(PC.saveT); PC.saveT = setTimeout(() => { try { photoSave(P); } catch (e) {} }, 250);
+    const root = document.documentElement; for (const [k, v] of Object.entries(photoVars(P))) root.style.setProperty(k, v);
+    const row = $('pcList').querySelector(`[data-pc="${PC.cat}"]`); if (row) { row.querySelector('i').style.background = hex; row.querySelector('code').textContent = hex.toUpperCase(); }
+  }
+  {
+    const disc = document.querySelector('.pc-disc'); let down = false;
+    const at = e => {
+      const r = $('pcCanvas').getBoundingClientRect(), dx = e.clientX - r.left - r.width / 2, dy = e.clientY - r.top - r.height / 2;
+      PC.h = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360; PC.s = Math.min(1, Math.hypot(dx, dy) / (r.width / 2));
+      if (PC.v < .15) { PC.v = .15; $('pcV').value = 15; pcDraw(); }   // picking a hue on a black wheel: make it visible
+      pcSet(hsvHex(PC.h, PC.s, PC.v), true);
+    };
+    disc.addEventListener('pointerdown', e => { down = true; try { disc.setPointerCapture(e.pointerId); } catch (err) {} e.preventDefault(); at(e); });
+    disc.addEventListener('pointermove', e => { if (down) at(e); });
+    disc.addEventListener('pointerup', () => { down = false; });
+    disc.addEventListener('pointercancel', () => { down = false; });
+    $('pcV').addEventListener('input', e => { PC.v = +e.target.value / 100; pcDraw(); pcSet(hsvHex(PC.h, PC.s, PC.v), true); });
+    $('pcHex').addEventListener('input', e => { let v = e.target.value.trim(); if (!v.startsWith('#')) v = '#' + v; if (okHex(v)) pcSet(v); });
+    $('pcChips').addEventListener('click', e => { const b = e.target.closest('[data-pchip]'); if (b) pcSet(b.dataset.pchip); });
+    $('pcDone').addEventListener('click', pcClose);
+    $('pcList').addEventListener('click', e => { const b = e.target.closest('[data-pc]'); if (b && !b.disabled) pcOpen(b.dataset.pc); });
+    $('photoMode').addEventListener('click', e => {
+      const b = e.target.closest('[data-pmode]'); if (!b) return; pcClose(); const P = photoGet(); if (!P) return;
+      P.mode = b.dataset.pmode;
+      if (P.mode === 'own' && !P.own) { const q = P.pal; P.own = { bg: q.bg, box: q.surface, border: q.line, text: q.ink, accent: q.accent }; }   // start from the photo's colors
+      photoSave(P); applySkin();
+    });
+    $('photoDel').addEventListener('click', () => {
+      pcClose(); const P = photoGet(); if (!P) return;
+      if (!P.own) { const q = P.pal; P.own = { bg: q.bg, box: q.surface, border: q.line, text: q.ink, accent: q.accent }; }
+      delete P.img; delete P.pal; P.mode = 'own'; photoSave(P); applySkin(); toast('Photo removed. Your colors stay.');
+    });
+  }
+  // a Custom look with no photo yet starts from the look you had, so nothing jumps
+  function photoSeed() {
+    const cs = getComputedStyle(document.documentElement), c = document.createElement('canvas').getContext('2d');
+    const hex = v => { c.fillStyle = '#000'; c.fillStyle = v.trim() || '#000'; const f = c.fillStyle; return okHex(f) ? f : '#000000'; };
+    const g = k => hex(cs.getPropertyValue(k));
+    return { mode: 'own', dim: .6, own: { bg: g('--bg'), box: g('--surface'), border: g('--line'), text: g('--ink'), accent: g('--accent') } };
+  }
   // the look: Classic, Minimal or one of the dark looks (set before the page draws, in <head>, so it doesn't flash)
   const applySkin = () => {
-    if (db.skin) document.documentElement.dataset.skin = db.skin; else delete document.documentElement.dataset.skin;
+    const root = document.documentElement, P = db.skin === 'photo' ? photoGet() : null;
+    for (const k of PHOTO_VARS) root.style.removeProperty(k);
+    if (P) for (const [k, v] of Object.entries(photoVars(P))) root.style.setProperty(k, v);
+    const skin = db.skin === 'photo' && !P ? '' : db.skin;   // Custom with nothing set on this device (a synced setting): Classic until you set it
+    if (skin) root.dataset.skin = skin; else delete root.dataset.skin;
+    if ($('photoBox')) { $('photoBox').hidden = db.skin !== 'photo'; photoBoxUI(P); }
     // the phone's status bar takes the look's background (Classic and Minimal follow light/dark)
     const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
     for (const m of document.querySelectorAll('meta[name="theme-color"]')) {
       m.dataset.c ??= m.content;
       const dark = /dark/.test(m.media);
-      m.content = !db.skin ? m.dataset.c : db.skin === 'minimal' ? (dark ? '#0B0B0C' : '#FAFAF9') : bg;
+      m.content = !skin ? m.dataset.c : db.skin === 'minimal' ? (dark ? '#0B0B0C' : '#FAFAF9') : bg;
     }
   };
   if (db.skin && !$('skin').querySelector(`option[value="${db.skin}"]`)) db.skin = '';
   $('skin').value = db.skin || ''; applySkin();   // again here for the claude.ai page, which has no <head>
-  $('skin').addEventListener('change', e => { db.skin = e.target.value; save(); applySkin(); unfocus(e.target); });
+  $('skin').addEventListener('change', e => {
+    if (e.target.value === 'photo' && !photoGet()) try { photoSave(photoSeed()); } catch (err) {}
+    db.skin = e.target.value; save(); applySkin(); unfocus(e.target);
+  });
+  $('photoFile').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+    pcClose();   // its unsaved picks first, so the new photo is added to them
+    try {
+      const P = await photoMake(f);
+      photoSave(P);
+      db.skin = 'photo'; $('skin').value = 'photo'; save(); applySkin();
+      toast('Your photo is on, with colors taken from it');
+    } catch (err) { toast("Couldn't use that photo" + (err && err.message ? ': ' + err.message : '')); }
+  });
+  $('photoDim').addEventListener('input', e => {
+    const P = photoGet(); if (!P) return; P.dim = +e.target.value / 100;
+    try { photoSave(P); } catch (err) {}
+    document.documentElement.style.setProperty('--photo-dim', photoVars(P)['--photo-dim']);
+  });
   function phoneLayout() { return matchMedia('(max-width: 860px)').matches; }
   function showView(v) {
     if (!['timer', 'learn', 'account'].includes(v)) v = 'timer';   // an old #stats link opens the Timer page, where the stats are
@@ -2678,7 +2992,7 @@ body.running .acct-btn { visibility: hidden; }
       t = bld ? `Round over. Best ${fmt(avg)}, average of 5 ${fmt(avgOf(r, 5, 5))}: ${compTimes(r)}.`
         : `Round over. ${F.kind === 'mean' ? 'Mean' : 'Average'} ${fmt(avg)}, best single ${fmt(Math.min(...r.map(eff)))}: ${compTimes(r)}.`;
       if (avg !== Infinity && prev.length) t += avg < Math.min(...prev) ? ` Your best round in this session (was ${fmt(Math.min(...prev))}).` : ` Your best round here is ${fmt(Math.min(...prev))}.`;
-      if (avg < db.goal * 1000) t += ` Under your sub-${db.goal} goal.`;
+      if (goalOn() && avg < db.goal * 1000) t += ` Under your sub-${db.goal} goal.`;
       t += ' Your next solve is a normal one.';
     }
     note.hidden = false; note.textContent = t;
@@ -2798,8 +3112,11 @@ body.running .acct-btn { visibility: hidden; }
     const order = r.map((s, i) => i).sort((a, b) => { const x = eff(r[a]), y = eff(r[b]); return x === y ? 0 : x < y ? -1 : 1; }), out = new Set(order.slice(0, trim).concat(order.slice(n - trim)));
     return `ao${n}: ${fmt(avgOf(list, n, list.length))} = ` + r.map((s, i) => out.has(i) ? `(${fmtSolve(s)})` : fmtSolve(s)).join(' ');
   }
+  // the sub-X goal is a 3×3 goal (like the Goal splits it feeds): other events show no goal line, no sub-X share
+  function goalOn() { return ['333', 'oh'].includes(EV()); }
+  function goalMs() { return goalOn() ? db.goal * 1000 : null; }
   function renderStats() {
-    const list = solvesFor(db.event), L = list.length, goal = db.goal * 1000;
+    const list = solvesFor(db.event), L = list.length, goal = goalMs();
     $('evName').textContent = sessLabel(db.event);
     $('exampleNote').hidden = !showingExamples();
     document.querySelectorAll('.ex-tag').forEach(el => { el.hidden = !showingExamples(); });
@@ -2821,7 +3138,8 @@ body.running .acct-btn { visibility: hidden; }
     const ok = list.map(eff).filter(v => v !== Infinity);
     const mean = ok.length ? ok.reduce((a, b) => a + b, 0) / ok.length : null;
     const under = ok.filter(v => v < goal).length;
-    $('summary').innerHTML = `<span>Solves <b>${ok.length}/${L}</b></span><span>Mean <b>${fmt(mean)}</b></span><span>Sub-${db.goal} <b>${L ? Math.round(under / L * 100) : 0}%</b></span>`;
+    $('summary').innerHTML = `<span>Solves <b>${ok.length}/${L}</b></span><span>Mean <b>${fmt(mean)}</b></span>${goal ? `<span>Sub-${db.goal} <b>${L ? Math.round(under / L * 100) : 0}%</b></span>` : ''}`;
+    document.querySelectorAll('.goal-key').forEach(el => { el.hidden = !goal; });
     // each panel on its own: one bad record can't blank the rest, or the Backup panel you'd need to put it right
     for (const f of [renderTodayLine, sessCounts, () => renderTrend(list, goal), () => renderList(list, goal), renderLastActions, backupInfo, renderComp, achCheck, renderGoal, () => renderKpis(list), () => renderSpread(list, goal), renderCal, renderDeep]) try { f(); } catch (e) { console.error(e); }
   }
@@ -2878,6 +3196,139 @@ body.running .acct-btn { visibility: hidden; }
   }
   function unfold(k) { db.fold = db.fold || {}; if (db.fold[k] !== false) { db.fold[k] = false; save(); foldApply(); } }
   foldApply();
+
+  // ---------- arranging the boxes: Settings → Arrange boxes puts the side boxes in your own order (db.boxOrder, top first) ----------
+  const BOXES = [['smart', '#smartPanel', 'Smart cube'], ['stack', '#stackPanel', 'Stackmat'], ['session', '.session-panel', 'Session'],
+    ['goal', '#goalPanel', 'Goal splits'], ['trend', '#trend', 'Trend'], ['spread', '#spreadPanel', 'Time spread'], ['steps', '#splitsPanel', 'CFOP steps'],
+    ['cases', '#casesPanel', 'Last layer cases'], ['solves', '#solves', 'Solves'], ['cal', '#calPanel', 'Practice calendar'], ['ach', '#achPanel', 'Achievements']]
+    .map(([k, sel, name]) => { const e = document.querySelector('.side ' + sel); return { k, name, el: e && e.closest('.side > *') }; }).filter(b => b.el);
+  if (db.boxOrder !== undefined && !(Array.isArray(db.boxOrder) && db.boxOrder.every(k => typeof k === 'string'))) delete db.boxOrder;
+  // the order on screen now: your saved one (boxes it doesn't name keep their usual place after it), or the usual one from the CSS
+  function boxKeys() {
+    if (db.boxOrder) { const known = db.boxOrder.filter(k => BOXES.some(b => b.k === k)); return known.concat(BOXES.map(b => b.k).filter(k => !known.includes(k))); }
+    return BOXES.map((b, i) => ({ k: b.k, o: +getComputedStyle(b.el).order || 0, i })).sort((a, b) => a.o - b.o || a.i - b.i).map(b => b.k);
+  }
+  function boxApply() {
+    const keys = db.boxOrder ? boxKeys() : null;
+    for (const b of BOXES) b.el.style.order = keys ? keys.indexOf(b.k) - 50 : '';   // a connected device still jumps to the top (!important in the CSS)
+  }
+  // arranging: press and hold a box (or grab its ⠿ handle straight away) and it follows your finger, like the apps on a
+  // phone's home screen; the other boxes slide out of its way. A quick swipe still scrolls the page. ▲ and ▼ move one place.
+  let arrOn = false, arrOpen = null, arrDrag = null;
+  const arrBox = k => BOXES.find(b => b.k === k);
+  function arrHeads() {
+    for (const b of BOXES) {
+      b.el.querySelector(':scope > .arr-head')?.remove();
+      const h = document.createElement('div'); h.className = 'arr-head'; h.dataset.box = b.k;
+      h.innerHTML = `<span class="arr-grip" aria-hidden="true">⠿</span><span>${esc(b.name)}${b.el.hidden ? ' <small>shows once you have data</small>' : ''}</span>`
+        + `<button type="button" data-boxmv="-1" aria-label="Move ${esc(b.name)} up">▲</button>`
+        + `<button type="button" data-boxmv="1" aria-label="Move ${esc(b.name)} down">▼</button>`;
+      b.el.prepend(h);
+    }
+    arrSync();
+  }
+  function arrSync(moved) {
+    const keys = boxKeys();
+    for (const b of BOXES) {
+      const i = keys.indexOf(b.k), h = b.el.querySelector(':scope > .arr-head'); if (!h) continue;
+      h.querySelector('[data-boxmv="-1"]').disabled = !i; h.querySelector('[data-boxmv="1"]').disabled = i === keys.length - 1;
+      if (moved !== undefined) b.el.classList.toggle('arr-moved', b.k === moved);
+    }
+  }
+  function arrStart() {
+    if (arrOn || view !== 'timer' || state !== 'idle') return;
+    arrOn = true; setShut();
+    const ach = $('achPanel'); arrOpen = ach ? ach.open : null; if (ach) ach.open = true;   // a closed box would hide its handle
+    document.body.classList.add('arranging'); $('arrBar').hidden = false;
+    arrHeads();
+    document.querySelector('.side').scrollIntoView({ block: 'start', behavior: calm() ? 'auto' : 'smooth' });
+  }
+  function arrEnd() {
+    if (!arrOn) return;
+    arrDrop(); arrOn = false; document.body.classList.remove('arranging'); $('arrBar').hidden = true;
+    for (const b of BOXES) { b.el.querySelector(':scope > .arr-head')?.remove(); b.el.classList.remove('arr-moved', 'arr-drag'); b.el.style.transform = b.el.style.transition = ''; }
+    if ($('achPanel') && arrOpen !== null) $('achPanel').open = arrOpen;
+    scrollTo({ top: 0, behavior: calm() ? 'auto' : 'smooth' });
+    toast(db.boxOrder ? 'Your layout is saved' : 'The usual layout');
+  }
+  // moves box k to place 'to'; the boxes that shift slide there from where they were (all but the one you're holding)
+  function arrMove(k, to) {
+    const keys = boxKeys(), i = keys.indexOf(k); if (i < 0 || to < 0 || to >= keys.length || to === i) return false;
+    const was = new Map(BOXES.map(b => [b, b.el.offsetTop]));
+    keys.splice(i, 1); keys.splice(to, 0, k);
+    db.boxOrder = keys; boxApply(); arrSync(k);
+    if (!calm()) for (const b of BOXES) {
+      if (b.k === k) continue;
+      const d = was.get(b) - b.el.offsetTop; if (!d) continue;
+      b.el.style.transition = 'none'; b.el.style.transform = `translateY(${d}px)`;
+      b.el.getBoundingClientRect();
+      b.el.style.transition = 'transform .18s ease-out'; b.el.style.transform = '';
+    }
+    return true;
+  }
+  const side = document.querySelector('.side');
+  side.addEventListener('click', e => {
+    if (!arrOn) return;
+    const btn = e.target.closest('.arr-head [data-boxmv]'); if (!btn) return;
+    e.preventDefault();
+    const k = btn.closest('.arr-head').dataset.box, d = +btn.dataset.boxmv, el = arrBox(k).el, top = el.getBoundingClientRect().top;
+    if (!arrMove(k, boxKeys().indexOf(k) + d)) return;
+    save();
+    scrollBy(0, el.getBoundingClientRect().top - top);   // the box stays under your finger, so you can keep tapping
+    const again = el.querySelector(`.arr-head [data-boxmv="${d}"]`);
+    (again && !again.disabled ? again : el.querySelector('.arr-head [data-boxmv]:not(:disabled)')).focus({ preventScroll: true });
+  });
+  function arrLift(D) {
+    D.on = true; clearTimeout(D.timer);
+    D.base = D.el.offsetTop; D.grab = D.y + scrollY - D.base;
+    D.el.style.transition = 'none'; D.el.classList.add('arr-drag');
+    if (navigator.vibrate) try { navigator.vibrate(12); } catch (e) {}
+    D.raf = requestAnimationFrame(function edge() {   // near the top or bottom of the screen the page scrolls along
+      const d = D.y < 80 ? -12 : D.y > innerHeight - 150 ? 12 : 0;
+      if (d) { scrollBy(0, d); arrFollow(D); }
+      D.raf = requestAnimationFrame(edge);
+    });
+  }
+  function arrFollow(D) {
+    const keys = boxKeys(), i = keys.indexOf(D.k), mid = x => x.offsetTop + x.offsetHeight / 2;   // where boxes sit, not where they're sliding
+    const prev = i > 0 && arrBox(keys[i - 1]).el, next = i < keys.length - 1 && arrBox(keys[i + 1]).el;
+    const top = D.y + scrollY - D.grab, el = D.el, h = el.offsetHeight;
+    // its top edge passes the middle of the box above it, or its bottom edge the middle of the box below
+    if (prev && top < mid(prev)) arrMove(D.k, i - 1);
+    else if (next && top + h > mid(next)) arrMove(D.k, i + 1);
+    el.style.transform = `translateY(${top - el.offsetTop}px)`;
+  }
+  function arrDrop() {
+    const D = arrDrag; if (!D) return;
+    arrDrag = null; clearTimeout(D.timer); cancelAnimationFrame(D.raf);
+    if (!D.on) return;
+    const el = D.el; el.classList.remove('arr-drag');
+    el.style.transition = calm() ? 'none' : 'transform .16s ease-out'; el.style.transform = '';   // settles into its new place
+    save();
+  }
+  side.addEventListener('pointerdown', e => {
+    if (!arrOn || arrDrag || (e.button !== undefined && e.button !== 0) || e.target.closest('.arr-head button')) return;
+    const b = BOXES.find(x => x.el.contains(e.target)); if (!b) return;
+    const D = arrDrag = { k: b.k, el: b.el, id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, on: false };
+    if (e.target.closest('.arr-head') || e.pointerType === 'mouse') { e.preventDefault(); arrLift(D); }   // the handle bar, or a mouse: at once
+    else D.timer = setTimeout(() => { if (arrDrag === D) arrLift(D); }, 280);   // a finger: hold still for a moment first
+  });
+  addEventListener('pointermove', e => {
+    const D = arrDrag; if (!D || e.pointerId !== D.id) return;
+    D.x = e.clientX; D.y = e.clientY;
+    if (!D.on) { if (Math.hypot(D.x - D.sx, D.y - D.sy) > 8) { clearTimeout(D.timer); arrDrag = null; } return; }   // moved first: a scroll
+    e.preventDefault(); arrFollow(D);
+  });
+  addEventListener('pointerup', e => { if (arrDrag && e.pointerId === arrDrag.id) arrDrop(); });
+  addEventListener('pointercancel', e => { if (arrDrag && e.pointerId === arrDrag.id) arrDrop(); });
+  // while a box is held the page mustn't scroll under it (touchmove is the one event that can still stop that)
+  addEventListener('touchmove', e => { if (arrDrag && arrDrag.on) e.preventDefault(); }, { passive: false });
+  side.addEventListener('contextmenu', e => { if (arrOn) e.preventDefault(); });   // a long press is a pick-up, not a menu
+  $('boxMore').addEventListener('click', e => { unfocus(e.currentTarget); arrStart(); });
+  $('arrDone').addEventListener('click', arrEnd);
+  $('arrReset').addEventListener('click', e => { delete db.boxOrder; save(); boxApply(); arrSync(''); unfocus(e.currentTarget); });
+  document.addEventListener('keydown', e => { if (arrOn && e.key === 'Escape') { e.preventDefault(); arrEnd(); } });
+  boxApply();
   // ---------- goal splits: what each CFOP step should take for your sub-X goal ----------
   // A CFOP solve usually splits about 13% cross, 50% F2L, 17% OLL and 20% PLL (inspection not counted), with
   // roughly 8, 28, 10 and 12 moves. With smart-cube solves, your own average per step is shown beside it.
@@ -2918,7 +3369,7 @@ body.running .acct-btn { visibility: hidden; }
     const vals = singles.concat(ao5, ao12).filter(v => v !== null && v !== Infinity);
     if (!vals.length) { svg.innerHTML = ''; return; }
     const padL = Math.max(38, 10 + 6.7 * fmt(Math.max(...vals)).length);   // room for the longest axis label
-    let lo = Math.min(...vals, goal), hi = Math.max(...vals);
+    let lo = Math.min(...vals, goal ?? Infinity), hi = Math.max(...vals);
     if (goal > hi * 1.25) lo = Math.min(...vals);
     const span = (hi - lo) || 1000; lo -= span * 0.06; hi += span * 0.06;
     const X = i => padL + (W - padL - padR) * (i / (seg.length - 1));
@@ -3202,6 +3653,14 @@ body.running .acct-btn { visibility: hidden; }
     requestAnimationFrame(() => setTimeout(go, 0)); setTimeout(go, 100);
   }
   // fixedMs: a time from elsewhere (typed, Stackmat, the smart cube's turns); extra: more to keep on the solve
+  // after a solve on a phone: the whole scramble for the next solve stays on screen (a tall timer, such as one with the
+  // 3D cube, used to push it off the top), and the page scrolls down only as far as it can without hiding it
+  function scrAndResult() {
+    const c = $('scrCard').getBoundingClientRect(), s = stage.getBoundingClientRect();
+    if (c.top < 0 || c.bottom > innerHeight) { $('scrCard').scrollIntoView({ block: 'start' }); return; }
+    const down = Math.min(s.bottom - innerHeight, c.top - 8);
+    if (down > 0) scrollBy(0, down);
+  }
   function stop(fixedMs, extra) {
     const stopAt = performance.now(), ms = fixedMs !== undefined ? fixedMs : Math.round(stopAt - runStart);
     cancelAnimationFrame(raf); clearTimeout(limTimer); ignoreRelease = true; stoppedAt = stopAt;
@@ -3231,7 +3690,7 @@ body.running .acct-btn { visibility: hidden; }
     afterPaint(() => {
       newScramble();
       renderStats();
-      if (matchMedia('(max-width: 860px)').matches) stage.scrollIntoView({ block: 'nearest' });   // phones: the result and its buttons in view
+      if (matchMedia('(max-width: 860px)').matches) scrAndResult();   // phones: the next scramble, then as much of the result as fits
       const L = db.solves[ev] || []; if (!L.includes(solve)) return;   // deleted before the screen caught up: nothing to announce or coach
       const pb = L.length > 1 && eff(solve) !== Infinity && L.every(s => s === solve || eff(s) > eff(solve));   // better than every other (a tie isn't a PB)
       say(`${fmtSolve(solve)}${pb ? '. New PB' : ''}`);
@@ -3275,7 +3734,7 @@ body.running .acct-btn { visibility: hidden; }
   // a button reached with the keyboard: Space presses it rather than starting a timer
   const spaceForFocus = () => { const f = document.activeElement; return !!f && f !== document.body && f.matches('button, summary, a[href], [tabindex]') && f.matches(':focus-visible'); };
   document.addEventListener('keydown', e => {
-    if (view !== 'timer' || (typeof RACE !== 'undefined' && RACE.open)) return;
+    if (view !== 'timer' || (typeof RACE !== 'undefined' && RACE.open) || document.body.classList.contains('arranging')) return;
     if (!$('welcome').hidden || tourHasFocus()) return;   // first-visit card, or the tour's buttons: keys work them
     if (typing(e.target) && state !== 'running') return;
     if (e.repeat) { if (e.code === 'Space') e.preventDefault(); return; }
@@ -3295,7 +3754,7 @@ body.running .acct-btn { visibility: hidden; }
     else if (e.code === 'KeyN') { e.preventDefault(); newScramble(); }
   });
   document.addEventListener('keyup', e => {
-    if (view !== 'timer' || (typeof RACE !== 'undefined' && RACE.open)) return;
+    if (view !== 'timer' || (typeof RACE !== 'undefined' && RACE.open) || document.body.classList.contains('arranging')) return;
     if (!$('welcome').hidden || tourHasFocus()) return;
     if (ignoreRelease) { ignoreRelease = false; return; }
     if (typing(e.target)) return;
@@ -3315,7 +3774,7 @@ body.running .acct-btn { visibility: hidden; }
     fingers.add(e.pointerId); e.preventDefault(); e.stopPropagation(); press();
   }, true);
   stage.addEventListener('pointerdown', e => {
-    if (e.target.closest('button, .last-actions')) return;
+    if (e.target.closest('button, .last-actions') || document.body.classList.contains('arranging')) return;
     if (e.button !== undefined && e.button !== 0) return;
     if (e.isPrimary) fingers.clear();
     fingers.add(e.pointerId);
@@ -3375,15 +3834,15 @@ body.running .acct-btn { visibility: hidden; }
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.pen) setPen(+b.dataset.i, b.dataset.pen);
     else if (b.dataset.del !== undefined) del(+b.dataset.del);
-    else if (b.dataset.row !== undefined) { const i = +b.dataset.row; openIdx = openIdx === i ? -1 : i; renderList(solvesFor(db.event), db.goal * 1000); }
-    else if (b.dataset.listall !== undefined) { listAll = true; renderList(solvesFor(db.event), db.goal * 1000); }
+    else if (b.dataset.row !== undefined) { const i = +b.dataset.row; openIdx = openIdx === i ? -1 : i; renderList(solvesFor(db.event), goalMs()); }
+    else if (b.dataset.listall !== undefined) { listAll = true; renderList(solvesFor(db.event), goalMs()); }
     else if (b.id === 'clearAsk') { confirmClear = true; renderStats(); }
     else if (b.id === 'clearNo') { confirmClear = false; renderStats(); }
     else if (b.id === 'clearYes') {
       const ev = db.event, old = db.solves[ev]; db.solves[ev] = []; bury(old, true); save(); confirmClear = false; justSolved = false; openIdx = -1; solIdx = -1; renderStats();
       toast(`Deleted ${old.length} solve${old.length === 1 ? '' : 's'}`, () => { db.solves[ev] = old.concat(db.solves[ev]); bury(old, false); save(); renderStats(); });
     }
-    else if (b.dataset.trend !== undefined) { db.trendN = +b.dataset.trend; save(); renderTrend(solvesFor(db.event), db.goal * 1000); }
+    else if (b.dataset.trend !== undefined) { db.trendN = +b.dataset.trend; save(); renderTrend(solvesFor(db.event), goalMs()); }
     else if (b.dataset.avg !== undefined) { avgOpen = avgOpen === +b.dataset.avg ? 0 : +b.dataset.avg; renderStats(); }
     else if (b.id === 'avgCopy') { const t = $('avgBox').dataset.text; try { navigator.clipboard.writeText(t).then(() => toast('Average copied'), () => toast('Could not copy')); } catch (err) { toast('Could not copy'); } }
     else if (b.id === 'newScr') newScramble();
@@ -3400,14 +3859,14 @@ body.running .acct-btn { visibility: hidden; }
     else if (b.dataset.pllr) pllrAction(b.dataset.pllr);
     else if (b.dataset.llt) lltAction(b.dataset.llt);
     else if (b.dataset.fbt) fbtAction(b.dataset.fbt);
-    else if (b.dataset.sol !== undefined) { const i = +b.dataset.sol; solIdx = solIdx === i ? -1 : i; renderList(solvesFor(db.event), db.goal * 1000); }
+    else if (b.dataset.sol !== undefined) { const i = +b.dataset.sol; solIdx = solIdx === i ? -1 : i; renderList(solvesFor(db.event), goalMs()); }
     else if (b.dataset.solmine !== undefined) {
       const i = +b.dataset.solmine, s = db.solves[db.event][i], el = $('solMine' + i); if (!s || !el) return;
       const txt = el.value.trim().replace(/[’‘]/g, "'"), bad = Cube.tokens(txt).filter(t => !MOVE_RE.test(t));
       if (bad.length) { toast('Not recognized: ' + bad.join(' ') + ". Use moves like R U' F2."); return; }
-      s.my = txt; save(); renderList(solvesFor(db.event), db.goal * 1000);
+      s.my = txt; save(); renderList(solvesFor(db.event), goalMs());
     }
-    else if (b.dataset.save !== undefined) { const s = db.solves[db.event][+b.dataset.save]; if (s) { toggleSaved(s); renderList(solvesFor(db.event), db.goal * 1000); renderLastActions(); } }
+    else if (b.dataset.save !== undefined) { const s = db.solves[db.event][+b.dataset.save]; if (s) { toggleSaved(s); renderList(solvesFor(db.event), goalMs()); renderLastActions(); } }
     else if (b.dataset.sv) savedAction(b.dataset.sv);
     else if (b.dataset.plan) planAction(b.dataset.plan);
     else if (b.dataset.sol3d) {
@@ -3631,7 +4090,7 @@ body.running .acct-btn { visibility: hidden; }
     Object.assign(db, JSON.parse(before)); linkTrHist(); settingsUI(); save(); fillSessions(); renderStats(); if (view === 'learn') renderLearn();
   }
   // settings a Restore takes from its file (not the ones that belong to this device, like Pro testing or the last backup)
-  const SETTINGS = ['goal', 'inspection', 'voice', 'skin', 'stepTap', 'trendN', 'coach', 'l3', 'lessonPref', 'lessonShut', 'defMethod', 'fold', 'learnMode', 'trPic', 'casesSet', 'casesSort', 'casesFilter', 'compCut', 'compLim', 'bfPairs', 'bfSide', 'tpsDrill', 'zbSet', 'zbPage', 'pllrSec', 'pllrPool', 'pllrPic', 'pllrNames'];
+  const SETTINGS = ['boxOrder', 'goal', 'inspection', 'voice', 'skin', 'stepTap', 'trendN', 'coach', 'l3', 'lessonPref', 'lessonShut', 'defMethod', 'fold', 'learnMode', 'trPic', 'casesSet', 'casesSort', 'casesFilter', 'compCut', 'compLim', 'bfPairs', 'bfSide', 'tpsDrill', 'zbSet', 'zbPage', 'pllrSec', 'pllrPool', 'pllrPic', 'pllrNames'];
   // the controls show the settings again after a Restore or its Undo, so the next change doesn't write the old ones back
   function settingsUI() {
     const set = (id, p, v) => { const el = $(id); if (el) el[p] = v; };
@@ -3640,6 +4099,7 @@ body.running .acct-btn { visibility: hidden; }
     const cm = $('coachMode'); if (cm) { if (![...cm.options].some(o => o.value === db.coach)) db.coach = 'suggest'; cm.value = db.coach; }
     if (typeof l3Settings === 'function' && db.l3) l3Settings();
     foldApply();
+    if (typeof boxApply === 'function') boxApply();
   }
   // Adds another copy's data to this one. Solves are matched by time stamp. A deletion is remembered with its time, and a
   // solve or session changed after it (an Undo, a Restore, a penalty) stays. A penalty, a session's name or a learned mark
@@ -3732,6 +4192,7 @@ body.running .acct-btn { visibility: hidden; }
     if (user) {
       for (const k of SETTINGS) {
         const v = data[k];
+        if (k === 'boxOrder') { if (Array.isArray(v) && v.every(x => typeof x === 'string')) db.boxOrder = v.slice(0, 40); continue; }   // the only list among them
         if (v == null || Array.isArray(v) || (db[k] != null && typeof v !== typeof db[k])) continue;
         if (k === 'l3') { if (isObj(db.l3) && isObj(v)) Object.assign(db.l3, v); continue; }
         db[k] = v;
@@ -7031,7 +7492,7 @@ body.running .acct-btn { visibility: hidden; }
   });
   // what a connection is doing right now, shown while it connects and named if it fails
   var smartStepNow = '';
-  function smartStep(s) { smartStepNow = s; if (!SM.conn) $('smartState').textContent = 'connecting… ' + s; }
+  function smartStep(s) { smartStepNow = s; if (!SM.conn) $('smartState').textContent = 'connecting… ' + s; hwSync(); }
   function smartUI() {
     const c = SM.conn;
     $('smartState').textContent = c ? (c.deviceName || 'connected') + (SM.battery != null ? ` · ${SM.battery}%` : '') + (SM.gyroSeen ? ' · gyro' : '') : 'not connected';
@@ -7041,6 +7502,7 @@ body.running .acct-btn { visibility: hidden; }
     if (typeof quiz !== 'undefined' && quiz.conn !== !!c) { quiz.conn = !!c; quiz.T = null; if (quiz.phase !== 'done') quiz.phase = 'setup'; if (memoActive()) renderMemo(); }
     smartSetupShow();
     live3dShow();
+    hwSync();
   }
 
   // ---------- smart cube: a 3D cube on the timer that turns with yours ----------
@@ -7367,6 +7829,33 @@ body.running .acct-btn { visibility: hidden; }
   $('smartConnect').addEventListener('pointerdown', preloadGan);
   $('smartConnect').addEventListener('focus', preloadGan);
   $('smartConnect').addEventListener('click', smartConnect);
+  // the smart cube button in the top bar: it connects straight from the tap (Bluetooth needs the tap itself), and the
+  // panel scrolls into view only when it needs you: picking the cube, typing its address, or a failed connection
+  let hwWant = false;
+  function hwSync() {
+    const b = $('hwBtn'); if (!b) return;
+    const busy = !SM.conn && $('smartConnect').disabled, name = SM.conn && (SM.conn.deviceName || 'connected');
+    b.classList.toggle('on', !!SM.conn); b.classList.toggle('busy', busy);
+    b.title = b.ariaLabel = name ? 'Smart cube: ' + name : busy ? 'Connecting the smart cube…' : 'Connect smart cube';
+  }
+  function hwPanel() { unfold('smart'); $('smartPanel').scrollIntoView({ block: 'start', behavior: calm() ? 'auto' : 'smooth' }); }
+  $('hwBtn').hidden = !smartOk();
+  $('hwBtn').addEventListener('pointerdown', preloadGan);
+  $('hwBtn').addEventListener('focus', preloadGan);
+  $('hwBtn').addEventListener('click', e => {
+    unfocus(e.currentTarget);
+    if (SM.conn || $('smartConnect').disabled) { hwPanel(); return; }   // connected or connecting: show the panel (battery, 3D cube, Disconnect)
+    hwWant = true;
+    const p = smartConnect(); hwSync();
+    p.finally(() => {
+      hwWant = false; hwSync();
+      if (SM.conn) toast('Connected: ' + (SM.conn.deviceName || 'smart cube'));
+      else if (/^No cube was chosen/.test($('smartInfo').textContent)) toast('No cube was chosen');
+      else hwPanel();   // what went wrong, and how to fix it
+    });
+  });
+  new MutationObserver(() => { if (hwWant && (!$('smartPick').hidden || !$('smartMac').hidden)) hwPanel(); })
+    .observe($('smartPanel'), { subtree: true, attributes: true, attributeFilter: ['hidden'] });
   $('smartDisc').addEventListener('click', async () => { const c = SM.conn; smartCleanup(); try { await c.disconnect(); } catch (e) {} });
   $('smartReset').addEventListener('click', async () => {
     if (!SM.conn) return;
@@ -7577,6 +8066,7 @@ body.running .acct-btn { visibility: hidden; }
   // Settings: the gear at the top opens them in a sheet (the timer settings and the Look picker, moved in with their ids)
   $('setBody').append($('grpSettingsBox'));
   $('grpSettingsBox').insertBefore(document.querySelector('.skin-pick'), $('setBtns'));
+  $('grpSettingsBox').insertBefore($('photoBox'), $('setBtns'));
   function setOpen() { if (!$('setSheet').hidden) return; fsClose(); $('setSheet').hidden = false; dlgOpen($('setSheet'), $('setClose')); }
   function setShut() {
     if ($('setSheet').hidden) return;
@@ -8356,14 +8846,14 @@ body.running .acct-btn { visibility: hidden; }
     let g = '';
     const ny = Math.max(1, Math.ceil(top / 3));
     for (let n = 0; n <= top; n += ny) g += `<line x1="${Lp}" x2="${W - R}" y1="${Y(n).toFixed(1)}" y2="${Y(n).toFixed(1)}" stroke="var(--line)"/><text x="${Lp - 4}" y="${(Y(n) + 3).toFixed(1)}" text-anchor="end">${n}</text>`;
-    bins.forEach((n, i) => { if (n) g += `<rect x="${(Lp + i * bw + .5).toFixed(1)}" y="${Y(n).toFixed(1)}" width="${Math.max(1, bw - 1).toFixed(1)}" height="${(H - B - Y(n)).toFixed(1)}" rx="1.5" fill="var(--accent)" opacity="${lo + (i + 1) * w <= goal ? 1 : .55}"><title>${fmt(lo + i * w)} to ${fmt(lo + (i + 1) * w)}: ${n}</title></rect>`; });
+    bins.forEach((n, i) => { if (n) g += `<rect x="${(Lp + i * bw + .5).toFixed(1)}" y="${Y(n).toFixed(1)}" width="${Math.max(1, bw - 1).toFixed(1)}" height="${(H - B - Y(n)).toFixed(1)}" rx="1.5" fill="var(--accent)" opacity="${goal == null || lo + (i + 1) * w <= goal ? 1 : .55}"><title>${fmt(lo + i * w)} to ${fmt(lo + (i + 1) * w)}: ${n}</title></rect>`; });
     const lab = Math.max(1, Math.ceil(bins.length / 6));
     for (let i = 0; i <= bins.length; i += lab) g += `<text x="${X(lo + i * w).toFixed(1)}" y="${H - 4}" text-anchor="middle">${fmt(lo + i * w).replace(/\.00$/, '')}</text>`;
     const mean = ok.reduce((a, b) => a + b, 0) / ok.length;
     g += `<line x1="${X(mean).toFixed(1)}" x2="${X(mean).toFixed(1)}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-width="1.5"/>`;
     if (goal > lo && goal < hi) g += `<line x1="${X(goal).toFixed(1)}" x2="${X(goal).toFixed(1)}" y1="${T}" y2="${H - B}" stroke="var(--ready)" stroke-dasharray="4 3" stroke-width="1.5"/>`;
     $('spread').innerHTML = g;
-    $('spreadSub').textContent = `${Math.round(ok.filter(v => v < goal).length / ok.length * 100)}% sub-${db.goal}`;
+    $('spreadSub').textContent = goal ? `${Math.round(ok.filter(v => v < goal).length / ok.length * 100)}% sub-${db.goal}` : '';
   }
   // each smart-cube solve split into its steps once per page load: time, the pause to recognize it, turns
   const stepCache = new WeakMap();
