@@ -361,6 +361,14 @@ body.arranging .wrap { padding-bottom: 120px; }
 .sol .cross-try { margin: 0; }
 .sol-table { margin-top: 0; font-size: 13px; }
 .detail-table { margin-top: 0; font-size: 13px; }
+.detail-fold { margin-top: 10px; }
+.detail-fold > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; font-size: 14px; color: var(--muted); padding: 8px 10px; border-radius: 10px; background: var(--sunk); }
+.detail-fold > summary::-webkit-details-marker { display: none; }
+.detail-fold > summary span { flex: 1; min-width: 0; }
+.detail-fold > summary b { color: var(--ink); font-weight: 600; }
+.detail-fold > summary::after { content: "▾"; flex: none; font-size: 14px; transition: transform .15s; }
+.detail-fold:not([open]) > summary::after { transform: rotate(-90deg); }
+.detail-fold[open] > summary { margin-bottom: 8px; }
 .detail-table td small { display: block; color: var(--muted); font-size: 11px; }
 .detail-table tr.slow td { color: var(--hold); }
 .sol-table td small { display: block; color: var(--muted); font-size: 11px; font-family: var(--font-body); word-spacing: normal; }
@@ -9068,6 +9076,8 @@ body.running .hw-pop { display: none; }
     if (s.rot) $('lastSplitNote').textContent += ' ' + rotText(s) + '.';
     $('lastSplitLegend').hidden = !!p.manual;
     $('lastSplitMore').innerHTML = p.manual ? '' : solveDetailHtml(s);
+    const fold = $('lastSplitMore').querySelector('details');
+    if (fold) fold.addEventListener('toggle', () => { db.detailFold = !fold.open; save(); });   // stays as you left it
   }
   // Deeper numbers for one smart-cube solve, step by step: every stop of half a second or more (not only the one
   // before a step), and turns that went nowhere: U U', U U U (one U' would do) and checking the top (U back and forth).
@@ -9104,11 +9114,11 @@ body.running .hw-pop { display: none; }
     if (worstP.paused >= 1000) tips.push(`Most of your stopping was in ${worstP.stage} (${sec(worstP.paused)}): look for your next pieces while you finish the step before.`);
     if (d.checks >= 2) tips.push(`You turned the top back and forth ${d.checks} times to look at it. Try to spot the pieces from the side instead.`);
     else if (worstW.wasted >= 3) tips.push(`${worstW.stage} had ${worstW.wasted} wasted turns: plan it before you start turning.`);
-    return `<p class="lead" style="margin:10px 0 6px"><b>Paused ${sec(d.paused)}</b> (${Math.round(d.paused / Math.max(1, s.ms) * 100)}% of the solve) · <b>${d.wasted} wasted turn${d.wasted === 1 ? '' : 's'}</b> of ${d.turns}${d.checks ? ` · <b>${d.checks} top check${d.checks === 1 ? '' : 's'}</b>` : ''}</p>
+    return `<details class="detail-fold"${db.detailFold ? '' : ' open'}><summary><span><b>Paused ${sec(d.paused)}</b> (${Math.round(d.paused / Math.max(1, s.ms) * 100)}% of the solve) · <b>${d.wasted} wasted turn${d.wasted === 1 ? '' : 's'}</b> of ${d.turns}${d.checks ? ` · <b>${d.checks} top check${d.checks === 1 ? '' : 's'}</b>` : ''}</span></summary>
       <table class="phase-table detail-table"><thead><tr><th>Step</th><th class="num">Time</th><th class="num">Paused</th><th class="num">Wasted</th></tr></thead><tbody>${d.rows.map(r =>
         `<tr${r === worstP && r.paused >= 1000 ? ' class="slow"' : ''}><td>${esc(r.stage)}${r.note ? `<small>${esc(r.note)}</small>` : ''}</td><td class="num">${fmt(r.ms)}</td><td class="num">${sec(r.paused)}</td><td class="num">${r.wasted || '–'}${r.checks ? `<small>${r.checks} top check${r.checks === 1 ? '' : 's'}</small>` : ''}</td></tr>`).join('')}</tbody></table>
       ${tips.length ? `<p class="drill-note" style="margin-top:8px">${esc(tips.join(' '))}</p>` : ''}
-      <p class="drill-note">Paused counts every stop of half a second or more. Wasted turns cancel out (U U') or could be one turn (U U U is U').</p>`;
+      <p class="drill-note">Paused counts every stop of half a second or more. Wasted turns cancel out (U U') or could be one turn (U U U is U').</p></details>`;
   }
   function renderSplits() {
     renderLastSplit();
