@@ -978,6 +978,20 @@ body.running .acct-btn { visibility: hidden; }
   .top:has(.hw-btn:not([hidden])) .acct-btn { width: 40px; height: 40px; }
   .top:has(.hw-btn:not([hidden])) .set-btn ~ .acct-btn { margin-left: 0; }
 }
+/* the header never wraps: on the narrowest phones (or with large text) the round buttons and tabs shrink instead,
+   so the account button doesn't drop onto a line of its own and push the timer down */
+.top { flex-wrap: nowrap; }
+.top > .tabs { min-width: 0; }
+.top > .brand { white-space: nowrap; flex: none; }
+@media (max-width: 335px) { .top .acct-btn { width: 34px; height: 34px; } .tabs a { padding: 6px 5px; letter-spacing: .02em; } .top { column-gap: 4px; } }
+@media (max-width: 370px) {
+  .top { column-gap: 6px; }
+  .top .acct-btn { width: 36px; height: 36px; }
+  .top .acct-btn svg { width: 19px; height: 19px; }
+  .top .set-btn ~ .acct-btn, .top .hw-btn[hidden] ~ #setBtn ~ .acct-btn { margin-left: 0; }
+  .brand { font-size: 24px; }
+  .tabs a { padding: 6px 7px; font-size: 13px; }
+}
 .acct { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 .acct-title { margin: 4px 0 0; font-family: var(--font-display); font-size: 30px; font-weight: 700; }
 .acct .panel { border-radius: 20px; }
@@ -7640,7 +7654,18 @@ body.running .acct-btn { visibility: hidden; }
     if (s === 'eo') return SmartCore.f2lSolvedTop(st) && st.every(k => k.n[1] !== -1 || k.p.every(v => v !== 0) || k.col === 'D');
     return s === 'f2l' ? SmartCore.f2lSolvedTop(st) : s === 'oll' ? SmartCore.ollSolvedTop(st) : s === 'coll' ? SmartCore.ollSolvedTop(st) && cornersDoneBottom(st) : SmartCore.solvedUpToAuf(st);
   }
+  // A turn whose message never arrives leaves Sub-X (and the 3D cube) one turn off the real cube. So once you stop
+  // turning for a moment (not while the timer runs), ask the cube for its state: its FACELETS reply puts both right.
+  let smartAskT = 0;
+  function smartAskLater() {
+    clearTimeout(smartAskT);
+    smartAskT = setTimeout(() => {
+      const c = SM.conn; if (!c || state === 'running' || (c.capabilities && c.capabilities.facelets === false)) return;
+      try { Promise.resolve(c.sendCommand({ type: 'REQUEST_FACELETS' })).catch(() => {}); } catch (e) {}
+    }, 1200);
+  }
   function smartMove(m, ts, ev) {
+    if (ev) smartAskLater();   // (only for real turns from the cube)
     const before = SmartCore.clone(SM.cur);
     Cube.apply(SM.cur, 3, m); live3dMove(m);
     if (trainerActive() && trSmartMove(m)) return;
@@ -7737,7 +7762,8 @@ body.running .acct-btn { visibility: hidden; }
     else if (ev.type === 'FACELETS') {
       if (ev.facelets && ev.facelets.length !== 54) { smartNot3x3(); return; }   // a 2×2 smart cube
       if (state === 'running') return;
-      SM.cur = SmartCore.fromFacelets(ev.facelets); SM.fSerial = ev.serial ? ev.serial : null;   // 0 is unknown: some GAN cubes (iCarry 2) report 0 at move 255 if (live3dOn()) live3dSync();
+      SM.cur = SmartCore.fromFacelets(ev.facelets); SM.fSerial = ev.serial ? ev.serial : null;   // 0 is unknown: some GAN cubes (iCarry 2) report 0 at move 255
+      if (live3dOn()) live3dSync();   // the 3D cube on screen shows the cube's own state too, not only Sub-X's count of turns
       if (SM.T) { SmartCore.step(SM.T, SM.cur, null); smartShow(); if (SM.T.done) smartReadyGo(); }
       if (trainerActive() && TR.phase === 'scramble' && TR.track) { SmartCore.step(TR.track, SM.cur, null); renderTrainer(); }
       else if (exampleActive() && workedExamples[learnSet].track) { SmartCore.step(workedExamples[learnSet].track, SM.cur, null); renderExample(learnSet); }
@@ -9171,9 +9197,20 @@ body.running .acct-btn { visibility: hidden; }
   function achCheck() {
     if (!achReady) return;
     const S = achStats(), first = !db.ach, fresh = [];
-    db.ach = db.ach || {};
-    for (const [id, name, , ok] of ACH) if (!db.ach[id] && ok(S)) { db.ach[id] = Date.now(); fresh.push(name); }
-    if (fresh.length || first) save();
+    db.ach = db.ach || {}; db.achBy = db.achBy || {};
+    // each achievement remembers the newest solve when it was earned: delete that solve or give it a penalty, and
+    // if you no longer qualify, the achievement goes again (old ones without a solve, and lapsed streaks, stay)
+    const byT = new Map(Object.values(db.solves).flat().map(x => [x.t, x])), newest = Math.max(0, ...byT.keys()), lost = [];
+    for (const [id, name, , ok] of ACH) {
+      const t = db.achBy[id], s = t && byT.get(t);
+      if (db.ach[id] && t && (!s || s.pen) && !ok(S)) { delete db.ach[id]; delete db.achBy[id]; lost.push(name); }
+    }
+    for (const [id, name, , ok] of ACH) if (!db.ach[id] && ok(S)) { db.ach[id] = Date.now(); if (newest) db.achBy[id] = newest; fresh.push(name); }
+    if (fresh.length || lost.length || first) save();
+    if (lost.length && !fresh.length) {   // after the Delete toast and its Undo, like a new one
+      const msg = `Achievement taken back: ${lost[0]}${lost.length > 1 ? ` (and ${lost.length - 1} more)` : ''}`;
+      const show = () => { if ($('toast').hidden) { if (lost.every(n => !ACH.some(a => a[1] === n && db.ach[a[0]]))) toast(msg); } else setTimeout(show, 500); }; setTimeout(show, 50);
+    }
     if (fresh.length && !first) {   // waits while another message shows (a time-limit DNF, an Undo), rather than replacing it
       const msg = `Achievement: ${fresh[0]}${fresh.length > 1 ? ` (and ${fresh.length - 1} more)` : ''}`;
       const show = () => { if ($('toast').hidden) toast(msg); else setTimeout(show, 500); }; show();

@@ -978,6 +978,20 @@ body.racing { overflow: hidden; }
 [data-skin="terminal"] .stage[data-s="idle"] .clock::after { content: "_"; position: absolute; left: 100%; bottom: 0; margin-left: .05em; animation: blink 1s steps(2) infinite; }
 /* the next scramble move is a block cursor */
 [data-skin="terminal"] .snext { background: var(--ink); color: var(--bg); text-decoration: none; text-shadow: none; box-shadow: 0 0 10px rgb(76 255 122 / .5); padding: 0 .12em; }
+/* the header never wraps: on the narrowest phones (or with large text) the round buttons and tabs shrink instead,
+   so the account button doesn't drop onto a line of its own and push the timer down */
+.top { flex-wrap: nowrap; }
+.top > .tabs { min-width: 0; }
+.top > .brand { white-space: nowrap; flex: none; }
+@media (max-width: 335px) { .top .acct-btn { width: 34px; height: 34px; } .tabs a { padding: 6px 5px; letter-spacing: .02em; } .top { column-gap: 4px; } }
+@media (max-width: 370px) {
+  .top { column-gap: 6px; }
+  .top .acct-btn { width: 36px; height: 36px; }
+  .top .acct-btn svg { width: 19px; height: 19px; }
+  .top .set-btn ~ .acct-btn, .top .hw-btn[hidden] ~ #setBtn ~ .acct-btn { margin-left: 0; }
+  .brand { font-size: 24px; }
+  .tabs a { padding: 6px 7px; font-size: 13px; }
+}
 [data-skin="terminal"] .stats td.best { font-weight: 600; }
 [data-skin="terminal"] .lights i { border-color: var(--muted); }
 [data-skin="terminal"] .stage[data-s="holding"] .lights .l-red, [data-skin="terminal"] .stage[data-s="ready"] .lights .l-red { box-shadow: 0 0 10px var(--hold); }
@@ -6310,9 +6324,20 @@ body.racing { overflow: hidden; }
   function achCheck() {
     if (!achReady) return;
     const S = achStats(), first = !db.ach, fresh = [];
-    db.ach = db.ach || {};
-    for (const [id, name, , ok] of ACH) if (!db.ach[id] && ok(S)) { db.ach[id] = Date.now(); fresh.push(name); }
-    if (fresh.length || first) save();
+    db.ach = db.ach || {}; db.achBy = db.achBy || {};
+    // each achievement remembers the newest solve when it was earned: delete that solve or give it a penalty, and
+    // if you no longer qualify, the achievement goes again (old ones without a solve, and lapsed streaks, stay)
+    const byT = new Map(Object.values(db.solves).flat().map(x => [x.t, x])), newest = Math.max(0, ...byT.keys()), lost = [];
+    for (const [id, name, , ok] of ACH) {
+      const t = db.achBy[id], s = t && byT.get(t);
+      if (db.ach[id] && t && (!s || s.pen) && !ok(S)) { delete db.ach[id]; delete db.achBy[id]; lost.push(name); }
+    }
+    for (const [id, name, , ok] of ACH) if (!db.ach[id] && ok(S)) { db.ach[id] = Date.now(); if (newest) db.achBy[id] = newest; fresh.push(name); }
+    if (fresh.length || lost.length || first) save();
+    if (lost.length && !fresh.length) {   // after the Delete toast and its Undo, like a new one
+      const msg = `Achievement taken back: ${lost[0]}${lost.length > 1 ? ` (and ${lost.length - 1} more)` : ''}`;
+      const show = () => { if ($('toast').hidden) { if (lost.every(n => !ACH.some(a => a[1] === n && db.ach[a[0]]))) toast(msg); } else setTimeout(show, 500); }; setTimeout(show, 50);
+    }
     if (fresh.length && !first) {   // waits while another message shows (a time-limit DNF, an Undo), rather than replacing it
       const msg = `Achievement: ${fresh[0]}${fresh.length > 1 ? ` (and ${fresh.length - 1} more)` : ''}`;
       const show = () => { if ($('toast').hidden) toast(msg); else setTimeout(show, 500); }; show();
