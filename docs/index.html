@@ -7781,8 +7781,13 @@ body.running .acct-btn { visibility: hidden; }
   // rules in the Firebase project). A sync fetches it, merges it in like Restore does, and saves the result back.
   // It runs a few seconds after a change, when Sub-X comes back to the front, and after signing in.
   // The Android app signs in with Google's own sign-in (Google doesn't allow its web page inside apps).
-  const FB_CFG = { apiKey: 'AIzaSyAGbAs1nJ_Td0yP8jnQSmB2QG7NcDhquOQ', authDomain: 'sub-x-feb6b.firebaseapp.com', projectId: 'sub-x-feb6b', appId: '1:230721435029:web:e8b7bae166cfd05081b29c' };
+  // authDomain is this site: Firebase's sign-in helper is served from bluex7710.github.io/__/auth/ (the repo
+  // BlueX7710/bluex7710.github.io), so browsers that block third-party storage (all of iOS) can still sign in
+  const FB_CFG = { apiKey: 'AIzaSyAGbAs1nJ_Td0yP8jnQSmB2QG7NcDhquOQ', authDomain: 'bluex7710.github.io', projectId: 'sub-x-feb6b', appId: '1:230721435029:web:e8b7bae166cfd05081b29c' };
   const FB_URL = 'https://www.gstatic.com/firebasejs/12.19.0/';
+  // iPhone/iPad browsers, which sign in by redirect, but only once the sign-in helper is served from this same site
+  // (authDomain = this host): from another domain WebKit blocks its storage and a redirect never comes back
+  const IOS_WEB = !NATIVE && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)) && FB_CFG.authDomain === location.hostname;
   const SYNC_KEY = 'subx-sync', PART = 900000;   // Firestore keeps up to 1 MB in a document, so big data goes in parts
   const syncHere = NATIVE || ['bluex7710.github.io', 'localhost'].includes(location.hostname);
   var SY = { fb: null, user: null, busy: false, again: false, timer: 0, seen: null, pushed: '', err: '' };
@@ -7817,14 +7822,28 @@ body.running .acct-btn { visibility: hidden; }
         const tok = r && r.credential && r.credential.idToken; if (!tok) throw new Error('Google sent no sign-in token');
         await F.auth.signInWithCredential(F.A, F.auth.GoogleAuthProvider.credential(tok));
       } else {
-        try { await F.auth.signInWithPopup(F.A, google); }
-        catch (e) { if (/popup-blocked|operation-not-supported/.test(e && e.code)) await F.auth.signInWithRedirect(F.A, google); else throw e; }
+        // iPhone and iPad browsers (all WebKit, Bluefy included) lose popups and the result often never comes back,
+        // so they sign in by redirect; elsewhere a popup, falling back to a redirect when it's blocked
+        const redirect = () => { setSyncState({ pending: Date.now() }); return F.auth.signInWithRedirect(F.A, google); };
+        if (IOS_WEB) await redirect();
+        else try { await F.auth.signInWithPopup(F.A, google); }
+        catch (e) { if (/popup-blocked|operation-not-supported/.test(e && e.code)) await redirect(); else throw e; }
       }
     } catch (e) {
       const m = String((e && (e.code || e.message)) || e);
       if (!/cancel|closed-by-user|popup-closed|12501/i.test(m)) toast(navigator.onLine ? "Couldn't sign in (" + m.replace(/^auth\//, '') + ')' : "You're offline. Connect to the internet to sign in.");
     }
     $('syncBtn').disabled = false; syncUI();
+  }
+  // After a redirect sign-in the page loads afresh: finish it here (a first sign-in has no "on" yet, so nothing else
+  // would load Firebase), and say why when it failed instead of looking signed out
+  async function syncRedirectBack() {
+    setSyncState({ pending: 0 });
+    try { const F = await fbLoad(); await F.auth.getRedirectResult(F.A); }
+    catch (e) {
+      const m = String((e && (e.code || e.message)) || e);
+      if (!/cancel|closed-by-user|popup-closed/i.test(m)) toast("Couldn't sign in (" + m.replace(/^auth\//, '') + ')');
+    }
   }
   async function syncSignOut() {
     const F = SY.fb; if (!F) return;
@@ -7985,6 +8004,7 @@ body.running .acct-btn { visibility: hidden; }
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SY.user) syncNow(); });
     window.addEventListener('online', () => { if (SY.user) syncNow(); });
     if (syncState().on) fbLoad().catch(() => {});   // signed in before: Firebase remembers who, then syncs
+    else if (Date.now() - (syncState().pending || 0) < 15 * 60000) syncRedirectBack();   // back from a sign-in redirect
   }
   syncUI();
 
