@@ -1,0 +1,36 @@
+rules_version = '2';
+// Sub-X Firestore rules: each person can only read and write their own data, nothing else exists.
+// Paste into Firebase console → Firestore Database → Rules → Publish (project sub-x-feb6b).
+// What the app stores (docs/index.html, "sync" and "Send feedback"):
+//   users/{uid}                 the synced backup (or its header when split)
+//   users/{uid}/parts/{n}       pieces of a large backup
+//   users/{uid}/feedback/{id}   feedback the person sent (only the developer reads it, in the console)
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function me(uid) { return request.auth != null && request.auth.uid == uid; }
+
+    match /users/{uid} {
+      allow read, write: if me(uid);
+
+      match /parts/{n} {
+        allow read, write: if me(uid) && n.matches('^[0-9]{1,3}$');
+      }
+
+      // feedback: write once, never read back or changed from the app (Delete account may remove it)
+      match /feedback/{id} {
+        allow create: if me(uid)
+          && request.resource.data.keys().hasOnly(['kind', 'text', 'info', 'at'])
+          && request.resource.data.text is string && request.resource.data.text.size() <= 4000
+          && request.resource.data.kind is string && request.resource.data.kind.size() <= 20
+          && request.resource.data.at is int;
+        allow read, delete: if me(uid);
+        allow update: if false;
+      }
+    }
+
+    // everything else: closed
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

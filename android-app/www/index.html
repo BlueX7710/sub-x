@@ -4212,7 +4212,7 @@ body.running .hw-pop { display: none; }
       for (const s of keep) if (s.t in db.gone) delete db.gone[s.t];   // changed after it was deleted: it stays, here and on the next sync
     }
     for (const [k, s] of Object.entries(O(data.sessions))) {
-      if (!isObj(s) || !EVENTS[s.event] || EVENTS[k]) continue;
+      if (!isObj(s) || !EVENTS[s.event] || EVENTS[k] || !/^s[a-z0-9]{1,24}$/.test(k)) continue;   // a session's key is 's' + letters and digits, nothing else (it goes into the page)
       const mine = db.sessions[k], e = Number.isFinite(s.e) ? s.e : 0;
       if (mine) { if (e > (mine.e || 0) && mine.event === s.event) { mine.name = String(s.name || mine.name).slice(0, 30); mine.e = e; changed++; } continue; }
       if (k in db.goneSess && db.goneSess[k] > e) continue;
@@ -4315,6 +4315,8 @@ body.running .hw-pop { display: none; }
     catch (e) { toast("Couldn't make the file. Try Save backup instead."); }
   });
   async function receiveMove(z) {
+    // a link can come from anyone: ask before adding its times to yours
+    if (!confirm("This link adds someone's Sub-X times to this device. Only continue if you sent it to yourself. Add them?")) return;
     try { restoreBackup(JSON.parse(await unzip(z))); }
     catch (e) { toast("That link didn't come through whole. Send it again, or use a backup file."); }
   }
@@ -4322,7 +4324,7 @@ body.running .hw-pop { display: none; }
   // ---------- sessions ----------
   function fillSessions() {
     const ev = EV(), keys = [ev].concat(Object.keys(db.sessions).filter(k => db.sessions[k].event === ev));
-    $('session').innerHTML = keys.map(k => `<option value="${k}">${esc(db.sessions[k] ? db.sessions[k].name : 'Main')} (${(db.solves[k] || []).length})</option>`).join('');
+    $('session').innerHTML = keys.map(k => `<option value="${esc(k)}">${esc(db.sessions[k] ? db.sessions[k].name : 'Main')} (${(db.solves[k] || []).length})</option>`).join('');
     $('session').value = db.event;
     $('sessRename').disabled = $('sessDelete').disabled = !db.sessions[db.event];
   }

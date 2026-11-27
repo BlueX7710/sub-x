@@ -20,3 +20,11 @@ android-app/android/app/src/main/assets/capacitor.plugins.json
 # Working copy of the claude.ai artifact (tracked copy lives in claude-ai/)
 /sub-x-cube-timer.html
 /cube.js
+
+# Secrets: never commit
+*.jks
+*.keystore
+keystore.properties
+.env
+.env.*
+.dev.vars
