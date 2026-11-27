@@ -8690,12 +8690,15 @@ body.running .hw-pop { display: none; }
     }
   }
   const proUser = () => proTest ? proTest.user || null : SY.user;
+  // The saved copy is only a convenience for opening offline, and anyone can edit localStorage: trust it only if it was
+  // checked with the store in the last 7 days (not in the future), and its paid time ends within a year of that check.
+  function proCacheOk(c) { const now = Date.now(), k = +c.checked || 0, u = +(c.st && c.st.until) || 0; return k > 0 && k <= now + 6e4 && now - k < 7 * 864e5 && (!c.st.active || (u > 0 && u - k < 400 * 864e5)); }
   if (PRO.on) {   // what the store said last time, for opening offline (asked again once you're signed in)
-    try { const c = JSON.parse(localStorage.getItem(PRO_KEY)); if (c && c.st && (proTest || syncState().on)) Object.assign(PRO, { st: c.st, uid: c.uid, checked: c.checked || 0 }); } catch (e) {}
+    try { const c = JSON.parse(localStorage.getItem(PRO_KEY)); if (c && c.st && (proTest || syncState().on) && proCacheOk(c)) Object.assign(PRO, { st: c.st, uid: c.uid, checked: c.checked || 0 }); } catch (e) {}
   }
   function proSave() { try { if (PRO.st && PRO.uid) localStorage.setItem(PRO_KEY, JSON.stringify({ uid: PRO.uid, st: PRO.st, checked: PRO.checked })); else localStorage.removeItem(PRO_KEY); } catch (e) {} }
   // Pro is on: the store says so, with two spare days in case it renews while you're offline
-  function proStoreActive() { const s = PRO && PRO.st; return !!(s && s.active && (!s.until || s.until + 2 * 864e5 > Date.now())); }
+  function proStoreActive() { const s = PRO && PRO.st; return !!(s && s.active && s.until && s.until + 2 * 864e5 > Date.now()); }   // Pro plans always end (monthly or yearly), so no end date means not Pro
 
   // what a store says, in one shape for both: { active, until, trial, renew, manage }
   function proFrom(ci) {
@@ -8772,7 +8775,7 @@ body.running .hw-pop { display: none; }
     const u = proUser();
     if (!u) { if (PRO.st) { PRO.st = null; PRO.uid = null; proSave(); } proApply(); return; }
     const old = PRO.st && PRO.st.until && PRO.st.until < Date.now();   // it has run out or renewed: find out which
-    if (!force && !old && PRO.uid === u.uid && PRO.checked && Date.now() - PRO.checked < (proStoreActive() ? 6 * 36e5 : 6e5)) { proApply(); return; }
+    if (!force && !old && PRO.uid === u.uid && PRO.checked && PRO.checked <= Date.now() && Date.now() - PRO.checked < (proStoreActive() ? 6 * 36e5 : 6e5)) { proApply(); return; }
     if (PRO.uid !== u.uid) { PRO.st = null; PRO.uid = null; }   // someone else signed in
     try { PRO.st = await STORE.info(); PRO.uid = u.uid; PRO.checked = Date.now(); PRO.err = ''; proSave(); }
     catch (e) { PRO.err = "Couldn't check your subscription (" + proErrText(e) + ')'; }   // keep what it said last time
