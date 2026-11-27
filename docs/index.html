@@ -9183,11 +9183,12 @@ body.running .hw-pop { display: none; }
   function renderCases() {
     const panel = $('casesPanel'); if (!panel) return;
     const table = caseTable(null, 500);
-    const rows = [...table.values()].filter(x => x.id.startsWith(dashLL + ':')).map(x => {
+    const pre = dashLL === 'oll' ? 'ollf:' : 'pll:';   // the solve analyser names OLL cases from the full set of 57 (ollf:1 to ollf:57)
+    const rows = [...table.values()].filter(x => x.id.startsWith(pre)).map(x => {
       const c = caseById(x.id), best = Math.min(...x.runs.map(r => r.r + r.e));
       return c && { c, seen: x.seen, avg: x.r + x.e, look: x.r, best };
     }).filter(Boolean).sort((a, b) => b.avg - a.avg);
-    const any = [...table.keys()].some(id => id.startsWith('pll:') || id.startsWith('oll:'));
+    const any = [...table.keys()].some(id => id.startsWith('pll:') || id.startsWith('ollf:'));
     panel.hidden = !any; if (!any) return;
     proCover(panel, proLocked(), 'Your last-layer cases are part of Pro');
     document.querySelectorAll('[data-dashll]').forEach(b => b.setAttribute('aria-pressed', b.dataset.dashll === dashLL));
