@@ -8454,7 +8454,11 @@ body.running .hw-pop { display: none; }
   const nativeAuth = () => NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication;
   async function syncSignIn() {
     if (NATIVE && !nativeAuth()) { toast('Signing in needs the newest Sub-X app: get it from github.com/BlueX7710/sub-x/releases.'); return; }
+    // A popup that never reports back (Edge with tracking prevention, a closed popup Firebase misses) left the button
+    // locked for good: unlock it after a few seconds, and a second click while the popup hangs signs in by redirect
+    const again = SY.popupAt && Date.now() - SY.popupAt < 120000;
     $('syncBtn').disabled = true;
+    const unlock = setTimeout(() => { $('syncBtn').disabled = false; }, 4000);
     try {
       const F = await fbLoad(), P = nativeAuth(), google = new F.auth.GoogleAuthProvider();
       if (P) {
@@ -8472,15 +8476,16 @@ body.running .hw-pop { display: none; }
         // iPhone and iPad browsers (all WebKit, Bluefy included) lose popups and the result often never comes back,
         // so they sign in by redirect; elsewhere a popup, falling back to a redirect when it's blocked
         const redirect = () => { setSyncState({ pending: Date.now() }); return F.auth.signInWithRedirect(F.A, google); };
-        if (IOS_WEB) await redirect();
-        else try { await F.auth.signInWithPopup(F.A, google); }
-        catch (e) { if (/popup-blocked|operation-not-supported/.test(e && e.code)) await redirect(); else throw e; }
+        if (IOS_WEB || again) await redirect();
+        else try { SY.popupAt = Date.now(); await F.auth.signInWithPopup(F.A, google); }
+        catch (e) { if (/popup-blocked|operation-not-supported|web-storage-unsupported/.test(e && e.code)) await redirect(); else throw e; }
+        finally { SY.popupAt = 0; }
       }
     } catch (e) {
       const m = String((e && (e.code || e.message)) || e);
       if (!/cancel|closed-by-user|popup-closed|12501/i.test(m)) toast(navigator.onLine ? "Couldn't sign in (" + m.replace(/^auth\//, '') + ')' : "You're offline. Connect to the internet to sign in.");
     }
-    $('syncBtn').disabled = false; syncUI();
+    clearTimeout(unlock); $('syncBtn').disabled = false; syncUI();
   }
   // After a redirect sign-in the page loads afresh: finish it here (a first sign-in has no "on" yet, so nothing else
   // would load Firebase), and say why when it failed instead of looking signed out
